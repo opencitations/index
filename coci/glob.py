@@ -117,18 +117,24 @@ def process(input_dir, output_dir):
                                 citing_doi_with_no_date.add(citing_doi)
 
                         if id_issn.get_value(citing_doi) is None:
-                            if "type" in obj and "journal" in obj["type"] and "ISSN" in obj:
-                                for issn in [issn_manager.normalise(issn) for issn in obj["ISSN"]]:
-                                    if issn is not None:
-                                        id_issn.add_value(citing_doi, issn)
+                            if "type" in obj:
+                                cur_type = obj["type"]
+                                if cur_type is not None and "journal" in cur_type and "ISSN" in obj:
+                                    cur_issn = obj["ISSN"]
+                                    if cur_issn is not None:
+                                        for issn in [issn_manager.normalise(issn) for issn in cur_issn]:
+                                            if issn is not None:
+                                                id_issn.add_value(citing_doi, issn)
 
                         if id_orcid.get_value(citing_doi) is None:
                             if "author" in obj:
-                                for author in obj['author']:
-                                    if "ORCID" in author:
-                                        orcid = orcid_manager.normalise(author["ORCID"])
-                                        if orcid is not None:
-                                            id_orcid.add_value(citing_doi, orcid)
+                                cur_author = obj['author']
+                                if cur_author is not None:
+                                    for author in cur_author:
+                                        if "ORCID" in author:
+                                            orcid = orcid_manager.normalise(author["ORCID"])
+                                            if orcid is not None:
+                                                id_orcid.add_value(citing_doi, orcid)
 
     # Do it again for updating the dates of the cited DOIs, if these are valid
     doi_date = {}
