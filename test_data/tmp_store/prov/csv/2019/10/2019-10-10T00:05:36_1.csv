@@ -1,0 +1,5 @@
+oci,snapshot,agent,source,created,invalidated,description,update
+02001000308362819371213133704040001020809-020010009063615193700006300030306151914,1,https://w3id.org/oc/index/prov/ra/1,https://api.crossref.org/works/10.1038/sj.cdd.4401289,2018-11-01T09:14:03,,Creation of the citation,
+02001000002361927283705040000-02001000002361927283705030002,1,https://w3id.org/oc/index/prov/ra/1,https://api.crossref.org/works/10.1002/jrs.5400,2018-11-01T14:51:52,,Creation of the citation,
+02001000002361927283705040000-020010003093612062710020603000720,1,https://w3id.org/oc/index/prov/ra/1,https://api.crossref.org/works/10.1002/jrs.5400,2018-11-01T14:51:52,,Creation of the citation,
+02001000308362819371213133704040001020804-02001000308362819371213133704040000030707,1,https://w3id.org/oc/index/prov/ra/1,https://api.crossref.org/works/10.1038/sj.cdd.4401284,2018-11-01T09:14:03,,Creation of the citation,

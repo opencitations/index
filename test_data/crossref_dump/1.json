@@ -1,0 +1,531 @@
+{
+	"items": [{
+		"indexed": {
+			"date-parts": [
+				[2019, 8, 21]
+			],
+			"date-time": "2019-08-21T02:12:15Z",
+			"timestamp": 1566353535418
+		},
+		"reference-count": 40,
+		"publisher": "Emerald",
+		"issue": "2",
+		"license": [{
+			"URL": "http:\/\/www.emeraldinsight.com\/page\/tdm",
+			"start": {
+				"date-parts": [
+					[2015, 3, 9]
+				],
+				"date-time": "2015-03-09T00:00:00Z",
+				"timestamp": 1425859200000
+			},
+			"delay-in-days": 0,
+			"content-version": "tdm"
+		}],
+		"content-domain": {
+			"domain": [],
+			"crossmark-restriction": false
+		},
+		"short-container-title": ["Journal of Documentation"],
+		"published-print": {
+			"date-parts": [
+				[2015, 3, 9]
+			]
+		},
+		"DOI": "10.1108\/jd-12-2013-0166",
+		"type": "journal-article",
+		"created": {
+			"date-parts": [
+				[2015, 2, 18]
+			],
+			"date-time": "2015-02-18T11:58:08Z",
+			"timestamp": 1424260688000
+		},
+		"page": "253-277",
+		"source": "Crossref",
+		"is-referenced-by-count": 22,
+		"title": ["Setting our bibliographic references free: towards open citation data"],
+		"prefix": "10.1108",
+		"volume": "71",
+		"author": [{
+			"given": "Silvio",
+			"family": "Peroni",
+			"sequence": "first",
+			"affiliation": [],
+			"ORCID": "https://orcid.org/0000-0003-0530-4305"
+		}, {
+			"given": "Alexander",
+			"family": "Dutton",
+			"sequence": "additional",
+			"affiliation": []
+		}, {
+			"given": "Tanya",
+			"family": "Gray",
+			"sequence": "additional",
+			"affiliation": []
+		}, {
+			"given": "David",
+			"family": "Shotton",
+			"sequence": "additional",
+			"affiliation": []
+		}],
+		"member": "140",
+		"reference": [{
+			"key": "b1",
+			"DOI": "10.1023\/A:1021919228368",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b4",
+			"DOI": "10.1093\/bioinformatics",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b5",
+			"DOI": "10.1042\/BJ20091474",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b7",
+			"DOI": "10.1016\/j.websem.2013.05.001",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b9",
+			"DOI": "10.1523\/JNEUROSCI.0003-08.2008",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b11",
+			"DOI": "10.1371\/journal.pcbi.0010034",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b12",
+			"unstructured": "Brinkac, L.M. , Davidsen, T. , Beck, E. , Ganapathy, A. , Caler, E. , Dodson, R.J. and Sutton, G. (2009), \u201cPathema: a clade-specific bioinformatics resource center for pathogen research\u201d,Nucleic Acids Research, 38(Database), Vol. 38 No. S1, pp. D408-D414."
+		}, {
+			"key": "b14",
+			"unstructured": "Cameron, R.D. (1997), \u201cA universal citation database as a catalyst for reform in scholarly communication\u201d,First Monday, Vol. 2 No. 4, available at: http:\/\/firstmonday.org\/ojs\/index.php\/fm\/article\/view\/522\/443 (accessed 24 February 2014).",
+			"DOI": "10.5210\/fm.v2i4.522",
+			"doi-asserted-by": "crossref"
+		}, {
+			"key": "b17",
+			"DOI": "10.5539\/ass.v9n5p18",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b21",
+			"DOI": "10.1108\/EUM0000000007123",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b22",
+			"DOI": "10.1136\/bmj.a568",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b25",
+			"DOI": "10.1126\/science.149.3683.510",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b100",
+			"DOI": "10.1007\/s11192-009-0021-2",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b31",
+			"DOI": "10.1001\/jama.295.1.90",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b32",
+			"DOI": "10.1073\/pnas.0407743101",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b33",
+			"DOI": "10.1136\/bmj.b2680",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b34",
+			"DOI": "10.1038\/502298a",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b36",
+			"unstructured": "Harnad, S. and Brody, T. (2004), \u201cComparing the impact of open access (OA) vs non-OA articles in the same journals\u201d,D-Lib Magazine, Vol. 10 No. 6, doi:10.1045\/june2004-harnad."
+		}, {
+			"key": "b40",
+			"DOI": "10.1038\/35079151",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b41",
+			"DOI": "10.1108\/JD-07-2012-0082",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b42",
+			"DOI": "10.1002\/(SICI)1097-4571(198909)40:5<342::AID-ASI7>3.0.CO;2-U",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b43",
+			"DOI": "10.1145\/1498765.1498780",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b45",
+			"DOI": "10.1177\/030631277500500106",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b49",
+			"DOI": "10.1016\/j.websem.2012.08.001",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b53",
+			"unstructured": "Piwowar, H. (2013), \u201cAltmetrics: value all research products\u201d,Nature, Vol. 493 No. 7431, pp. 159-159.",
+			"DOI": "10.1038\/493159a",
+			"doi-asserted-by": "crossref"
+		}, {
+			"key": "b52",
+			"DOI": "10.7717\/peerj.175",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b51",
+			"DOI": "10.1371\/journal.pone.0000308",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b54",
+			"DOI": "10.1038\/495437a",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b56",
+			"DOI": "10.1007\/s10579-012-9211-2",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b57",
+			"DOI": "10.1371\/journal.pntd.0000228",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b59",
+			"unstructured": "Roemer, R.C. and Borchardt, R. (2012), \u201cFrom bibliometrics to altmetrics: a changing scholarly landscape\u201d,College & Research Libraries News, Vol. 73 No. 10, pp. 596-600, available at: http:\/\/crln.acrl.org\/content\/73\/10\/596.full (accessed 24 February 2014).",
+			"DOI": "10.5860\/crln.73.10.8846",
+			"doi-asserted-by": "crossref"
+		}, {
+			"key": "b60",
+			"DOI": "10.1087\/2009202",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b61",
+			"DOI": "10.1038\/502295a",
+			"doi-asserted-by": "publisher",
+			"year": "2013"
+		}, {
+			"key": "b62",
+			"DOI": "10.1371\/journal.pcbi.1000361",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b63",
+			"DOI": "10.1101\/SQB.1972.036.01.015",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b64",
+			"DOI": "10.1002\/asi.4630240406",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b65",
+			"DOI": "10.1177\/030631277400400102",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "b67",
+			"unstructured": "Teufel, S. , Siddharthan, A. and Tidhar, D. (2006), \u201cAutomatic classification of citation function\u201d, Proceedings of the 2006 Conference on Empirical Methods in Natural Language Processing (EMNLP 06), Association for Computational Linguistics, Stroudsburg, PA, pp. 103-110.",
+			"DOI": "10.3115\/1610075.1610091",
+			"doi-asserted-by": "crossref"
+		}, {
+			"key": "b71",
+			"DOI": "10.1007\/BF02457980",
+			"doi-asserted-by": "publisher"
+		}, {
+			"key": "frd1",
+			"DOI": "10.1525\/bio.2010.60.5.2",
+			"doi-asserted-by": "publisher"
+		}],
+		"container-title": ["Journal of Documentation"],
+		"original-title": [],
+		"language": "en",
+		"link": [{
+			"URL": "http:\/\/www.emeraldinsight.com\/doi\/full-xml\/10.1108\/JD-12-2013-0166",
+			"content-type": "unspecified",
+			"content-version": "vor",
+			"intended-application": "text-mining"
+		}, {
+			"URL": "http:\/\/www.emeraldinsight.com\/doi\/full\/10.1108\/JD-12-2013-0166",
+			"content-type": "unspecified",
+			"content-version": "vor",
+			"intended-application": "similarity-checking"
+		}],
+		"deposited": {
+			"date-parts": [
+				[2019, 8, 21]
+			],
+			"date-time": "2019-08-21T01:41:41Z",
+			"timestamp": 1566351701000
+		},
+		"score": 1.0,
+		"subtitle": [],
+		"short-title": [],
+		"issued": {
+			"date-parts": [
+				[2015, 3, 9]
+			]
+		},
+		"references-count": 40,
+		"journal-issue": {
+			"published-print": {
+				"date-parts": [
+					[2015, 3, 9]
+				]
+			},
+			"issue": "2"
+		},
+		"alternative-id": ["10.1108\/JD-12-2013-0166"],
+		"URL": "http:\/\/dx.doi.org\/10.1108\/jd-12-2013-0166",
+		"relation": {
+			"cites": []
+		},
+		"ISSN": ["0022-0418"],
+		"issn-type": [{
+			"value": "0022-0418",
+			"type": "print"
+		}],
+		"subject": ["Library and Information Sciences", "Information Systems"]
+	},
+	{
+		"indexed": {
+			"date-parts": [
+				[2019, 9, 27]
+			],
+			"date-time": "2019-09-27T15:25:59Z",
+			"timestamp": 1569597959242
+		},
+		"reference-count": 27,
+		"publisher": "Elsevier BV",
+		"license": [{
+			"URL": "https:\/\/www.elsevier.com\/tdm\/userlicense\/1.0\/",
+			"start": {
+				"date-parts": [
+					[2013, 5, 1]
+				],
+				"date-time": "2013-05-01T00:00:00Z",
+				"timestamp": 1367366400000
+			},
+			"delay-in-days": 0,
+			"content-version": "tdm"
+		}, {
+			"URL": "http:\/\/creativecommons.org\/licenses\/by\/3.0\/",
+			"start": {
+				"date-parts": [
+					[2013, 7, 17]
+				],
+				"date-time": "2013-07-17T00:00:00Z",
+				"timestamp": 1374019200000
+			},
+			"delay-in-days": 77,
+			"content-version": "vor"
+		}],
+		"funder": [{
+			"DOI": "10.13039\/501100000266",
+			"name": "Engineering and Physical Sciences Research Council",
+			"doi-asserted-by": "crossref",
+			"award": ["EP\/G026238\/"]
+		}, {
+			"name": "Dutch NWO CATCH",
+			"award": []
+		}, {
+			"name": "EU eContentPlus programmes",
+			"award": []
+		}],
+		"content-domain": {
+			"domain": [],
+			"crossmark-restriction": false
+		},
+		"short-container-title": ["Journal of Web Semantics"],
+		"published-print": {
+			"date-parts": [
+				[2013, 5]
+			]
+		},
+		"DOI": "10.1016\/j.websem.2013.05.001",
+		"type": "journal-article",
+		"created": {
+			"date-parts": [
+				[2013, 5, 10]
+			],
+			"date-time": "2013-05-10T20:15:22Z",
+			"timestamp": 1368216922000
+		},
+		"page": "35-49",
+		"source": "Crossref",
+		"is-referenced-by-count": 36,
+		"title": ["Key choices in the design of Simple Knowledge Organization System (SKOS)"],
+		"prefix": "10.1016",
+		"volume": "20",
+		"author": [{
+			"given": "Thomas",
+			"family": "Baker",
+			"sequence": "first",
+			"affiliation": []
+		}, {
+			"given": "Sean",
+			"family": "Bechhofer",
+			"sequence": "additional",
+			"affiliation": []
+		}, {
+			"given": "Antoine",
+			"family": "Isaac",
+			"sequence": "additional",
+			"affiliation": []
+		}, {
+			"given": "Alistair",
+			"family": "Miles",
+			"sequence": "additional",
+			"affiliation": []
+		}, {
+			"given": "Guus",
+			"family": "Schreiber",
+			"sequence": "additional",
+			"affiliation": []
+		}, {
+			"given": "Ed",
+			"family": "Summers",
+			"sequence": "additional",
+			"affiliation": []
+		}],
+		"member": "78",
+		"container-title": ["Journal of Web Semantics"],
+		"original-title": [],
+		"language": "en",
+		"link": [{
+			"URL": "https:\/\/api.elsevier.com\/content\/article\/PII:S1570826813000176?httpAccept=text\/xml",
+			"content-type": "text\/xml",
+			"content-version": "vor",
+			"intended-application": "text-mining"
+		}, {
+			"URL": "https:\/\/api.elsevier.com\/content\/article\/PII:S1570826813000176?httpAccept=text\/plain",
+			"content-type": "text\/plain",
+			"content-version": "vor",
+			"intended-application": "text-mining"
+		}],
+		"deposited": {
+			"date-parts": [
+				[2018, 11, 15]
+			],
+			"date-time": "2018-11-15T07:12:12Z",
+			"timestamp": 1542265932000
+		},
+		"score": 1.0,
+		"subtitle": [],
+		"short-title": [],
+		"issued": {
+			"date-parts": [
+				[2013, 5]
+			]
+		},
+		"references-count": 27,
+		"alternative-id": ["S1570826813000176"],
+		"URL": "http:\/\/dx.doi.org\/10.1016\/j.websem.2013.05.001",
+		"relation": {},
+		"ISSN": ["1570-8268"],
+		"issn-type": [{
+			"value": "1570-8268",
+			"type": "print"
+		}]
+	},
+	{
+		"indexed": {
+			"date-parts": [
+				[2019, 9, 14]
+			],
+			"date-time": "2019-09-14T05:23:15Z",
+			"timestamp": 1568438595866
+		},
+		"reference-count": 29,
+		"publisher": "Elsevier BV",
+		"license": [{
+			"URL": "https:\/\/www.elsevier.com\/tdm\/userlicense\/1.0\/",
+			"start": {
+				"date-parts": [
+					[2012, 12, 1]
+				],
+				"date-time": "2012-12-01T00:00:00Z",
+				"timestamp": 1354320000000
+			},
+			"delay-in-days": 0,
+			"content-version": "tdm"
+		}],
+		"funder": [{
+			"name": "JISC (Joint Informations Systems Committee)",
+			"award": []
+		}],
+		"content-domain": {
+			"domain": [],
+			"crossmark-restriction": false
+		},
+		"short-container-title": ["Journal of Web Semantics"],
+		"published-print": {
+			"date-parts": [
+				[2012, 12]
+			]
+		},
+		"DOI": "10.1016\/j.websem.2012.08.001",
+		"type": "journal-article",
+		"created": {
+			"date-parts": [
+				[2012, 8, 13]
+			],
+			"date-time": "2012-08-13T16:04:47Z",
+			"timestamp": 1344873887000
+		},
+		"page": "33-43",
+		"source": "Crossref",
+		"is-referenced-by-count": 69,
+		"title": ["FaBiO and CiTO: Ontologies for describing bibliographic resources and citations"],
+		"prefix": "10.1016",
+		"volume": "17",
+		"author": [{
+			"given": "Silvio",
+			"family": "Peroni",
+			"sequence": "first",
+			"affiliation": []
+		}, {
+			"given": "David",
+			"family": "Shotton",
+			"sequence": "additional",
+			"affiliation": []
+		}],
+		"member": "78",
+		"container-title": ["Journal of Web Semantics"],
+		"original-title": [],
+		"language": "en",
+		"link": [{
+			"URL": "https:\/\/api.elsevier.com\/content\/article\/PII:S1570826812000790?httpAccept=text\/xml",
+			"content-type": "text\/xml",
+			"content-version": "vor",
+			"intended-application": "text-mining"
+		}, {
+			"URL": "https:\/\/api.elsevier.com\/content\/article\/PII:S1570826812000790?httpAccept=text\/plain",
+			"content-type": "text\/plain",
+			"content-version": "vor",
+			"intended-application": "text-mining"
+		}],
+		"deposited": {
+			"date-parts": [
+				[2019, 7, 2]
+			],
+			"date-time": "2019-07-02T20:24:32Z",
+			"timestamp": 1562099072000
+		},
+		"score": 1.0,
+		"subtitle": [],
+		"short-title": [],
+		"issued": {
+			"date-parts": [
+				[2012, 12]
+			]
+		},
+		"references-count": 29,
+		"alternative-id": ["S1570826812000790"],
+		"URL": "http:\/\/dx.doi.org\/10.1016\/j.websem.2012.08.001",
+		"relation": {},
+		"ISSN": ["1570-8268"],
+		"issn-type": [{
+			"value": "1570-8268",
+			"type": "print"
+		}],
+		"subject": ["Human-Computer Interaction", "Computer Networks and Communications", "Software"]
+	}]
+}
