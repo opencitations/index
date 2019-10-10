@@ -21,6 +21,7 @@ from urllib.parse import unquote, quote
 from requests import get
 from json import loads
 from index.storer.csvmanager import CSVManager
+from requests import ReadTimeout
 
 
 class DOIManager(IdentifierManager):
@@ -64,10 +65,16 @@ class DOIManager(IdentifierManager):
     def __doi_exists(self, doi_full):
         doi = self.normalise(doi_full)
         if self.use_api_service:
-            r = get(self.api + quote(doi), headers=self.headers, timeout=30)
-            if r.status_code == 200:
-                r.encoding = "utf-8"
-                json_res = loads(r.text)
-                return json_res.get("responseCode") == 1
+            tentative = 3
+            while tentative:
+                tentative -= 1
+                try:
+                    r = get(self.api + quote(doi), headers=self.headers, timeout=30)
+                    if r.status_code == 200:
+                        r.encoding = "utf-8"
+                        json_res = loads(r.text)
+                        return json_res.get("responseCode") == 1
+                except ReadTimeout:
+                    pass  # Do nothing, just try again
 
         return False
