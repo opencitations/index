@@ -27,6 +27,7 @@ from json import loads, load
 from rdflib import Graph, ConjunctiveGraph
 from rdflib.namespace import RDF
 from urllib.parse import quote
+from collections import OrderedDict
 
 
 class CitationStorer(object):
@@ -198,11 +199,11 @@ class CitationStorer(object):
     @staticmethod
     def __load_citations_from_csv_file(data_f_path, prov_f_path, baseurl, service_name,
                                        id_type, id_shape, citation_type):
-        citation_data = {}
+        citation_data = OrderedDict()
         with open(data_f_path) as f:
             for row in DictReader(f):
                 citation_data[row["oci"]] = row
-        citation_prov = {}
+        citation_prov = OrderedDict()
         with open(prov_f_path) as f:
             for row in DictReader(f):
                 citation_prov[row["oci"]] = row
@@ -251,7 +252,6 @@ class CitationStorer(object):
             for en in citation_data.objects(cit_ent, Citation.has_citation_time_span):
                 timespan = str(en)
 
-
             c = Citation(sub("^.+/ci/(.+)$", "\\1", str(cit_ent)),
                          str(list(citation_data.objects(cit_ent, Citation.has_citing_entity))[0]), None,
                          str(list(citation_data.objects(cit_ent, Citation.has_cited_entity))[0]), None,
@@ -268,7 +268,8 @@ class CitationStorer(object):
             yield c
 
     @staticmethod
-    def __load_citations_from_slx_file(data_f_path, oci, service_name, id_type, id_shape, citation_type, agent, source):
+    def __load_citations_from_slx_file(data_f_path, oci, service_name, id_type, id_shape,
+                                       citation_type, agent, source):
         with open(data_f_path) as f:
             citation_data = load(f)
 
