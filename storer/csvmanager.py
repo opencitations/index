@@ -70,7 +70,7 @@ class CSVManager(object):
         header = None
 
         for csv_path in list_of_csv_files:
-            with open(csv_path) as f:
+            with open(csv_path, encoding="utf-8") as f:
                 csv_content = ""
                 for idx, line in enumerate(f.readlines()):
                     if header is None:
