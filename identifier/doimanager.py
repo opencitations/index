@@ -53,7 +53,7 @@ class DOIManager(IdentifierManager):
                 else:
                     self.valid_doi.add_value(doi, "i")
 
-            return self.valid_doi.get_value(doi) == {"v"}
+            return "v" in self.valid_doi.get_value(doi)
 
     def normalise(self, id_string, include_prefix=False):
         try:

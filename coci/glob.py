@@ -158,6 +158,7 @@ def process(input_dir, output_dir):
 
     # Add the date to the DOI if such date is the most adopted one in the various references.
     # In case two distinct dates are used the most, select the older one.
+    print("doi_date length:", len(doi_date), "\nciting_doi_with_no_date lenght:", len(citing_doi_with_no_date))
     for doi in doi_date:
         count = Counter(doi_date[doi])
         if len(count):
