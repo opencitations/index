@@ -96,10 +96,13 @@ def process(input_dir, output_dir):
     orcid_manager = ORCIDManager()
 
     all_files = get_all_files(input_dir)
+    len_all_files = len(all_files)
 
     # Read all the JSON file in the Crossref dump to create the main information of all the indexes
-    for file in all_files:
+    print("\n\n# Add valid DOIs from Crossref metadata")
+    for file_idx, file in enumerate(all_files, 1):
         with open(file) as f:
+            print("Open file %s of %s" % (file_idx, len_all_files))
             data = load(f)
             if "items" in data:
                 for obj in data['items']:
@@ -137,9 +140,11 @@ def process(input_dir, output_dir):
                                                 id_orcid.add_value(citing_doi, orcid)
 
     # Do it again for updating the dates of the cited DOIs, if these are valid
+    print("\n\n# Check cited DOIs from Crossref reference field")
     doi_date = {}
-    for file in all_files:
+    for file_idx, file in enumerate(all_files, 1):
         with open(file) as f:
+            print("Open file %s of %s" % (file_idx, len_all_files))
             data = load(f)
             if "items" in data:
                 for obj in data['items']:
@@ -158,7 +163,6 @@ def process(input_dir, output_dir):
 
     # Add the date to the DOI if such date is the most adopted one in the various references.
     # In case two distinct dates are used the most, select the older one.
-    print("doi_date length:", len(doi_date), "\nciting_doi_with_no_date lenght:", len(citing_doi_with_no_date))
     for doi in doi_date:
         count = Counter(doi_date[doi])
         if len(count):

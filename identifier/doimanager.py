@@ -57,7 +57,7 @@ class DOIManager(IdentifierManager):
 
     def normalise(self, id_string, include_prefix=False):
         try:
-            doi_string = sub("\s+", "", unquote(id_string[id_string.index("10."):]))
+            doi_string = sub("\0+", "", sub("\s+", "", unquote(id_string[id_string.index("10."):])))
             return "%s%s" % (self.p if include_prefix else "", doi_string.lower().strip())
         except:  # Any error in processing the DOI will return None
             return None
