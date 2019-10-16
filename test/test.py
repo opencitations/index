@@ -7,7 +7,7 @@ count = 0
 
 with open(i) as f:
     with open(o, "w") as g:
-        for r in f.readline():
+        for r in f.readlines():
             if search("\0+", r) is None:
                 g.write(r)
             else:
