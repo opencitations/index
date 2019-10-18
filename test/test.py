@@ -1,16 +1,11 @@
-from re import search
+from re import sub
 
-i = "/srv/data/glob/valid_doi.bak"
-o = "/srv/data/glob/valid_doi.csv"
+existing_doi = set()
 
-count = 0
-
-with open(i) as f:
-    with open(o, "w") as g:
+with open("/srv/data/glob/id_date.csv") as f:
+    with open("/srv/data/glob/id_date_nodup.csv") as g:
         for r in f.readlines():
-            if search("\0+", r) is None:
+            doi = sub('^"(.+)",".*"$', r)
+            if doi not in existing_doi:
+                existing_doi.add(doi)
                 g.write(r)
-            else:
-                count += 1
-
-print("N. of problematic rows:", count)
