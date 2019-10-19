@@ -1,0 +1,221 @@
+[
+{
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "Target": {
+        "PublicationDate": "2001-01",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1096/fj.00-0336fje",
+            "IDURL": "http://dx.doi.org/10.1096/fj.00-0336fje",
+            "IDScheme": "doi"
+        }
+    },
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "LinkPublicationDate": "2019-10-19T16:55:00",
+    "Source": {
+        "PublicationDate": "2003-10-24",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1038/sj.cdd.4401289",
+            "IDURL": "http://dx.doi.org/10.1038/sj.cdd.4401289",
+            "IDScheme": "doi"
+        }
+    }
+},
+{
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "Target": {
+        "PublicationDate": "2017-12-05",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1002/jrs.5302",
+            "IDURL": "http://dx.doi.org/10.1002/jrs.5302",
+            "IDScheme": "doi"
+        }
+    },
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "LinkPublicationDate": "2019-10-19T16:55:00",
+    "Source": {
+        "PublicationDate": "2018-06",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1002/jrs.5400",
+            "IDURL": "http://dx.doi.org/10.1002/jrs.5400",
+            "IDScheme": "doi"
+        }
+    }
+},
+{
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "Target": {
+        "PublicationDate": "2017",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1039/c6ra26307k",
+            "IDURL": "http://dx.doi.org/10.1039/c6ra26307k",
+            "IDScheme": "doi"
+        }
+    },
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "LinkPublicationDate": "2019-10-19T16:55:00",
+    "Source": {
+        "PublicationDate": "2018-06",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1002/jrs.5400",
+            "IDURL": "http://dx.doi.org/10.1002/jrs.5400",
+            "IDScheme": "doi"
+        }
+    }
+},
+{
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "Target": {
+        "PublicationDate": "1998-05-22",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1038/sj.cdd.4400377",
+            "IDURL": "http://dx.doi.org/10.1038/sj.cdd.4400377",
+            "IDScheme": "doi"
+        }
+    },
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "LinkPublicationDate": "2019-10-19T16:55:00",
+    "Source": {
+        "PublicationDate": "2003-08-22",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1038/sj.cdd.4401284",
+            "IDURL": "http://dx.doi.org/10.1038/sj.cdd.4401284",
+            "IDScheme": "doi"
+        }
+    }
+},
+{
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "Target": {
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1109/cmpeur.1989.93443",
+            "IDURL": "http://dx.doi.org/10.1109/cmpeur.1989.93443",
+            "IDScheme": "doi"
+        }
+    },
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "LinkPublicationDate": "2019-10-19T16:55:00",
+    "Source": {
+        "PublicationDate": "2002-06-21",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1002/pola.10301",
+            "IDURL": "http://dx.doi.org/10.1002/pola.10301",
+            "IDScheme": "doi"
+        }
+    }
+},
+{
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "Target": {
+        "PublicationDate": "2009-06",
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1134/s1028334x09040217",
+            "IDURL": "http://dx.doi.org/10.1134/s1028334x09040217",
+            "IDScheme": "doi"
+        }
+    },
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "LinkPublicationDate": "2019-10-19T16:55:00",
+    "Source": {
+        "Type": {
+            "Name": "literature"
+        },
+        "Identifier": {
+            "ID": "10.1130/2015.2513(00)",
+            "IDURL": "http://dx.doi.org/10.1130/2015.2513%2800%29",
+            "IDScheme": "doi"
+        }
+    }
+}]

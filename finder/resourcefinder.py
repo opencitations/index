@@ -116,16 +116,17 @@ class ApiDOIResourceFinder(ResourceFinder):
             if csv_manager.get_value(doi) is None:
                 json_obj = self._call_api(doi)
 
-                for issn in self._get_issn(json_obj):
-                    self.issn.add_value(doi, issn)
+                if json_obj is not None:
+                    for issn in self._get_issn(json_obj):
+                        self.issn.add_value(doi, issn)
 
-                if self.date.get_value(doi) is None:
-                    pub_date = self._get_date(json_obj)
-                    if pub_date is not None:
-                        self.date.add_value(doi, pub_date)
+                    if self.date.get_value(doi) is None:
+                        pub_date = self._get_date(json_obj)
+                        if pub_date is not None:
+                            self.date.add_value(doi, pub_date)
 
-                for orcid in self._get_orcid(json_obj):
-                    self.orcid.add_value(doi, orcid)
+                    for orcid in self._get_orcid(json_obj):
+                        self.orcid.add_value(doi, orcid)
 
             return csv_manager.get_value(doi)
 

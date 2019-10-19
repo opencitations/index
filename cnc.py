@@ -32,7 +32,7 @@ from index.storer.citationstorer import CitationStorer
 
 
 def execute_workflow(idbaseurl, baseurl, python, pclass, input, doi_file, date_file,
-                     orcid_file, issn_file, orcid, lookup, data, prefix, agent, source, service, verbose):
+                     orcid_file, issn_file, orcid, lookup, data, prefix, agent, source, service, verbose, no_api):
     BASE_URL = idbaseurl
     DATASET_URL = baseurl + "/" if not baseurl.endswith("/") else baseurl
 
@@ -47,11 +47,14 @@ def execute_workflow(idbaseurl, baseurl, python, pclass, input, doi_file, date_f
     id_orcid = CSVManager(csv_path=orcid_file)
     id_issn = CSVManager(csv_path=issn_file)
 
-    doi_manager = DOIManager(valid_doi)
-    crossref_rf = CrossrefResourceFinder(date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi)
-    datacite_rf = DataCiteResourceFinder(date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi)
-    orcid_rf = ORCIDResourceFinder(date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi,
-                                   use_api_service=True if orcid is not None else False, key=orcid)
+    doi_manager = DOIManager(valid_doi, use_api_service=not no_api)
+    crossref_rf = CrossrefResourceFinder(
+        date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi, use_api_service=not no_api)
+    datacite_rf = DataCiteResourceFinder(
+        date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi, use_api_service=not no_api)
+    orcid_rf = ORCIDResourceFinder(
+        date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi,
+        use_api_service=True if orcid is not None and not no_api else False, key=orcid)
 
     rf_handler = ResourceFinderHandler([crossref_rf, datacite_rf, orcid_rf])
     oci_manager = OCIManager(lookup_file=lookup)
@@ -168,12 +171,14 @@ if __name__ == "__main__":
                             help="The name of the service that will made available the citation data.")
     arg_parser.add_argument("-v", "--verbose", action="store_true", default=False,
                             help="Print the messages on screen.")
+    arg_parser.add_argument("-na", "--no_api", action="store_true", default=False,
+                            help="Tell the tool explicitly not to use the APIs of the various finders.")
 
     args = arg_parser.parse_args()
     new_citations_added, citations_already_present, error_in_dois_existence = \
         execute_workflow(args.idbaseurl, args.baseurl, args.python, args.pclass, args.input, args.doi_file,
                          args.date_file, args.orcid_file, args.issn_file, args.orcid, args.lookup, args.data,
-                         args.prefix, args.agent, args.source, args.service, args.verbose)
+                         args.prefix, args.agent, args.source, args.service, args.verbose, args.no_api)
 
     print("\n# Summary\n"
           "Number of new citations added to the OpenCitations Index: %s\n"

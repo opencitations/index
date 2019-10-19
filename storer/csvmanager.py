@@ -90,7 +90,7 @@ class CSVManager(object):
         """It returns the set of values associated to the input 'id_string',
         or None if 'id_string' is not included in the CSV."""
         if id_string in self.data:
-            return self.data[id_string]
+            return set(self.data[id_string])
 
     def add_value(self, id_string, value):
         """It adds the value specified in the set of values associated to 'id_string'.

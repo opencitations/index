@@ -46,6 +46,7 @@ class CreateNewCitationsTest(unittest.TestCase):
         self.source = "https://api.crossref.org/works/[[citing]]"
         self.service = "OpenCitations Index: COCI"
         self.verbose = True
+        self.no_api = False
 
         self.citation_list = self.__load_citations("index%stest_data%scitations_data.csv" % (sep, sep),
                                                    "index%stest_data%scitations_prov.csv" % (sep, sep))
@@ -77,7 +78,7 @@ class CreateNewCitationsTest(unittest.TestCase):
         new_citations_added, citations_already_present, error_in_dois_existence = \
             execute_workflow(self.idbaseurl, self.baseurl, self.python, self.pclass, self.input, self.doi_file,
                              self.date_file, self.orcid_file, self.issn_file, self.orcid, self.lookup, self.data,
-                             self.prefix, self.agent, self.source, self.service, self.verbose)
+                             self.prefix, self.agent, self.source, self.service, self.verbose, self.no_api)
         self.assertEqual(new_citations_added, 6)
         self.assertEqual(citations_already_present, 0)
         self.assertEqual(error_in_dois_existence, 0)
@@ -86,7 +87,7 @@ class CreateNewCitationsTest(unittest.TestCase):
         new_citations_added, citations_already_present, error_in_dois_existence = \
             execute_workflow(self.idbaseurl, self.baseurl, self.python, self.pclass, self.input, self.doi_file,
                              self.date_file, self.orcid_file, self.issn_file, self.orcid, self.lookup, self.data,
-                             self.prefix, self.agent, self.source, self.service, self.verbose)
+                             self.prefix, self.agent, self.source, self.service, self.verbose, self.no_api)
         self.assertEqual(new_citations_added, 0)
         self.assertEqual(citations_already_present, 6)
         self.assertEqual(error_in_dois_existence, 0)
