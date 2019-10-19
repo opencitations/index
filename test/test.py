@@ -12,6 +12,7 @@ with open("/srv/data/glob/id_date.csv") as f:
         else:
             try:
                 d = sub('^"[^"]+","([^,]*)"$', "\\1", r)
-                citing_pub_datetime = parse(d, default=DEFAULT_DATE)
+                if d != "":
+                    citing_pub_datetime = parse(d, default=DEFAULT_DATE)
             except:
                 print(r)
