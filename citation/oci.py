@@ -130,13 +130,21 @@ class Citation(object):
         self.citing_url = citing_url
         self.cited_url = cited_url
         self.duration = Citation.check_duration(timespan)
-        self.creation_date = Citation.check_date(creation)
+        self.creation_date = Citation.check_date(creation[:10] if creation else creation)
         self.author_sc = "yes" if author_sc else "no"
         self.journal_sc = "yes" if journal_sc else "no"
         self.citing_pub_date = Citation.check_date(citing_pub_date[:10] if citing_pub_date else citing_pub_date)
         self.cited_pub_date = Citation.check_date(cited_pub_date[:10] if cited_pub_date else cited_pub_date)
 
         self.citation_type = citation_type if citation_type in CITATION_TYPES else DEFAULT_CITATION_TYPE
+
+        # Set uniformly all the time-related data in a citation
+        if self.citing_pub_date is None and self.creation_date is not None:
+            self.citing_pub_date = self.creation_date
+        if self.cited_pub_date is None and self.creation_date is not None and self.duration:
+            self.cited_pub_date = Citation.check_date(Citation.get_date(self.creation_date, self.duration))
+        if self.cited_pub_date is None:
+            self.duration = None
 
         if self.contains_years(self.citing_pub_date):
             self.creation_date = self.citing_pub_date[:10]
@@ -167,12 +175,6 @@ class Citation(object):
                     citing_contains_months and cited_contains_months,
                     citing_contains_days and cited_contains_days)
 
-        if not self.citing_pub_date and self.creation_date:
-            self.citing_pub_date = self.creation_date
-
-        if self.cited_pub_date is None and self.creation_date and self.duration:
-            self.cited_pub_date = Citation.get_date(self.creation_date, self.duration)
-
         self.prov_entity_number = prov_entity_number
         self.prov_agent_url = prov_agent_url
         self.prov_date = Citation.check_datetime(prov_date)
@@ -202,6 +204,11 @@ class Citation(object):
         date = sub("\s+", "", s)[:10] if s is not None else ""
         if not match("^[0-9]{4}(-[0-9]{2}(-[0-9]{2})?)?$", date):
             date = None
+        if date is not None:
+            try:  # Check if the date found is valid
+                parse(date, default=DEFAULT_DATE)
+            except ValueError:
+                date = None
         return date
 
     @staticmethod

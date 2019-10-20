@@ -25,12 +25,9 @@ from os import sep, makedirs, walk
 from os.path import exists
 from json import load
 from collections import Counter
-from datetime import date, datetime
+from datetime import date
 from re import sub
-from dateutil.parser import parse
-
-
-DEFAULT_DATE = datetime(1970, 1, 1, 0, 0)
+from index.citation.oci import Citation
 
 
 def build_pubdate(obj):
@@ -85,14 +82,6 @@ def get_all_files(i_dir):
     return result
 
 
-def parsable_date(d):
-    try:
-        parse(d, default=DEFAULT_DATE)
-        return True
-    except:
-        return False
-
-
 def process(input_dir, output_dir):
     if not exists(output_dir):
         makedirs(output_dir)
@@ -123,8 +112,8 @@ def process(input_dir, output_dir):
                         doi_manager.set_valid(citing_doi)
 
                         if id_date.get_value(citing_doi) is None:
-                            citing_date = build_pubdate(obj)
-                            if citing_date is not None and parsable_date(citing_date):
+                            citing_date = Citation.check_date(build_pubdate(obj))
+                            if citing_date is not None:
                                 id_date.add_value(citing_doi, citing_date)
                                 if citing_doi in citing_doi_with_no_date:
                                     citing_doi_with_no_date.remove(citing_doi)
@@ -167,8 +156,8 @@ def process(input_dir, output_dir):
                                 if doi_manager.is_valid(cited_doi) and id_date.get_value(cited_doi) is None:
                                     if cited_doi not in doi_date:
                                         doi_date[cited_doi] = []
-                                    cited_date = build_pubdate(ref)
-                                    if cited_date is not None and parsable_date(cited_date):
+                                    cited_date = Citation.check_date(build_pubdate(ref))
+                                    if cited_date is not None:
                                         doi_date[cited_doi].append(cited_date)
                                         if cited_doi in citing_doi_with_no_date:
                                             citing_doi_with_no_date.remove(cited_doi)

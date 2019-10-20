@@ -105,6 +105,77 @@ class CitationTest(unittest.TestCase):
         if XSD.gYearMonth in _toPythonMapping:
             _toPythonMapping.pop(XSD.gYearMonth)
 
+    def test_invalid_date_for_citation(self):
+        cit = Citation(
+            "020010103003602000105370205010358000059-02001010304362801000208030304330009000400020107",
+            "http://dx.doi.org/10.1130/2015.2513%2800%29", "0000",
+            "http://dx.doi.org/10.1134/s1028334x09040217", None,
+            None, None,
+            1, "https://w3id.org/oc/index/prov/ra/1",
+            "https://api.crossref.org/works/10.1130/2015.2513%2800%29", "2018-10-31T16:17:07",
+            "OpenCitations Index: COCI", "doi", "http://dx.doi.org/([[XXX__decode]])", None,
+            journal_sc=False, author_sc=False, prov_description="Creation of the citation")
+        self.assertIsNone(cit.citing_pub_date)
+        self.assertIsNone(cit.creation_date)
+        self.assertIsNone(cit.cited_pub_date)
+        self.assertIsNone(cit.duration)
+
+        cit = Citation(
+            "020010103003602000105370205010358000059-02001010304362801000208030304330009000400020107",
+            "http://dx.doi.org/10.1130/2015.2513%2800%29", "2019",
+            "http://dx.doi.org/10.1134/s1028334x09040217", "0000",
+            None, None,
+            1, "https://w3id.org/oc/index/prov/ra/1",
+            "https://api.crossref.org/works/10.1130/2015.2513%2800%29", "2018-10-31T16:17:07",
+            "OpenCitations Index: COCI", "doi", "http://dx.doi.org/([[XXX__decode]])", None,
+            journal_sc=False, author_sc=False, prov_description="Creation of the citation")
+        self.assertIsNotNone(cit.citing_pub_date)
+        self.assertIsNotNone(cit.creation_date)
+        self.assertIsNone(cit.cited_pub_date)
+        self.assertIsNone(cit.duration)
+
+        cit = Citation(
+            "020010103003602000105370205010358000059-02001010304362801000208030304330009000400020107",
+            "http://dx.doi.org/10.1130/2015.2513%2800%29", None,
+            "http://dx.doi.org/10.1134/s1028334x09040217", "2011",
+            None, None,
+            1, "https://w3id.org/oc/index/prov/ra/1",
+            "https://api.crossref.org/works/10.1130/2015.2513%2800%29", "2018-10-31T16:17:07",
+            "OpenCitations Index: COCI", "doi", "http://dx.doi.org/([[XXX__decode]])", None,
+            journal_sc=False, author_sc=False, prov_description="Creation of the citation")
+        self.assertIsNone(cit.citing_pub_date)
+        self.assertIsNone(cit.creation_date)
+        self.assertIsNotNone(cit.cited_pub_date)
+        self.assertIsNone(cit.duration)
+
+        cit = Citation(
+            "020010103003602000105370205010358000059-02001010304362801000208030304330009000400020107",
+            "http://dx.doi.org/10.1130/2015.2513%2800%29", None,
+            "http://dx.doi.org/10.1134/s1028334x09040217", "2011",
+            "2019", None,
+            1, "https://w3id.org/oc/index/prov/ra/1",
+            "https://api.crossref.org/works/10.1130/2015.2513%2800%29", "2018-10-31T16:17:07",
+            "OpenCitations Index: COCI", "doi", "http://dx.doi.org/([[XXX__decode]])", None,
+            journal_sc=False, author_sc=False, prov_description="Creation of the citation")
+        self.assertIsNotNone(cit.citing_pub_date)
+        self.assertIsNotNone(cit.creation_date)
+        self.assertIsNotNone(cit.cited_pub_date)
+        self.assertIsNotNone(cit.duration)
+
+        cit = Citation(
+            "020010103003602000105370205010358000059-02001010304362801000208030304330009000400020107",
+            "http://dx.doi.org/10.1130/2015.2513%2800%29", None,
+            "http://dx.doi.org/10.1134/s1028334x09040217", "2011",
+            "2019-02-29", None,
+            1, "https://w3id.org/oc/index/prov/ra/1",
+            "https://api.crossref.org/works/10.1130/2015.2513%2800%29", "2018-10-31T16:17:07",
+            "OpenCitations Index: COCI", "doi", "http://dx.doi.org/([[XXX__decode]])", None,
+            journal_sc=False, author_sc=False, prov_description="Creation of the citation")
+        self.assertIsNone(cit.citing_pub_date)
+        self.assertIsNone(cit.creation_date)
+        self.assertIsNotNone(cit.cited_pub_date)
+        self.assertIsNone(cit.duration)
+
     def test_citation_data_csv(self):
         citation_data_csv = None
 

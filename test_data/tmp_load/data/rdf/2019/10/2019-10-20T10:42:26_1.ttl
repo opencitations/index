@@ -1,0 +1,33 @@
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationTimeSpan> "P2Y9M"^^<http://www.w3.org/2001/XMLSchema#duration> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitedEntity> <http://dx.doi.org/10.1096/fj.00-0336fje> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationCreationDate> "2003-10-24"^^<http://www.w3.org/2001/XMLSchema#date> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitingEntity> <http://dx.doi.org/10.1038/sj.cdd.4401289> .
+
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationCreationDate> "2018-06"^^<http://www.w3.org/2001/XMLSchema#gYearMonth> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitedEntity> <http://dx.doi.org/10.1002/jrs.5302> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitingEntity> <http://dx.doi.org/10.1002/jrs.5400> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationTimeSpan> "P0Y6M"^^<http://www.w3.org/2001/XMLSchema#duration> .
+
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitedEntity> <http://dx.doi.org/10.1039/c6ra26307k> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationTimeSpan> "P1Y"^^<http://www.w3.org/2001/XMLSchema#duration> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitingEntity> <http://dx.doi.org/10.1002/jrs.5400> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationCreationDate> "2018-06"^^<http://www.w3.org/2001/XMLSchema#gYearMonth> .
+
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitedEntity> <http://dx.doi.org/10.1038/sj.cdd.4400377> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitingEntity> <http://dx.doi.org/10.1038/sj.cdd.4401284> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationTimeSpan> "P5Y3M"^^<http://www.w3.org/2001/XMLSchema#duration> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationCreationDate> "2003-08-22"^^<http://www.w3.org/2001/XMLSchema#date> .
+
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitationCreationDate> "2002-06-21"^^<http://www.w3.org/2001/XMLSchema#date> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitingEntity> <http://dx.doi.org/10.1002/pola.10301> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitedEntity> <http://dx.doi.org/10.1109/cmpeur.1989.93443> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation> .
+
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitingEntity> <http://dx.doi.org/10.1130/2015.2513%2800%29> .
+<https://w3id.org/oc/index/coci/ci/04201-04201> <http://purl.org/spar/cito/hasCitedEntity> <http://dx.doi.org/10.1134/s1028334x09040217> .
+
