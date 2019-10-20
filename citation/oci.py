@@ -138,26 +138,26 @@ class Citation(object):
 
         self.citation_type = citation_type if citation_type in CITATION_TYPES else DEFAULT_CITATION_TYPE
 
-        if self.contains_years(citing_pub_date):
-            self.creation_date = citing_pub_date[:10]
+        if self.contains_years(self.citing_pub_date):
+            self.creation_date = self.citing_pub_date[:10]
 
-            if self.contains_years(cited_pub_date):
-                citing_contains_months = Citation.contains_months(citing_pub_date)
-                cited_contains_months = Citation.contains_months(cited_pub_date)
-                citing_contains_days = Citation.contains_days(citing_pub_date)
-                cited_contains_days = Citation.contains_days(cited_pub_date)
+            if self.contains_years(self.cited_pub_date):
+                citing_contains_months = Citation.contains_months(self.citing_pub_date)
+                cited_contains_months = Citation.contains_months(self.cited_pub_date)
+                citing_contains_days = Citation.contains_days(self.citing_pub_date)
+                cited_contains_days = Citation.contains_days(self.cited_pub_date)
 
                 # Handling incomplete dates
                 citing_complete_pub_date = self.creation_date
-                cited_complete_pub_date = cited_pub_date[:10]
+                cited_complete_pub_date = self.cited_pub_date[:10]
                 if citing_contains_months and not cited_contains_months:
-                    cited_complete_pub_date += citing_pub_date[4:7]
+                    cited_complete_pub_date += self.citing_pub_date[4:7]
                 elif not citing_contains_months and cited_contains_months:
-                    citing_complete_pub_date += cited_pub_date[4:7]
+                    citing_complete_pub_date += self.cited_pub_date[4:7]
                 if citing_contains_days and not cited_contains_days:
-                    cited_complete_pub_date += citing_pub_date[7:]
+                    cited_complete_pub_date += self.citing_pub_date[7:]
                 elif not citing_contains_days and cited_contains_days:
-                    citing_complete_pub_date += cited_pub_date[7:]
+                    citing_complete_pub_date += self.cited_pub_date[7:]
 
                 citing_pub_datetime = parse(citing_complete_pub_date, default=DEFAULT_DATE)
                 cited_pub_datetime = parse(cited_complete_pub_date, default=DEFAULT_DATE)
