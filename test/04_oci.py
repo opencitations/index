@@ -105,6 +105,21 @@ class CitationTest(unittest.TestCase):
         if XSD.gYearMonth in _toPythonMapping:
             _toPythonMapping.pop(XSD.gYearMonth)
 
+    def test_inferred_leap_year_dates(self):
+        cit = Citation(
+            None,
+            "http://dx.doi.org/10.1002/1097-0142%2820010815%2992%3A4%3C796%3A%3Aaid-cncr1385%3E3.0.co%3B2-3",
+            "2001",
+            "http://dx.doi.org/10.1002/%28sici%291097-0258%2819960229%2915%3A4%3C361%3A%3Aaid-sim168%3E3.0.co%3B2-4",
+            "1996-02-29",
+            None, None,
+            1, "https://w3id.org/oc/index/prov/ra/1",
+            "https://api.crossref.org/works/10.1002/1097-0142%2820010815%2992%3A4%3C796%3A%3Aaid-cncr1385%3E3.0.co%3B2-3",
+            "2018-10-31T16:17:07",
+            "OpenCitations Index: COCI", "doi", "http://dx.doi.org/([[XXX__decode]])", None,
+            journal_sc=False, author_sc=False, prov_description="Creation of the citation")
+        self.assertEqual(cit.duration, "P5Y")
+
     def test_invalid_date_for_citation(self):
         cit = Citation(
             "020010103003602000105370205010358000059-02001010304362801000208030304330009000400020107",
