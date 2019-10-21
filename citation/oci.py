@@ -167,13 +167,18 @@ class Citation(object):
                 elif not citing_contains_days and cited_contains_days:
                     citing_complete_pub_date += self.cited_pub_date[7:]
 
-                citing_pub_datetime = parse(citing_complete_pub_date, default=DEFAULT_DATE)
-                cited_pub_datetime = parse(cited_complete_pub_date, default=DEFAULT_DATE)
-                delta = relativedelta(citing_pub_datetime, cited_pub_datetime)
-                self.duration = Citation.get_duration(
-                    delta,
-                    citing_contains_months and cited_contains_months,
-                    citing_contains_days and cited_contains_days)
+                try:
+                    citing_pub_datetime = parse(citing_complete_pub_date, default=DEFAULT_DATE)
+                    cited_pub_datetime = parse(cited_complete_pub_date, default=DEFAULT_DATE)
+                    delta = relativedelta(citing_pub_datetime, cited_pub_datetime)
+                    self.duration = Citation.get_duration(
+                        delta,
+                        citing_contains_months and cited_contains_months,
+                        citing_contains_days and cited_contains_days)
+                except:
+                    print(citing_url, cited_url, citing_pub_date, cited_pub_date,
+                          citing_complete_pub_date, cited_complete_pub_date, )
+                    exit(-1)
 
         self.prov_entity_number = prov_entity_number
         self.prov_agent_url = prov_agent_url
