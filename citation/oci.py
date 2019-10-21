@@ -175,10 +175,10 @@ class Citation(object):
                         delta,
                         citing_contains_months and cited_contains_months,
                         citing_contains_days and cited_contains_days)
-                except:
+                except Exception as e:
                     print(citing_url, cited_url, citing_pub_date, cited_pub_date,
                           citing_complete_pub_date, cited_complete_pub_date, )
-                    exit(-1)
+                    raise e
 
         self.prov_entity_number = prov_entity_number
         self.prov_agent_url = prov_agent_url
