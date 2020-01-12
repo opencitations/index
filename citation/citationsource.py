@@ -42,32 +42,41 @@ class CitationSource(object):
 
 
 class DirCitationSource(CitationSource):
-    def __init__(self, src):
+    def __init__(self, all_src, local_name=""):
         self.last_file = None
         self.last_row = None
         self.data = None
         self.len = None
+        self.status_file = None
         self.all_files = []
 
-        cur_dir = src
-        if not isdir(cur_dir):
-            cur_dir = dirname(cur_dir)
+        if type(all_src) in (list, set, tuple):
+            src_collection = all_src
+        else:
+            src_collection = [all_src]
 
-        self.status_file = cur_dir + sep + ".dir_citation_source"
-        if exists(self.status_file):
-            with open(self.status_file) as f:
-                row = next(DictReader(f))
-                self.last_file = row["file"] if row["file"] else None
-                self.last_row = int(row["line"]) if row["line"] else None
+        for src in sorted(src_collection):
+            cur_dir = src
+            if not isdir(cur_dir):
+                cur_dir = dirname(cur_dir)
 
-        if isdir(src):
-            for cur_dir, cur_subdir, cur_files in walk(src):
-                for cur_file in cur_files:
-                    full_path = cur_dir + sep + cur_file
-                    if self.select_file(full_path):
-                        self.all_files.append(full_path)
-        elif self.select_file(src):
-            self.all_files.append(src)
+            if self.status_file is None:
+                self.status_file = cur_dir + sep + ".dir_citation_source" + local_name
+
+            if exists(self.status_file):
+                with open(self.status_file) as f:
+                    row = next(DictReader(f))
+                    self.last_file = row["file"] if row["file"] else None
+                    self.last_row = int(row["line"]) if row["line"] else None
+
+            if isdir(src):
+                for cur_dir, cur_subdir, cur_files in walk(src):
+                    for cur_file in cur_files:
+                        full_path = cur_dir + sep + cur_file
+                        if self.select_file(full_path):
+                            self.all_files.append(full_path)
+            elif self.select_file(src):
+                self.all_files.append(src)
 
         self.all_files.sort()
 

@@ -31,21 +31,30 @@ from index.citation.oci import OCIManager, Citation
 from index.storer.citationstorer import CitationStorer
 
 
-def execute_workflow(idbaseurl, baseurl, python, pclass, input, doi_file, date_file,
-                     orcid_file, issn_file, orcid, lookup, data, prefix, agent, source, service, verbose, no_api):
-    BASE_URL = idbaseurl
-    DATASET_URL = baseurl + "/" if not baseurl.endswith("/") else baseurl
+def execute_workflow_parallel():
+    pass  # TODO
 
-    addon_abspath = abspath(python)
-    path.append(dirname(addon_abspath))
-    addon = import_module(basename(addon_abspath).replace(".py", ""))
-    cs = getattr(addon, pclass)(input)
 
-    # Create the support file for handling information about bibliographic resources
+def create_csv(doi_file, date_file, orcid_file, issn_file):
     valid_doi = CSVManager(csv_path=doi_file)
     id_date = CSVManager(csv_path=date_file)
     id_orcid = CSVManager(csv_path=orcid_file)
     id_issn = CSVManager(csv_path=issn_file)
+
+    return valid_doi, id_date, id_orcid, id_issn
+
+
+def import_citation_source(python, pclass, input):
+    addon_abspath = abspath(python)
+    path.append(dirname(addon_abspath))
+    addon = import_module(basename(addon_abspath).replace(".py", ""))
+    return getattr(addon, pclass)(input)
+
+
+def execute_workflow(idbaseurl, baseurl, python, pclass, input, doi_file, date_file,
+                     orcid_file, issn_file, orcid, lookup, data, prefix, agent, source, service, verbose, no_api):
+    # Create the support file for handling information about bibliographic resources
+    valid_doi, id_date, id_orcid, id_issn = create_csv(doi_file, date_file, orcid_file, issn_file)
 
     doi_manager = DOIManager(valid_doi, use_api_service=not no_api)
     crossref_rf = CrossrefResourceFinder(
@@ -57,20 +66,33 @@ def execute_workflow(idbaseurl, baseurl, python, pclass, input, doi_file, date_f
         use_api_service=True if orcid is not None and not no_api else False, key=orcid)
 
     rf_handler = ResourceFinderHandler([crossref_rf, datacite_rf, orcid_rf])
+    return extract_citations(idbaseurl, baseurl, python, pclass, input, lookup, data, prefix,
+                             agent, source, service, verbose, doi_manager, rf_handler)
+
+
+def extract_citations(idbaseurl, baseurl, python, pclass, input, lookup, data, prefix,
+                      agent, source, service, verbose, doi_manager, rf_handler, oci_to_do=None):
+    BASE_URL = idbaseurl
+    DATASET_URL = baseurl + "/" if not baseurl.endswith("/") else baseurl
+
     oci_manager = OCIManager(lookup_file=lookup)
-    exi_ocis = CSVManager.load_csv_column_as_set(data + sep + "data", "oci")
+    exi_ocis = CSVManager.load_csv_column_as_set(data + sep + "data", "oci")  # TODO: we need to specify carefully the dir, eg by adding an additional flag to distinguish between the files belonging to a particular process, and it should be aligned with the storer.
+    if oci_to_do is not None:
+        oci_to_do.difference_update(exi_ocis)
     cit_storer = CitationStorer(data, DATASET_URL)
 
     citations_already_present = 0
     new_citations_added = 0
     error_in_dois_existence = 0
 
+    cs = import_citation_source(python, pclass, input)
     next_citation = cs.get_next_citation_data()
+
     while next_citation is not None:
         citing, cited, created, timespan, journal_sc, author_sc = next_citation
         oci = oci_manager.get_oci(citing, cited, prefix)
         oci_noprefix = oci.replace("oci:", "")
-        if oci_noprefix not in exi_ocis:
+        if oci_noprefix not in exi_ocis and (oci_to_do is None or oci_noprefix in oci_to_do):
             if doi_manager.is_valid(citing) and doi_manager.is_valid(cited):
                 if created is None:
                     citing_date = rf_handler.get_date(citing)
@@ -111,6 +133,8 @@ def execute_workflow(idbaseurl, baseurl, python, pclass, input, doi_file, date_f
                 if verbose:
                     print("WARNING: some DOIs, among '%s' and '%s', do not exist" % (citing, cited))
                 error_in_dois_existence += 1
+            if oci_to_do is not None:
+                oci_to_do.remove(oci_noprefix)
         else:
             if verbose:
                 print("WARNING: the citation between DOI '%s' and DOI '%s' has been already processed" %
@@ -173,12 +197,18 @@ if __name__ == "__main__":
                             help="Print the messages on screen.")
     arg_parser.add_argument("-na", "--no_api", action="store_true", default=False,
                             help="Tell the tool explicitly not to use the APIs of the various finders.")
+    arg_parser.add_argument("-pn", "--process_number", default=1, type=int,
+                            help="The number of parallel process to run for working on the creation of citations.")
 
     args = arg_parser.parse_args()
-    new_citations_added, citations_already_present, error_in_dois_existence = \
-        execute_workflow(args.idbaseurl, args.baseurl, args.python, args.pclass, args.input, args.doi_file,
-                         args.date_file, args.orcid_file, args.issn_file, args.orcid, args.lookup, args.data,
-                         args.prefix, args.agent, args.source, args.service, args.verbose, args.no_api)
+    n_processes = args.process_number
+    if n_processes <= 1:
+        new_citations_added, citations_already_present, error_in_dois_existence = \
+            execute_workflow(args.idbaseurl, args.baseurl, args.python, args.pclass, args.input, args.doi_file,
+                             args.date_file, args.orcid_file, args.issn_file, args.orcid, args.lookup, args.data,
+                             args.prefix, args.agent, args.source, args.service, args.verbose, args.no_api)
+    else:  # Run in parallel
+        pass  # TODO: do things
 
     print("\n# Summary\n"
           "Number of new citations added to the OpenCitations Index: %s\n"

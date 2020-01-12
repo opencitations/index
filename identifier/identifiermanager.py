@@ -14,6 +14,9 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+# TODO: For multiprocessing purposes
+# from multiprocessing.managers import BaseManager
+
 
 class IdentifierManager(object):
     """This is the interface that must be implemented by any identifier manager
@@ -28,6 +31,10 @@ class IdentifierManager(object):
             "User-Agent": "Identifier Manager / OpenCitations Indexes "
                           "(http://opencitations.net; mailto:contact@opencitations.net)"
         }
+
+        # TODO: For multiprocessing purposes
+        # c_type = type(self)
+        # BaseManager.register(c_type.__name__, c_type)
 
     def is_valid(self, id_string):
         pass

@@ -19,6 +19,8 @@ from index.identifier.orcidmanager import ORCIDManager
 from index.identifier.doimanager import DOIManager
 from index.identifier.issnmanager import ISSNManager
 from collections import deque
+# TODO: For multiprocessing purposes
+# from multiprocessing.managers import BaseManager
 
 
 class ResourceFinder(object):
@@ -54,6 +56,10 @@ class ResourceFinder(object):
             "User-Agent": "ResourceFinder / OpenCitations Indexes "
                           "(http://opencitations.net; mailto:contact@opencitations.net)"
         }
+
+        # TODO: For multiprocessing purposes
+        # c_type = type(self)
+        # BaseManager.register(c_type.__name__, c_type)
 
     def get_orcid(self, id_string):
         pass

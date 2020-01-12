@@ -23,10 +23,10 @@ from index.identifier.doimanager import DOIManager
 
 
 class CrossrefCitationSource(DirCitationSource):
-    def __init__(self, src):
+    def __init__(self, src, local_name=""):
         self.last_ref = -1
         self.doi = DOIManager()
-        super(CrossrefCitationSource, self).__init__(src)
+        super(CrossrefCitationSource, self).__init__(src, local_name)
 
     def load(self, file_path):
         result = []
