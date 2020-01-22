@@ -136,34 +136,20 @@ class CSVFileCitationSource(DirCitationSource):
 
     def get_next_citation_data(self):
         row = self._get_next_in_file()
+        boolmap = {
+            "yes": True,
+            "no": False,
+        }
         while row is not None:
             citing = row.get("citing")
             cited = row.get("cited")
 
             if citing is not None and cited is not None:
-                created = row.get("creation")
-                if not created:
-                    created = None
+                created = row.get("creation") or None
+                timespan = row.get("timespan") or None
 
-                timespan = row.get("timespan")
-                if not timespan:
-                    timespan = None
-
-                journal_sc = row.get("journal_sc")
-                if journal_sc == "yes":
-                    journal_sc = True
-                elif journal_sc == "no":
-                    journal_sc = False
-                else:
-                    journal_sc = None
-
-                author_sc = row.get("author_sc")
-                if author_sc == "yes":
-                    author_sc = True
-                elif author_sc == "no":
-                    author_sc = False
-                else:
-                    author_sc = None
+                journal_sc = boolmap.get(row.get("journal_sc"))
+                author_sc = boolmap.get(row.get("author_sc"))
 
                 self.update_status_file()
                 return citing, cited, created, timespan, journal_sc, author_sc
