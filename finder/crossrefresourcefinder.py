@@ -32,54 +32,56 @@ class CrossrefResourceFinder(ApiDOIResourceFinder):
     def _get_orcid(self, json_obj):
         result = set()
 
-        if json_obj is not None:
-            authors = json_obj.get("author")
-            if authors is not None:
-                for author in authors:
-                    orcid = self.om.normalise(author.get("ORCID"))
-                    if orcid is not None:
-                        result.add(orcid)
+        if json_obj is None:
+            return result
+        for author in json_obj.get("author", []):
+            orcid = self.om.normalise(author.get("ORCID"))
+            if orcid is not None:
+                result.add(orcid)
 
         return result
 
     def _get_issn(self, json_obj):
         result = set()
 
-        if json_obj is not None:
-            if sd.contains(json_obj, "type", "journal"):
-                issns = json_obj.get("ISSN")
-                if issns is not None:
-                    for issn in issns:
-                        norm_issn = self.im.normalise(issn)
-                        if norm_issn is not None:
-                            result.add(norm_issn)
+        if json_obj is None:
+            return result
+        if not sd.contains(json_obj, "type", "journal"):
+            return result
+        for issn in json_obj.get("ISSN", []):
+            norm_issn = self.im.normalise(issn)
+            if norm_issn is not None:
+                result.add(norm_issn)
 
         return result
 
     def _get_date(self, json_obj):
-        if json_obj is not None:
-            date = json_obj.get("issued")
-            if date:
-                date_list = date["date-parts"][0]
-                if date_list is not None:
-                    l_date_list = len(date_list)
-                    if l_date_list != 0 and date_list[0] is not None:
-                        if l_date_list == 3 and \
-                                ((date_list[1] is not None and date_list[1] != 1) or
-                                 (date_list[2] is not None and date_list[2] != 1)):
-                            result = datetime(date_list[0], date_list[1], date_list[2], 0, 0).strftime('%Y-%m-%d')
-                        elif l_date_list == 2 and date_list[1] is not None:
-                            result = datetime(date_list[0], date_list[1], 1, 0, 0).strftime('%Y-%m')
-                        else:
-                            result = datetime(date_list[0], 1, 1, 0, 0).strftime('%Y')
+        if json_obj is None:
+            return
+        date = json_obj.get("issued")
+        if not date:
+            return
+        date_list = date["date-parts"][0]
+        if date_list is None:
+            return
+        l_date_list = len(date_list)
+        if l_date_list != 0 and date_list[0] is not None:
+            if l_date_list == 3 and \
+                    ((date_list[1] is not None and date_list[1] != 1) or
+                     (date_list[2] is not None and date_list[2] != 1)):
+                result = datetime(date_list[0], date_list[1], date_list[2], 0, 0).strftime('%Y-%m-%d')
+            elif l_date_list == 2 and date_list[1] is not None:
+                result = datetime(date_list[0], date_list[1], 1, 0, 0).strftime('%Y-%m')
+            else:
+                result = datetime(date_list[0], 1, 1, 0, 0).strftime('%Y')
 
-                        return result
+            return result
 
     def _call_api(self, doi_full):
-        if self.use_api_service:
-            doi = self.dm.normalise(doi_full)
-            r = get(self.api + quote(doi), headers=self.headers, timeout=30)
-            if r.status_code == 200:
-                r.encoding = "utf-8"
-                json_res = loads(r.text)
-                return json_res.get("message")
+        if not self.use_api_service:
+            return
+        doi = self.dm.normalise(doi_full)
+        r = get(self.api + quote(doi), headers=self.headers, timeout=30)
+        if r.status_code == 200:
+            r.encoding = "utf-8"
+            return r.json().get("message")
