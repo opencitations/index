@@ -50,7 +50,7 @@ class DirCitationSource(CitationSource):
         self.status_file = None
         self.all_files = []
 
-        if type(all_src) in (list, set, tuple):
+        if isinstance(all_src, (list, set, tuple)):
             src_collection = all_src
         else:
             src_collection = [all_src]
