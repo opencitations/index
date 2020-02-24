@@ -37,19 +37,15 @@ class ISSNManager(IdentifierManager):
 
     @staticmethod
     def __check_digit(issn):
-        result_partial_sum = 0
-        for i, n in zip(range(8, 1, -1), issn[:4] + issn[5:8]):
-            result_partial_sum += i * int(n)
-        reminder = result_partial_sum % 11
-        reminder_sub = 11 - reminder
-        correct_check_digit = \
-            str(reminder_sub) == issn[8] or \
-            (reminder == 0 and issn[8] == "0") or \
-            (reminder_sub == 10 and issn[8] == "X")
-
-        result_full_sum = 0
-        for i, n in zip(range(8, 0, -1), issn[:4] + issn[5:]):
-            result_full_sum += i * (10 if n == "X" else int(n))
-        confirm_check_digit = result_full_sum % 11 == 0
-
-        return correct_check_digit and confirm_check_digit
+        """
+        Returns True, if ISSN (of length 8 or 9) is valid (this does not mean registered).
+        """
+        issn = issn.replace('-', '')
+        if len(issn) != 8:
+            raise ValueError('ISSN of len 8 or 9 required (e.g. 00000949 or 0000-0949)')
+        ss = sum([int(digit) * f for digit, f in zip(issn, range(8, 1, -1))])
+        _, mod = divmod(ss, 11)
+        checkdigit = 0 if mod == 0 else 11 - mod
+        if checkdigit == 10:
+            checkdigit = 'X'
+        return '{}'.format(checkdigit) == issn[7]
