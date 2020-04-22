@@ -16,13 +16,19 @@
 # SOFTWARE.
 
 from argparse import ArgumentParser
-from os import sep, walk
-from json import load
+from os import sep, walk, makedirs
+from json import load, dump
 from collections import deque
+from os.path import exists
 
 
-def process(input_dir, metadata_field):
-    result = None
+def process(input_dir, output_dir, metadata_field, metadata_value):
+    result = {"items": []}
+    idx = 1
+    item_idx = 0
+
+    if not exists(output_dir):
+        makedirs(output_dir)
 
     for cur_dir, cur_subdir, cur_files in walk(input_dir):
         for cur_file in cur_files:
@@ -38,23 +44,37 @@ def process(input_dir, metadata_field):
                             else:
                                 value = value.get(to_get.popleft())
 
-                        if result is None or value > result:
-                            result = value
+                        if value > metadata_value:
+                            if item_idx >= 10000:
+                                with open(output_dir + sep + str(idx) + ".json", "w") as g:
+                                    dump(result, g, ensure_ascii=False)
+                                result = {"items": []}
+                                item_idx = 0
+                                idx += 1
 
-    return result
+                            item_idx += 1
+                            result.get("items").append(item)
+
+    if result.get("items"):
+        with open(output_dir + sep + str(idx) + ".json", "w") as g:
+            dump(result, g, ensure_ascii=False)
 
 
 if __name__ == "__main__":
-    arg_parser = ArgumentParser("Check metadata in Crossref documents",
-                                description="Process Crossref JSON files and check for the biggest value "
-                                            "in its metadata")
+    arg_parser = ArgumentParser("Trim Crossref dump",
+                                description="Process Crossref JSON files and trim them according to the value "
+                                            "contained in the metadata specified in input")
     arg_parser.add_argument("-i", "--input_dir", dest="input_dir", required=True,
                             help="The directory that contains the Crossref data dump of JSON files.")
+    arg_parser.add_argument("-o", "--output_dir", dest="output_dir", required=True,
+                            help="The directory that will contain the selected JSON files.")
     arg_parser.add_argument("-m", "--metadata_field", dest="metadata_field", required=True,
                             help="The name of the metadata to look for.")
+    arg_parser.add_argument("-v", "--metadata_value", dest="metadata_value", required=True,
+                            help="The minimum (exclusive) value of the metadata")
 
     args = arg_parser.parse_args()
-    print(process(args.input_dir, args.metadata_field.split("=>")))
+    process(args.input_dir, args.output_dir, args.metadata_field.split("=>"), args.metadata_value)
 
 # Example of call
-# python -m index.coci.checkmetadata -i /input/dir -m "deposited=>date-time"
+# python -m index.coci.trimdump -i /input/dir -o /output/dir -m "deposited=>date-time" -v "2019-10-12T07:59:37Z"
