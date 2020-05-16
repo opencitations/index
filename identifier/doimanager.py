@@ -16,7 +16,7 @@
 
 
 from index.identifier.identifiermanager import IdentifierManager
-from re import sub
+from re import sub, match
 from urllib.parse import unquote, quote
 from requests import get
 from json import loads
@@ -44,7 +44,7 @@ class DOIManager(IdentifierManager):
     def is_valid(self, id_string):
         doi = self.normalise(id_string, include_prefix=True)
 
-        if doi is None:
+        if doi is None or match("^doi:10\\..+/.+$", doi) is None:
             return False
         else:
             if self.valid_doi.get_value(doi) is None:

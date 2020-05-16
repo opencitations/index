@@ -28,7 +28,8 @@ class IdentifierManagerTest(unittest.TestCase):
     def setUp(self):
         self.valid_doi_1 = "10.1108/jd-12-2013-0166"
         self.valid_doi_2 = "10.1130/2015.2513(00)"
-        self.invalid_doi = "10.1108/12-2013-0166"
+        self.invalid_doi_1 = "10.1108/12-2013-0166"
+        self.invalid_doi_2 = "10.1371"
         self.valid_doi_path = "index%stest_data%svalid_doi.csv" % (sep, sep)
 
         self.valid_issn_1 = "2376-5992"
@@ -54,16 +55,17 @@ class IdentifierManagerTest(unittest.TestCase):
         dm_nofile = DOIManager()
         self.assertTrue(dm_nofile.is_valid(self.valid_doi_1))
         self.assertTrue(dm_nofile.is_valid(self.valid_doi_2))
-        self.assertFalse(dm_nofile.is_valid(self.invalid_doi))
+        self.assertFalse(dm_nofile.is_valid(self.invalid_doi_1))
+        self.assertFalse(dm_nofile.is_valid(self.invalid_doi_2))
 
         valid_doi = CSVManager(self.valid_doi_path)
         dm_file = DOIManager(valid_doi=valid_doi, use_api_service=False)
         self.assertTrue(dm_file.is_valid(self.valid_doi_1))
-        self.assertFalse(dm_file.is_valid(self.invalid_doi))
+        self.assertFalse(dm_file.is_valid(self.invalid_doi_1))
 
         dm_nofile_noapi = DOIManager(use_api_service=False)
         self.assertFalse(dm_nofile_noapi.is_valid(self.valid_doi_1))
-        self.assertFalse(dm_nofile_noapi.is_valid(self.invalid_doi))
+        self.assertFalse(dm_nofile_noapi.is_valid(self.invalid_doi_1))
 
     def test_issn_normalise(self):
         im = ISSNManager()
