@@ -15,19 +15,23 @@
 # SOFTWARE.
 
 from argparse import ArgumentParser
-from csv import DictReader, writer
+from csv import DictReader, writer, reader
 from io import StringIO
-from os.path import isdir
+from os.path import isdir, exists
 from re import sub
 from os import walk, sep
+from index.identifier.doimanager import DOIManager
 
 
-def update(csv_string, stats, existing_ocis):
+def update(csv_string, stats, existing_ocis, doi_to_consider=None):
     csv_metadata = DictReader(StringIO(csv_string), delimiter=',')
 
     for row in csv_metadata:
         cur_oci = row["oci"]
-        if cur_oci not in existing_ocis:
+        citing = row["citing"]
+        cited = row["cited"]
+
+        if cur_oci not in existing_ocis and (doi_to_consider is None or citing in doi_to_consider or cited in doi_to_consider):
             existing_ocis.add(cur_oci)
             if "n_cit" not in stats:
                 stats["n_cit"] = 0
@@ -45,12 +49,10 @@ def update(csv_string, stats, existing_ocis):
 
             if "all_citing" not in stats:
                 stats["all_citing"] = set()
-            citing = row["citing"]
             stats["all_citing"].add(citing)
 
             if "all_cited" not in stats:
                 stats["all_cited"] = set()
-            cited = row["cited"]
             stats["all_cited"].add(cited)
 
             citing_prefix = sub("^(10\.[0-9]+)([^\d].*)", "\\1", sub("^([^/]+)/.*$", "\\1", citing))
@@ -71,6 +73,8 @@ if __name__ == "__main__":
                             help="The file where to store statitistcs.")
     arg_parser.add_argument("-i", "--in", dest="input_file", required=True,
                             help="The CSV file or directory containing citations.")
+    arg_parser.add_argument("-d", "--doi", dest="doi_file", required=False, default=None,
+                            help="The CSV file containing the DOIs to consider in the counting.")
 
     args = arg_parser.parse_args()
 
@@ -86,6 +90,17 @@ if __name__ == "__main__":
                 all_files.append(cur_dir + sep + cur_file)
     else:
         all_files.append(args.input_file)
+    
+    dois = None
+    if args.doi_file is not None and exists(args.doi_file):
+        with open(args.doi_file) as f:
+            dm = DOIManager()
+            dois = set()
+            csv_reader = reader(f)
+            for row in csv_reader:
+                doi = dm.normalise(row[0])
+                if doi:
+                    dois.add(doi)
 
     for cur_file in all_files:
         with open(cur_file) as f:
@@ -96,11 +111,11 @@ if __name__ == "__main__":
                     csv_content = header
                 else:
                     if idx % threshold == 0:  # update stats
-                        update(csv_content, result, existing_ocis)
+                        update(csv_content, result, existing_ocis, dois)
                         csv_content = header
                     csv_content += line
 
-            update(csv_content, result, existing_ocis)
+            update(csv_content, result, existing_ocis, dois)
 
     csv_result = [
         ("n_cit", "n_journal_sc", "n_author_sc", "n_entities", "n_citing_entities", "n_cited_entities"),
