@@ -30,6 +30,7 @@ from re import sub
 from index.citation.oci import Citation
 from zipfile import ZipFile
 from tarfile import TarFile
+import codecs
 
 
 def build_pubdate(obj):
@@ -95,7 +96,6 @@ def get_all_files(i_dir):
                 if file.lower().endswith('.json'):
                     result.append(cur_dir + sep + file)
         opener = open
-
     return result, opener
 
 
@@ -121,7 +121,14 @@ def process(input_dir, output_dir):
     for file_idx, file in enumerate(all_files, 1):
         with opener(file) as f:
             print("Open file %s of %s" % (file_idx, len_all_files))
-            data = load(f)
+            try:
+                data = load(f)
+            # When using tar.gz file or zip file a stream of byte is returned by the opener. Thus,
+            # it must be converted into an utf-8 string before loading it into a JSON.
+            except TypeError:
+                utf8reader = codecs.getreader("utf-8")
+                data = load(utf8reader(f))
+
             if "items" in data:
                 for obj in data['items']:
                     if "DOI" in obj:
