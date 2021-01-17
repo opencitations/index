@@ -28,6 +28,7 @@ from collections import Counter
 from datetime import date
 from re import sub
 from index.citation.oci import Citation
+from zipfile import ZipFile
 
 
 def build_pubdate(obj):
@@ -73,13 +74,22 @@ def build_pubdate(obj):
 
 def get_all_files(i_dir):
     result = []
+    opener = None
+    
+    if i_dir.endswith(".zip"):
+        zf = ZipFile(i_dir)
+        for name in zf.namelist():
+            if name.lower().endswith(".json"):
+                result.append(name)
+        opener = zf.open
+    else:
+        for cur_dir, cur_subdir, cur_files in walk(i_dir):
+            for file in cur_files:
+                if file.lower().endswith('.json'):
+                    result.append(cur_dir + sep + file)
+        opener = open
 
-    for cur_dir, cur_subdir, cur_files in walk(i_dir):
-        for file in cur_files:
-            if file.lower().endswith('.json'):
-                result.append(cur_dir + sep + file)
-
-    return result
+    return result, opener
 
 
 def process(input_dir, output_dir):
@@ -96,13 +106,13 @@ def process(input_dir, output_dir):
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
 
-    all_files = get_all_files(input_dir)
+    all_files, opener = get_all_files(input_dir)
     len_all_files = len(all_files)
 
     # Read all the JSON file in the Crossref dump to create the main information of all the indexes
     print("\n\n# Add valid DOIs from Crossref metadata")
     for file_idx, file in enumerate(all_files, 1):
-        with open(file) as f:
+        with opener(file) as f:
             print("Open file %s of %s" % (file_idx, len_all_files))
             data = load(f)
             if "items" in data:
@@ -144,7 +154,7 @@ def process(input_dir, output_dir):
     print("\n\n# Check cited DOIs from Crossref reference field")
     doi_date = {}
     for file_idx, file in enumerate(all_files, 1):
-        with open(file) as f:
+        with opener(file) as f:
             print("Open file %s of %s" % (file_idx, len_all_files))
             data = load(f)
             if "items" in data:
@@ -187,7 +197,8 @@ if __name__ == "__main__":
                                 description="Process Crossref JSON files and create global indexes to enable "
                                             "the creation of COCI.")
     arg_parser.add_argument("-i", "--input_dir", dest="input_dir", required=True,
-                            help="The directory that contains the Crossref data dump of JSON files.")
+                            help="Either the directory or the zip file that contains the Crossref data dump "
+                                 "of JSON files.")
     arg_parser.add_argument("-o", "--output_dir", dest="output_dir", required=True,
                             help="The directory where the indexes are stored.")
 
