@@ -29,6 +29,7 @@ from datetime import date
 from re import sub
 from index.citation.oci import Citation
 from zipfile import ZipFile
+from tarfile import TarFile
 
 
 def build_pubdate(obj):
@@ -82,6 +83,12 @@ def get_all_files(i_dir):
             if name.lower().endswith(".json"):
                 result.append(name)
         opener = zf.open
+    elif i_dir.endswith(".tar.gz"):
+        tf = TarFile.open(i_dir)
+        for name in tf.getnames():
+            if name.lower().endswith(".json"):
+                result.append(name)
+        opener = tf.extractfile
     else:
         for cur_dir, cur_subdir, cur_files in walk(i_dir):
             for file in cur_files:
