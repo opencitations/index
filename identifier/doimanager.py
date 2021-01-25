@@ -22,6 +22,8 @@ from requests import get
 from json import loads
 from index.storer.csvmanager import CSVManager
 from requests import ReadTimeout
+from requests.exceptions import ConnectionError
+from time import sleep
 
 
 class DOIManager(IdentifierManager):
@@ -76,5 +78,7 @@ class DOIManager(IdentifierManager):
                         return json_res.get("responseCode") == 1
                 except ReadTimeout:
                     pass  # Do nothing, just try again
+                except ConnectionError:
+                    sleep(5)  # Sleep 5 seconds, then try again
 
         return False
