@@ -547,7 +547,7 @@ class OCIManager(object):
         self.lookup_code = -1
         if self.lookup_file is not None:
             if exists(self.lookup_file):
-                with open(self.lookup_file, 'r') as f:
+                with open(self.lookup_file, 'r', encoding="utf8") as f:
                     lookupcsv_reader = DictReader(f)
                     code = -1
                     for row in lookupcsv_reader:
@@ -556,13 +556,13 @@ class OCIManager(object):
                         code = int(row['code'])
                     self.lookup_code = code
             else:
-                with open(self.lookup_file, 'w') as f:
+                with open(self.lookup_file, 'w', encoding="utf8") as f:
                     f.write('"c","code"')
         else:
             self.add_message("__init__", W, "No lookup file has been found (path: '%s')." % lookup_file)
         self.conf = None
         if conf_file is not None and exists(conf_file):
-            with open(conf_file) as f:
+            with open(conf_file, encoding="utf8") as f:
                 self.conf = load(f)
         else:
             self.add_message("__init__", W, "No configuration file has been found (path: '%s')." % conf_file)
@@ -596,7 +596,7 @@ class OCIManager(object):
     def __write_txtblock_on_csv(self, csv_path, block_txt):
         if csv_path is not None and exists(csv_path):
             self.__check_make_dirs(csv_path)
-            with open(csv_path, 'a', newline='') as csvfile:
+            with open(csv_path, 'a', newline='', encoding="utf8") as csvfile:
                 csvfile.write(block_txt)
 
     def __calc_next_lookup_code(self):

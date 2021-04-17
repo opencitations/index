@@ -33,7 +33,7 @@ def process(input_dir, output_dir, metadata_field, metadata_value):
     for cur_dir, cur_subdir, cur_files in walk(input_dir):
         for cur_file in cur_files:
             if cur_file.endswith(".json"):
-                with open(cur_dir + sep + cur_file) as f:
+                with open(cur_dir + sep + cur_file, encoding="utf8") as f:
                     for item in load(f).get("items", []):
                         to_get = deque(metadata_field)
                         value = None
@@ -46,7 +46,8 @@ def process(input_dir, output_dir, metadata_field, metadata_value):
 
                         if value >= metadata_value:
                             if item_idx >= 10000:
-                                with open(output_dir + sep + str(idx) + ".json", "w") as g:
+                                with open(output_dir + sep + str(idx) + ".json", "w", 
+                                          encoding="utf8") as g:
                                     dump(result, g, ensure_ascii=False)
                                 result = {"items": []}
                                 item_idx = 0
@@ -56,7 +57,7 @@ def process(input_dir, output_dir, metadata_field, metadata_value):
                             result.get("items").append(item)
 
     if result.get("items"):
-        with open(output_dir + sep + str(idx) + ".json", "w") as g:
+        with open(output_dir + sep + str(idx) + ".json", "w", encoding="utf8") as g:
             dump(result, g, ensure_ascii=False)
 
 

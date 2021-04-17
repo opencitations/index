@@ -64,7 +64,7 @@ class DirCitationSource(CitationSource):
                 self.status_file = cur_dir + sep + ".dir_citation_source" + local_name
 
             if exists(self.status_file):
-                with open(self.status_file) as f:
+                with open(self.status_file, encoding="utf8") as f:
                     row = next(DictReader(f))
                     self.last_file = row["file"] if row["file"] else None
                     self.last_row = int(row["line"]) if row["line"] else None
@@ -122,7 +122,7 @@ class DirCitationSource(CitationSource):
         pass  # To implement in the concrete classes
 
     def update_status_file(self):
-        with open(self.status_file, "w") as f:
+        with open(self.status_file, "w", encoding="utf8") as f:
             w = DictWriter(f, fieldnames=("file", "line"))
             w.writeheader()
             w.writerow({"file": self.last_file, "line": self.last_row})
@@ -131,7 +131,7 @@ class DirCitationSource(CitationSource):
 class CSVFileCitationSource(DirCitationSource):
     def load(self, file_path):
         result = []
-        with open(file_path) as f:
+        with open(file_path, encoding="utf8") as f:
             result.extend(DictReader(f))
         return result, len(result)
 

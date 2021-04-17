@@ -104,10 +104,10 @@ class CSVManager(object):
 
             if self.csv_path is not None and self.store_new:
                 if not exists(self.csv_path):
-                    with open(self.csv_path, "w") as f:
+                    with open(self.csv_path, "w", encoding="utf8") as f:
                         f.write('"id","value"\n')
 
-                with open(self.csv_path, "a") as f:
+                with open(self.csv_path, "a", encoding="utf8") as f:
                     f.write('"%s","%s"\n' % (id_string.replace('"', '""'),
                                              value.replace('"', '""')))
 

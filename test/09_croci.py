@@ -46,7 +46,7 @@ class CROCITest(unittest.TestCase):
             })
             cit = ccs.get_next_citation_data()
 
-        with open(self.citations) as f:
+        with open(self.citations, encoding="utf8") as f:
             old = list(DictReader(f))
 
         self.assertEqual(new, old)

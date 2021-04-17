@@ -130,7 +130,7 @@ class CitationStorer(object):
         number_of_citations = 0
         final_file_path = base_dir + sep + partial_file_name + "_" + str(final_index) + "." + file_ext
         if cit_counter is not None and exists(final_file_path):
-            with open(final_file_path) as f:
+            with open(final_file_path, encoding="utf8") as f:
                 for row in f:
                     if cit_counter(row):
                         number_of_citations += 1
@@ -145,7 +145,7 @@ class CitationStorer(object):
     @staticmethod
     def __store_csv_on_file(f_path, header, json_obj):
         f_exists = exists(f_path)
-        with open(f_path, "a") as f:
+        with open(f_path, "a", encoding="utf8") as f:
             dw = DictWriter(f, header)
             if not f_exists:
                 dw.writeheader()
@@ -153,7 +153,7 @@ class CitationStorer(object):
 
     @staticmethod
     def __store_rdf_on_file(f_path, rdf_obj, format="nt"):
-        with open(f_path, "a") as f:
+        with open(f_path, "a", encoding="utf8") as f:
             rdf_string = Citation.format_rdf(rdf_obj, format)
             f.write(rdf_string)
 
@@ -161,14 +161,14 @@ class CitationStorer(object):
     def __store_slx_on_file(f_path, slx_string):
         f_exists = exists(f_path)
         if not f_exists:
-            with open(f_path, "w") as f:
+            with open(f_path, "w", encoding="utf8") as f:
                 f.write("[")
         else:
             with open(f_path, 'rb+') as f:
                 f.seek(-1, SEEK_END)
                 f.truncate()
 
-        with open(f_path, "a") as f:
+        with open(f_path, "a", encoding="utf8") as f:
             if f_exists:
                 f.write(",")
             f.write("\n" + slx_string + "]")
@@ -200,11 +200,11 @@ class CitationStorer(object):
     def __load_citations_from_csv_file(data_f_path, prov_f_path, baseurl, service_name,
                                        id_type, id_shape, citation_type):
         citation_data = OrderedDict()
-        with open(data_f_path) as f:
+        with open(data_f_path, encoding="utf8") as f:
             for row in DictReader(f):
                 citation_data[row["oci"]] = row
         citation_prov = OrderedDict()
-        with open(prov_f_path) as f:
+        with open(prov_f_path, encoding="utf8") as f:
             for row in DictReader(f):
                 citation_prov[row["oci"]] = row
 
@@ -270,7 +270,7 @@ class CitationStorer(object):
     @staticmethod
     def __load_citations_from_slx_file(data_f_path, oci, service_name, id_type, id_shape,
                                        citation_type, agent, source):
-        with open(data_f_path) as f:
+        with open(data_f_path, encoding="utf8") as f:
             citation_data = load(f)
 
             for obj in citation_data:

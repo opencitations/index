@@ -34,7 +34,7 @@ def key_set_from_csv(csv_file_or_dir, key, line_threshold=10000):
 
         header = None
         for file in file_list:
-            with open(file) as f:
+            with open(file, encoding="utf8") as f:
                 csv_content = ""
                 for idx, line in enumerate(f.readlines()):
                     if header is None:

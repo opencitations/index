@@ -30,7 +30,7 @@ class CrossrefCitationSource(DirCitationSource):
 
     def load(self, file_path):
         result = []
-        with open(file_path) as f:
+        with open(file_path, encoding="utf8") as f:
             j = load(f)
             if "items" in j:
                 result.extend(j["items"])

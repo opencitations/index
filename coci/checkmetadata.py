@@ -27,7 +27,7 @@ def process(input_dir, metadata_field):
     for cur_dir, cur_subdir, cur_files in walk(input_dir):
         for cur_file in cur_files:
             if cur_file.endswith(".json"):
-                with open(cur_dir + sep + cur_file) as f:
+                with open(cur_dir + sep + cur_file, encoding="utf8") as f:
                     for item in load(f).get("items", []):
                         to_get = deque(metadata_field)
                         value = None

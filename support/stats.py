@@ -93,7 +93,7 @@ if __name__ == "__main__":
     
     dois = None
     if args.doi_file is not None and exists(args.doi_file):
-        with open(args.doi_file) as f:
+        with open(args.doi_file, encoding="utf8") as f:
             dm = DOIManager()
             dois = set()
             csv_reader = reader(f)
@@ -103,7 +103,7 @@ if __name__ == "__main__":
                     dois.add(doi)
 
     for cur_file in all_files:
-        with open(cur_file) as f:
+        with open(cur_file, encoding="utf8") as f:
             csv_content = ""
             for idx, line in enumerate(f.readlines()):
                 if header is None:
@@ -122,6 +122,6 @@ if __name__ == "__main__":
         (result["n_cit"], result["n_journal_sc"], result["n_author_sc"],
          len(result["all_citing"].union(result["all_cited"])), len(result["all_citing"]), len(result["all_cited"]))
     ]
-    with open(args.output_file, "w") as g:
+    with open(args.output_file, "w", encoding="utf8") as g:
         csv_writer = writer(g)
         csv_writer.writerows(csv_result)

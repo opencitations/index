@@ -194,7 +194,7 @@ class CitationTest(unittest.TestCase):
     def test_citation_data_csv(self):
         citation_data_csv = None
 
-        with open(self.citation_data_csv_path) as f:
+        with open(self.citation_data_csv_path, encoding="utf8") as f:
             citation_data_csv = list(DictReader(f))
 
         self.assertEqual(list(DictReader(StringIO(self.citation_1.get_citation_csv())))[0], citation_data_csv[0])
@@ -207,7 +207,7 @@ class CitationTest(unittest.TestCase):
     def test_citation_prov_csv(self):
         citation_prov_csv = None
 
-        with open(self.citation_prov_csv_path) as f:
+        with open(self.citation_prov_csv_path, encoding="utf8") as f:
             citation_prov_csv = list(DictReader(f))
 
         self.assertEqual(list(DictReader(StringIO(self.citation_1.get_citation_prov_csv())))[0],
@@ -250,7 +250,7 @@ class CitationTest(unittest.TestCase):
     def test_citation_data_prov_scholix(self):
         citation_data_prov_scholix = None
 
-        with open(self.citation_data_prov_scholix_path) as f:
+        with open(self.citation_data_prov_scholix_path, encoding="utf8") as f:
             citation_data_prov_scholix = load(f)
 
         self.assertEqual(loads(self.citation_1.get_citation_scholix()), citation_data_prov_scholix[0])

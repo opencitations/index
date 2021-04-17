@@ -31,7 +31,8 @@ def add(server, g_url, f_n, date_str, type_file):
     server.setQuery('LOAD <file:' + abspath(f_n) + '> INTO GRAPH <' + g_url + '>')
     server.query()
 
-    with open("updatetp_report_%s_%s.txt" % (type_file, date_str), "a") as h:
+    with open("updatetp_report_%s_%s.txt" % (type_file, date_str), "a", 
+              encoding="utf8") as h:
         h.write("Added file '%s'\n" % f_n)
 
 
@@ -70,7 +71,7 @@ if __name__ == "__main__":
 
     already_done = set()
     for file in glob("updatetp_report_%s_*.txt" % type_file):
-        with open(file) as f:
+        with open(file, encoding="utf8") as f:
             for line in f.readlines():
                 already_done.add(basename(sub("^.+'([^']+)'.*$", "\\1", line)).strip())
 
