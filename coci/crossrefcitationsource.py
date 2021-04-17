@@ -50,7 +50,10 @@ class CrossrefCitationSource(DirCitationSource):
                         cited = self.doi.normalise(ref.get("DOI"))
                         if cited is not None:
                             self.last_row -= 1
-                            self.update_status_file()
+                            # self.update_status_file() # In Crossref, this should not be 
+                            # needed since I modify the row only when I finished to process 
+                            # all the references of a certain row (since here, a row is an 
+                            # article, not a citation)
                             return citing, cited, None, None, None, None
 
             self.update_status_file()

@@ -93,10 +93,14 @@ class DirCitationSource(CitationSource):
         self.last_file = None
 
         files_to_parse = deque(self.all_files)
+        idx = 0
         while self.last_file is None and files_to_parse:
             file = files_to_parse.popleft()
+            idx += 1
             if cur_last_file is None or file >= cur_last_file:
                 if self.data is None or file != cur_last_file:
+                    print("Opening file '%s' (%s out of %s)" % 
+                          (file, idx, len(self.all_files)))
                     self.data, self.len = self.load(file)
                     if file != cur_last_file:
                         self.last_row = -1

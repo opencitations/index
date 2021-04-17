@@ -85,8 +85,8 @@ class ResourceFinderTest(unittest.TestCase):
     def test_datacite_get_issn(self):
         # Do not use support files, only APIs
         df_1 = DataCiteResourceFinder()
-        self.assertIn("2197-6775", df_1.get_container_issn("10.14763/2019.1.1389"))
-        self.assertNotIn("1588-2861", df_1.get_container_issn("10.14763/2019.1.1389"))
+        self.assertIn("1406-894X", df_1.get_container_issn("10.15159/ar.21.030"))
+        self.assertNotIn("1588-2861", df_1.get_container_issn("10.15159/ar.21.030"))
 
         # Do use support files, but avoid using APIs
         df_2 = DataCiteResourceFinder(issn=CSVManager(self.issn_path),

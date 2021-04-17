@@ -269,7 +269,7 @@ class Citation(object):
             if self.duration is not None:
                 citation_graph.add((citation, self.has_citation_time_span,
                                     Literal(self.duration, datatype=XSD.duration)))
-
+                
         if include_oci:
             for s, p, o in self.get_oci_rdf(baseurl, include_label, include_prov).triples((None, None, None)):
                 citation_graph.add((s, p, o))

@@ -47,7 +47,7 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
 
     def _get_issn(self, json_obj):
         result = set()
-
+        
         if json_obj is not None:
             obj_types = json_obj.get("types")
             if obj_types is not None and sd.contains(obj_types, "citeproc", "journal"):

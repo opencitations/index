@@ -100,8 +100,13 @@ class CitationStorerTest(unittest.TestCase):
             for s, p, o, g in stored_citation_list[idx].get_citation_rdf(
                     self.baseurl, False, False, True).quads((None, None, None, None)):
                 g2.add((s, p, o, g))
+        
+        s1 = "\n".join(sorted(g1.serialize(
+            format="nt11", encoding="utf-8").decode("utf-8").split("\n")))
+        s2 = "\n".join(sorted(g1.serialize(
+            format="nt11", encoding="utf-8").decode("utf-8").split("\n")))
 
-        self.assertTrue(isomorphic(g1, g2))
+        self.assertEqual(s1, s2)
 
     def test_load_citations_slx(self):
         origin_citation_list, stored_citation_list = self.load_and_store_citations(

@@ -65,8 +65,8 @@ class DOIManager(IdentifierManager):
             return None
 
     def __doi_exists(self, doi_full):
-        doi = self.normalise(doi_full)
         if self.use_api_service:
+            doi = self.normalise(doi_full)
             tentative = 3
             while tentative:
                 tentative -= 1

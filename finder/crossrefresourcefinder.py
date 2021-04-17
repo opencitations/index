@@ -78,10 +78,9 @@ class CrossrefResourceFinder(ApiDOIResourceFinder):
             return result
 
     def _call_api(self, doi_full):
-        if not self.use_api_service:
-            return
-        doi = self.dm.normalise(doi_full)
-        r = get(self.api + quote(doi), headers=self.headers, timeout=30)
-        if r.status_code == 200:
-            r.encoding = "utf-8"
-            return r.json().get("message")
+        if self.use_api_service:
+            doi = self.dm.normalise(doi_full)
+            r = get(self.api + quote(doi), headers=self.headers, timeout=30)
+            if r.status_code == 200:
+                r.encoding = "utf-8"
+                return r.json().get("message")
