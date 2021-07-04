@@ -238,7 +238,7 @@ if __name__ == "__main__":
 
     arg_parser.add_argument("-c", "--pclass", required=True,
                             help="The name of the class of data source to use to process citatation data.", 
-                            choices=['csv', 'crorssref', 'croci'])
+                            choices=['csv', 'crossref', 'croci'])
     arg_parser.add_argument("-i", "--input", required=True,
                             help="The input file/directory to provide as input of the specified input "
                                  "Python file (using -p).")
