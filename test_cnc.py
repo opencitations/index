@@ -15,12 +15,11 @@
 # SOFTWARE.
 
 import unittest
-from os import sep, remove
-from index.cnc import execute_workflow
+from os import sep
+from cnc import execute_workflow
 from os.path import exists
 from index.citation.citationsource import CSVFileCitationSource
 from index.citation.oci import Citation, OCIManager
-from urllib.parse import quote
 from index.storer.citationstorer import CitationStorer
 from glob import glob
 from shutil import rmtree
@@ -31,8 +30,7 @@ class CreateNewCitationsTest(unittest.TestCase):
     def setUp(self):
         self.idbaseurl = "http://dx.doi.org/"
         self.baseurl = "https://w3id.org/oc/index/coci/"
-        self.python = "index%scitation%scitationsource.py" % (sep, sep)
-        self.pclass = "CSVFileCitationSource"
+        self.pclass = "csv"
         self.input = "index%stest_data%scitations_partial.csv" % (sep, sep)
         self.doi_file = "index%stest_data%scnc_valid_doi.csv" % (sep, sep)
         self.date_file = "index%stest_data%scnc_id_date.csv" % (sep, sep)
@@ -41,6 +39,7 @@ class CreateNewCitationsTest(unittest.TestCase):
         self.orcid = None
         self.lookup = "index%stest_data%slookup_full.csv" % (sep, sep)
         self.data = "index%stest_data%stmp_workflow" % (sep, sep)
+        self.data_parallel = "index%stest_data%stmp_workflow_parallel" % (sep, sep)
         self.prefix = "020"
         self.agent = "https://w3id.org/oc/index/prov/ra/1"
         self.source = "https://api.crossref.org/works/[[citing]]"
@@ -53,8 +52,15 @@ class CreateNewCitationsTest(unittest.TestCase):
         self.data_path = self.data + sep + "data" + sep + "**" + sep + "*.csv"
         self.prov_path = self.data + sep + "prov" + sep + "**" + sep + "*.csv"
 
+        self.data_path_parallel = self.data_parallel + sep + "data" + sep + "**" + sep + "*.csv"
+        self.prov_path_parallel = self.data_parallel + sep + "prov" + sep + "**" + sep + "*.csv"
+
         if exists(self.data):
             rmtree(self.data)
+        
+        if exists(self.data_parallel):
+            rmtree(self.data_parallel)
+
 
     def __load_citations(self, data, prov):
         return CitationStorer.load_citations_from_file(data, prov, baseurl="http://dx.doi.org/",
@@ -67,28 +73,39 @@ class CreateNewCitationsTest(unittest.TestCase):
         self.assertEqual(len(l1), len(l2))
         self.assertEqual(set(l1), set(l2))
 
-    def __test_citations(self):
-        data_csv = glob(self.data_path, recursive=True)
-        prov_csv = glob(self.prov_path, recursive=True)
-        self.assertEqual(len(data_csv), 1)
-        self.assertEqual(len(prov_csv), 1)
-        self.__citations_csv(self.citation_list, self.__load_citations(data_csv[0], prov_csv[0]))
+    def __test_citations(self, d_path, p_path):
+        data_csv = sorted(glob(d_path, recursive=True))
+        prov_csv = sorted(glob(p_path, recursive=True))
+        self.assertEqual(len(data_csv), len(prov_csv))
+
+        stored_citation_list = []
+        for i in range(len(data_csv)):
+            data_file = data_csv[i]
+            prov_file = prov_csv[i]
+            cur_citations = self.__load_citations(data_file, prov_file)
+            stored_citation_list.extend(cur_citations)
+
+        self.__citations_csv(self.citation_list, stored_citation_list)
 
     def test_execute_workflow(self):
         new_citations_added, citations_already_present, error_in_dois_existence = \
-            execute_workflow(self.idbaseurl, self.baseurl, self.python, self.pclass, self.input, self.doi_file,
+            execute_workflow(self.idbaseurl, self.baseurl, self.pclass, self.input, self.doi_file,
                              self.date_file, self.orcid_file, self.issn_file, self.orcid, self.lookup, self.data,
-                             self.prefix, self.agent, self.source, self.service, self.verbose, self.no_api)
+                             self.prefix, self.agent, self.source, self.service, self.verbose, self.no_api, 1)
         self.assertEqual(new_citations_added, 6)
         self.assertEqual(citations_already_present, 0)
         self.assertEqual(error_in_dois_existence, 0)
-        self.__test_citations()
+        self.__test_citations(self.data_path, self.prov_path)
 
         new_citations_added, citations_already_present, error_in_dois_existence = \
-            execute_workflow(self.idbaseurl, self.baseurl, self.python, self.pclass, self.input, self.doi_file,
+            execute_workflow(self.idbaseurl, self.baseurl, self.pclass, self.input, self.doi_file,
                              self.date_file, self.orcid_file, self.issn_file, self.orcid, self.lookup, self.data,
-                             self.prefix, self.agent, self.source, self.service, self.verbose, self.no_api)
+                             self.prefix, self.agent, self.source, self.service, self.verbose, self.no_api, 1)
         self.assertEqual(new_citations_added, 0)
         self.assertEqual(citations_already_present, 6)
         self.assertEqual(error_in_dois_existence, 0)
-        self.__test_citations()
+        self.__test_citations(self.data_path, self.prov_path)
+
+
+if __name__ == '__main__':
+    unittest.main()  # Launch with "python text_cnc.py"

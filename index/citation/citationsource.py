@@ -18,6 +18,7 @@ from os import walk, sep, remove
 from os.path import isdir, exists, dirname
 from csv import DictReader, DictWriter
 from collections import deque
+from urllib.parse import parse_qs
 
 
 class CitationSource(object):
@@ -49,6 +50,8 @@ class DirCitationSource(CitationSource):
         self.len = None
         self.status_file = None
         self.all_files = []
+        self.file_idx = 0
+        self.file_len = 0
 
         if isinstance(all_src, (list, set, tuple)):
             src_collection = all_src
@@ -79,41 +82,56 @@ class DirCitationSource(CitationSource):
                 self.all_files.append(src)
 
         self.all_files.sort()
+        self.file_len = len(self.all_files)
 
-        if self.last_file is None and self.all_files:
-            self.last_file = self.all_files[0]
-
+        self.all_files = deque(self.all_files)
+        # If case the directory contains some files
+        if self.all_files:
+            # If there is no status file (i.e. '.dir_citation_source') available,
+            # the we have to set the current last file as the first of the list of files
+            if self.last_file is None:
+                self.last_file = self.all_files.popleft()
+            # In case the status file is available (i.e. '.dir_citation_source') and
+            # it already specifies the last file that have been processed,
+            # we need to exclude all the files in the list that are lesser than the
+            # last one considered
+            else:
+                tmp_file = self.all_files.popleft()
+                while tmp_file < self.last_file:
+                    tmp_file = self.all_files.popleft()
+        
+        if self.last_file is not None:
+            self.file_idx += 1
+            print("Opening file '%s' (%s out of %s)" % (self.last_file, self.file_idx, self.file_len))
+            self.data, self.len = self.load(self.last_file)
+        
         if self.last_row is None:
             self.last_row = -1
 
         super(DirCitationSource, self).__init__(src)
 
     def _get_next_in_file(self):
-        cur_last_file = self.last_file
-        self.last_file = None
-
-        files_to_parse = deque(self.all_files)
-        idx = 0
-        while self.last_file is None and files_to_parse:
-            file = files_to_parse.popleft()
-            idx += 1
-            if cur_last_file is None or file >= cur_last_file:
-                if self.data is None or file != cur_last_file:
-                    print("Opening file '%s' (%s out of %s)" % 
-                          (file, idx, len(self.all_files)))
-                    self.data, self.len = self.load(file)
-                    if file != cur_last_file:
-                        self.last_row = -1
-                self.last_row += 1
-                if self.last_row < self.len:
-                    self.last_file = file
-                else:
-                    self.last_row = -1
-                    self.data = None
-                    self.len = None
-
+        # A file containing citations was already open
         if self.data is not None:
-            return self.data[self.last_row]
+            # Set the next row in the file to consider
+            self.last_row += 1
+            # There are citations in the open fine that have not
+            # being gathered yet
+            if self.last_row < self.len:
+                return self.data[self.last_row]
+            # All the citations of the last file parsed have been
+            # gathered, thus a new file must be considered, if available
+            elif self.all_files:
+                self.last_file = self.all_files.popleft()
+                self.file_idx += 1
+                print("Opening file '%s' (%s out of %s)" % (self.last_file, self.file_idx, self.file_len))
+                self.data, self.len = self.load(self.last_file)
+                self.last_row = -1
+                return self._get_next_in_file()
+            # There are no citation data to consider, since no more
+            # files are available
+            else:
+                self.data = None
 
     def load(self, file_path):
         pass  # To implement in the concrete classes
@@ -161,4 +179,5 @@ class CSVFileCitationSource(DirCitationSource):
             self.update_status_file()
             row = self._get_next_in_file()
 
-        remove(self.status_file)
+        if exists(self.status_file):
+            remove(self.status_file)

@@ -36,8 +36,9 @@ class CitationStorer(object):
     SLX_EXT = "scholix"
 
     def __init__(self, dir_data_path, rdf_resource_base,
-                 n_citations_csv_file=10000000, n_citations_rdf_file=1000000, n_citations_slx_file=5000000):
-        self.cur_time = datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+                 n_citations_csv_file=10000000, n_citations_rdf_file=1000000, n_citations_slx_file=5000000,
+                 suffix=""):
+        self.cur_time = datetime.now().strftime('%Y-%m-%dT%H%M%S')
         self.citation_dir_data_path = dir_data_path + sep + "data" + sep
         self.citation_dir_prov_path = dir_data_path + sep + "prov" + sep
         self.csv_dir_local_path = "csv" + sep + self.cur_time[:7].replace("-", sep) + sep
@@ -49,6 +50,11 @@ class CitationStorer(object):
         self.data_slx_dir = self.citation_dir_data_path + self.slx_dir_local_path
         self.prov_csv_dir = self.citation_dir_prov_path + self.csv_dir_local_path
         self.prov_rdf_dir = self.citation_dir_prov_path + self.rdf_dir_local_path
+
+        if type(suffix) is str and suffix:
+            self.suffix = "_" + suffix
+        else:
+            self.suffix = ""
 
         if not exists(self.data_csv_dir):
             makedirs(self.data_csv_dir)
@@ -67,19 +73,19 @@ class CitationStorer(object):
         self.n_citations_slx_file = n_citations_slx_file
 
         self.cur_csv_filename, self.cur_csv_citations = CitationStorer.__get_right_file_path(
-            self.data_csv_dir, self.cur_time, CitationStorer.CSV_EXT, self.n_citations_csv_file,
+            self.data_csv_dir, self.cur_time + self.suffix, CitationStorer.CSV_EXT, self.n_citations_csv_file,
             CitationStorer.__count_citations_csv)
         self.cur_rdf_filename, self.cur_rdf_citations = CitationStorer.__get_right_file_path(
-            self.data_rdf_dir, self.cur_time, CitationStorer.RDF_EXT, self.n_citations_rdf_file,
+            self.data_rdf_dir, self.cur_time + self.suffix, CitationStorer.RDF_EXT, self.n_citations_rdf_file,
             CitationStorer.__count_citations_rdf)
         self.cur_slx_filename, self.cur_slx_citations = CitationStorer.__get_right_file_path(
-            self.data_slx_dir, self.cur_time, CitationStorer.SLX_EXT, self.n_citations_slx_file,
+            self.data_slx_dir, self.cur_time + self.suffix, CitationStorer.SLX_EXT, self.n_citations_slx_file,
             CitationStorer.__count_citations_slx)
 
     def get_csv_filename(self, increment=False):
         if self.cur_csv_citations >= self.n_citations_csv_file:
             self.cur_csv_filename, self.cur_csv_citations = CitationStorer.__get_right_file_path(
-                self.data_csv_dir, self.cur_time, CitationStorer.CSV_EXT, self.n_citations_csv_file)
+                self.data_csv_dir, self.cur_time + self.suffix, CitationStorer.CSV_EXT, self.n_citations_csv_file)
 
         if increment:
             self.cur_csv_citations += 1
@@ -89,7 +95,7 @@ class CitationStorer(object):
     def get_rdf_filename(self, increment=False):
         if self.cur_rdf_citations >= self.n_citations_rdf_file:
             self.cur_rdf_filename, self.cur_rdf_citations = CitationStorer.__get_right_file_path(
-                self.data_rdf_dir, self.cur_time, CitationStorer.RDF_EXT, self.n_citations_rdf_file)
+                self.data_rdf_dir, self.cur_time + self.suffix, CitationStorer.RDF_EXT, self.n_citations_rdf_file)
 
         if increment:
             self.cur_rdf_citations += 1
@@ -99,7 +105,7 @@ class CitationStorer(object):
     def get_slx_filename(self, increment=False):
         if self.cur_slx_citations >= self.n_citations_slx_file:
             self.cur_slx_filename, self.cur_slx_citations = CitationStorer.__get_right_file_path(
-                self.data_slx_dir, self.cur_time, CitationStorer.SLX_EXT, self.n_citations_slx_file)
+                self.data_slx_dir, self.cur_time + self.suffix, CitationStorer.SLX_EXT, self.n_citations_slx_file)
 
         if increment:
             self.cur_slx_citations += 1

@@ -14,6 +14,7 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+from genericpath import exists
 from os import walk, sep, remove
 from os.path import isdir
 from json import load
@@ -60,4 +61,5 @@ class CrossrefCitationSource(DirCitationSource):
             row = self._get_next_in_file()
             self.last_ref = -1
 
-        remove(self.status_file)
+        if exists(self.status_file):
+            remove(self.status_file)
