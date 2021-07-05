@@ -17,127 +17,35 @@
 from argparse import ArgumentParser
 from urllib.parse import quote
 from datetime import datetime
-from os.path import abspath, dirname, basename
 from os import sep
-from sys import path
-from importlib import import_module
-from index.storer.csvmanager import CSVManager
-from index.identifier.doimanager import DOIManager
-from index.finder.orcidresourcefinder import ORCIDResourceFinder
-from index.finder.dataciteresourcefinder import DataCiteResourceFinder
-from index.finder.crossrefresourcefinder import CrossrefResourceFinder
-from index.finder.resourcefinder import ResourceFinderHandler
-from index.citation.oci import OCIManager, Citation
+from index.citation.oci import Citation
 from index.storer.citationstorer import CitationStorer
-from index.citation.citationsource import CSVFileCitationSource
-from index.coci.crossrefcitationsource import CrossrefCitationSource
-from index.croci.crowdsourcedcitationsource import CrowdsourcedCitationSource
+from index.storer.datahandler import FileDataHandler
 
 import ray
 
 
-def create_csv(doi_file, date_file, orcid_file, issn_file):
-    valid_doi = CSVManager(csv_path=doi_file)
-    id_date = CSVManager(csv_path=date_file)
-    id_orcid = CSVManager(csv_path=orcid_file)
-    id_issn = CSVManager(csv_path=issn_file)
-
-    return valid_doi, id_date, id_orcid, id_issn
-
-
-def import_citation_source(python, pclass, input):
-    addon_abspath = abspath(python)
-    path.append(dirname(addon_abspath))
-    addon = import_module(basename(addon_abspath).replace(".py", ""))
-    return getattr(addon, pclass)(input)
-
-
-class DataHandler(object):
-    _source_classes = {
-        "csv": CSVFileCitationSource,
-        "crossref": CrossrefCitationSource,
-        "croci": CrowdsourcedCitationSource
-    }
-
-    def __init__(self, lookup, data, pclass, inp, 
-                 id_manager, rf_handler):
-        self.oci_manager = OCIManager(lookup_file=lookup)
-        self.exi_ocis = CSVManager.load_csv_column_as_set(
-            data + sep + "data", "oci")
-        self.cs = self._source_classes[pclass](inp)
-        self.id_manager = id_manager
-        self.rf_handler = rf_handler
-        self.new_citations_added = 0
-        self.citations_already_present = 0
-        self.error_in_ids_existence = 0
-
-    def get_values(self):
-        return self.new_citations_added, self.citations_already_present, self.error_in_ids_existence
-
-    def get_oci(self, citing, cited, prefix):
-        return self.oci_manager.get_oci(citing, cited, prefix)
-
-    def get_next_citation_data(self):
-        return self.cs.get_next_citation_data()
-
-    def are_valid(self, citing, cited):
-        result = self.id_manager.is_valid(citing) and \
-                 self.id_manager.is_valid(cited)
-        if result:
-            self.new_citations_added += 1
-        else:
-            self.error_in_ids_existence += 1
-
-        return result
-    
-    def share_orcid(self, citing, cited):
-        return self.rf_handler.share_orcid(citing, cited)
-    
-    def share_issn(self, citing, cited):
-        return self.rf_handler.share_issn(citing, cited)
-    
-    def get_date(self, id_string):
-        return self.rf_handler.get_date(id_string)
-
-    def oci_exists(self, oci):
-        result = oci in self.exi_ocis
-        if result:
-            self.citations_already_present += 1
-        else:
-            self.exi_ocis.add(oci)
-        return result
-
-
 @ray.remote
-class ParallelDataHandler(DataHandler):
+class ParallelFileDataHandler(FileDataHandler):
+    """This class makes the FileDataHandler class as a remote object"""
     pass
 
-
-def execute_workflow(idbaseurl, baseurl, pclass, input, doi_file, date_file,
-                     orcid_file, issn_file, orcid, lookup, data, prefix, agent, source, service, verbose, no_api, process_number):
-    # Create the support file for handling information about bibliographic resources
-    valid_doi, id_date, id_orcid, id_issn = create_csv(doi_file, date_file, orcid_file, issn_file)
-
-    doi_manager = DOIManager(valid_doi, use_api_service=not no_api)
-    crossref_rf = CrossrefResourceFinder(
-        date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi, use_api_service=not no_api)
-    datacite_rf = DataCiteResourceFinder(
-        date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi, use_api_service=not no_api)
-    orcid_rf = ORCIDResourceFinder(
-        date=id_date, orcid=id_orcid, issn=id_issn, doi=valid_doi,
-        use_api_service=True if orcid is not None and not no_api else False, key=orcid)
-
-    rf_handler = ResourceFinderHandler([crossref_rf, datacite_rf, orcid_rf])
-    
+def execute_workflow(idbaseurl, baseurl, pclass, inp, doi_file, date_file,
+                     orcid_file, issn_file, orcid, lookup, data, prefix, agent, 
+                     source, service, verbose, no_api, process_number):
     if process_number > 1:  # Run process in parallel via RAY
         ray.init(num_cpus=process_number)
-        p_handler = ParallelDataHandler.remote(lookup, data, pclass, input, doi_manager, rf_handler)
-        futures = [_parallel_extract_citations.remote(data, idbaseurl, baseurl, prefix, agent, source, service, verbose, p_handler, str(i)) 
+        p_handler = ParallelFileDataHandler.remote(pclass, inp, lookup)
+        id_remote_init = p_handler.init.remote(data, doi_file, date_file, orcid_file, issn_file, orcid, no_api)
+        ray.wait([id_remote_init])  # wait until the handler is not ready
+        futures = [_parallel_extract_citations.remote(data, idbaseurl, baseurl, prefix, agent, source, 
+                                                      service, verbose, p_handler, str(i)) 
                    for i in range(process_number - 1)]
         ray.get(futures)
         return ray.get(p_handler.get_values.remote())
     else:
-        p_handler = DataHandler(lookup, data, pclass, input, doi_manager, rf_handler)
+        p_handler = FileDataHandler(pclass, inp, lookup)
+        p_handler.init(data, doi_file, date_file, orcid_file, issn_file, orcid, no_api)
         _extract_citations(data, idbaseurl, baseurl, prefix, agent, source, service, verbose, p_handler)
         return p_handler.get_values()
 
@@ -293,4 +201,4 @@ if __name__ == "__main__":
           (new_citations_added, citations_already_present, error_in_dois_existence))
 
 # How to call the service (e.g. for COCI)
-# python -m index.cnc -ib "http://dx.doi.org/" -b "https://w3id.org/oc/index/coci/" -p "index/citation/citationsource.py" -c "CSVFileCitationSource" -i "index/test_data/citations_partial.csv" -doi "index/coci_test/doi.csv" -orcid "index/coci_test/orcid.csv" -date "index/coci_test/date.csv" -issn "index/coci_test/issn.csv" -l "index/test_data/lookup_full.csv" -d "index/coci_test" -px "020" -a "https://w3id.org/oc/index/prov/pa/1" -s "https://api.crossref.org/works/[[citing]]" -sv "OpenCitations Index: COCI" -v
+# python cnc.py -ib "http://dx.doi.org/" -b "https://w3id.org/oc/index/coci/" -c "csv" -i "index/test_data/citations_partial.csv" -doi "index/coci_test/doi.csv" -orcid "index/coci_test/orcid.csv" -date "index/coci_test/date.csv" -issn "index/coci_test/issn.csv" -l "index/test_data/lookup_full.csv" -d "index/coci_test" -px "020" -a "https://w3id.org/oc/index/prov/pa/1" -s "https://api.crossref.org/works/[[citing]]" -sv "OpenCitations Index: COCI" -v
