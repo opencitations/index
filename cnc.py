@@ -36,8 +36,10 @@ def execute_workflow(idbaseurl, baseurl, pclass, inp, doi_file, date_file,
     if process_number > 1:  # Run process in parallel via RAY
         ray.init(num_cpus=process_number)
         p_handler = ParallelFileDataHandler.remote(pclass, inp, lookup)
+        print("[parallel] Initialising the data handler")
         id_remote_init = p_handler.init.remote(data, doi_file, date_file, orcid_file, issn_file, orcid, no_api)
         ray.wait([id_remote_init])  # wait until the handler is not ready
+        print("[parallel] The data handler has been initialised, and the extraction of citations begins")
         futures = [_parallel_extract_citations.remote(data, idbaseurl, baseurl, prefix, agent, source, 
                                                       service, verbose, p_handler, str(i)) 
                    for i in range(process_number - 1)]
@@ -45,7 +47,9 @@ def execute_workflow(idbaseurl, baseurl, pclass, inp, doi_file, date_file,
         return ray.get(p_handler.get_values.remote())
     else:
         p_handler = FileDataHandler(pclass, inp, lookup)
+        print("[standalone] Initialising the data handler")
         p_handler.init(data, doi_file, date_file, orcid_file, issn_file, orcid, no_api)
+        print("[standalone] The data handler has been initialised, and the extraction of citations begins")
         _extract_citations(data, idbaseurl, baseurl, prefix, agent, source, service, verbose, p_handler)
         return p_handler.get_values()
 
