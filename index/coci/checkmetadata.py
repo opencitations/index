@@ -17,29 +17,59 @@
 
 from argparse import ArgumentParser
 from os import sep, walk
+from os.path import isdir
 from json import load
 from collections import deque
+import tarfile 
 
 
-def process(input_dir, metadata_field):
+
+def process(input_dir_or_targz_file, metadata_field):
     result = None
+    list_of_files = []
+    is_targz = False
 
-    for cur_dir, cur_subdir, cur_files in walk(input_dir):
-        for cur_file in cur_files:
+    if isdir(input_dir_or_targz_file):
+        for cur_dir, cur_subdir, cur_files in walk(input_dir_or_targz_file):
+            for cur_file in cur_files:
+                if cur_file.endswith(".json"):
+                    list_of_files.append(cur_dir + sep + cur_file)
+    elif input_dir_or_targz_file.endswith("tar.gz"):
+        is_targz = True
+        targz_fd = tarfile.open(input_dir_or_targz_file, "r:gz")
+        for cur_file in targz_fd.getnames():
             if cur_file.endswith(".json"):
-                with open(cur_dir + sep + cur_file, encoding="utf8") as f:
-                    for item in load(f).get("items", []):
-                        to_get = deque(metadata_field)
-                        value = None
+                print(cur_file)
+                return
+                list_of_files.append(cur_file)
+    else:
+        print("It is not possible to process the input path.")
+        return
+    
+    for cur_file in list_of_files:
+        json_file = None
+        if is_targz:
+            cur_tar_file = targz_fd.extractfile(cur_file)
+            json_file = load(cur_tar_file)
+        else:
+            with open(cur_dir + sep + cur_file, encoding="utf8") as f:
+                json_file = load(f)
+    
+        for item in json_file.get("items", []):
+            to_get = deque(metadata_field)
+            value = None
 
-                        while to_get:
-                            if value is None:
-                                value = item.get(to_get.popleft())
-                            else:
-                                value = value.get(to_get.popleft())
+            while to_get:
+                if value is None:
+                    value = item.get(to_get.popleft())
+                else:
+                    value = value.get(to_get.popleft())
 
-                        if result is None or value > result:
-                            result = value
+            if result is None or value > result:
+                result = value
+
+    if is_targz:
+        targz_fd.close()
 
     return result
 

@@ -56,16 +56,19 @@ class CitationStorer(object):
         else:
             self.suffix = ""
 
-        if not exists(self.data_csv_dir):
-            makedirs(self.data_csv_dir)
-        if not exists(self.data_rdf_dir):
-            makedirs(self.data_rdf_dir)
-        if not exists(self.data_slx_dir):
-            makedirs(self.data_slx_dir)
-        if not exists(self.prov_csv_dir):
-            makedirs(self.prov_csv_dir)
-        if not exists(self.prov_rdf_dir):
-            makedirs(self.prov_rdf_dir)
+        try:
+            if not exists(self.data_csv_dir):
+                makedirs(self.data_csv_dir)
+            if not exists(self.data_rdf_dir):
+                makedirs(self.data_rdf_dir)
+            if not exists(self.data_slx_dir):
+                makedirs(self.data_slx_dir)
+            if not exists(self.prov_csv_dir):
+                makedirs(self.prov_csv_dir)
+            if not exists(self.prov_rdf_dir):
+                makedirs(self.prov_rdf_dir)
+        except FileExistsError:
+            pass
 
         self.rdf_resource_base = rdf_resource_base
         self.n_citations_csv_file = n_citations_csv_file
