@@ -44,7 +44,7 @@ def process(input_dir, output_dir, metadata_field, metadata_value):
                             else:
                                 value = value.get(to_get.popleft())
 
-                        if value >= metadata_value:
+                        if value is None or value >= metadata_value:
                             if item_idx >= 10000:
                                 with open(output_dir + sep + str(idx) + ".json", "w", 
                                           encoding="utf8") as g:
