@@ -186,3 +186,139 @@ class CitationStorerTest(unittest.TestCase):
                 id_shape="http://dx.doi.org/([[XXX__decode]])", citation_type=None))
 
         return stored_citation_list
+
+
+'''
+In order to run this test you should start an istance of RethinkDB
+using port 9999 and insert all the data contained in 
+/index/test_data/rethinkdb using the script rethinkdb.py
+contained in /index/support/.
+'''
+class RethinkDBDataHandlerTest(unittest.TestCase):
+    def setUp(self):
+        self.datahandler = RethinkDBDataHandler(
+            None,
+            None,
+            None,
+            "localhost",
+            9999,
+            100 # cache size
+        )
+    
+    # Both doi have some orcid and some of them are in common
+    def test_share_orcid_true(self):
+        self.assertTrue(self.datahandler.share_orcid(
+            "doi:10.1108/jd-12-2013-0166",
+            "doi:10.1007/s11192-018-2988-z"
+        ))
+    
+    # Both doi have some orcid but no one is in common
+    def test_share_orcid_false1(self):
+        self.assertFalse(self.datahandler.share_orcid(
+            "doi:10.1108/jd-12-2013-0166",
+            "doi:10.5065/d6b8565d"
+        ))
+    
+    # One of the doi having empty orcid set
+    def test_share_orcid_false2(self):
+        self.assertFalse(self.datahandler.share_orcid(
+            "doi:10.6092/issn.2532-8816/8555",
+            "doi:10.5065/d6b8565d"
+        ))
+    
+    # Both doi having empty orcid set
+    def test_share_orcid_false3(self):
+        self.assertFalse(self.datahandler.share_orcid(
+            "doi:10.6092/issn.2532-8816/8555",
+            "doi:10.14763/2019.1.1389"
+        ))
+
+    # Both doi have some issn and some of them are in common
+    def test_share_issn_true(self):
+        self.assertTrue(self.datahandler.share_issn(
+            "doi:10.1007/s11192-018-2988-z",
+            "ddoi:10.1007/s11192-018-1234-z"
+        ))
+
+    # Both doi have some issn but no one is in common
+    def test_share_issn_false1(self):
+        self.assertFalse(self.datahandler.share_issn(
+            "doi:10.1007/s11192-018-2988-z",
+            "doi:10.14763/2019.1.1389"
+        ))
+
+    # One of the doi having empty issn set
+    def test_share_issn_false2(self):
+        self.assertFalse(self.datahandler.share_issn(
+            "doi:10.1007/s11192-018-2988-z",
+            "doi:10.6092/issn.2532-8816/8555"
+        ))
+        
+    # Both doi having empty issn set
+    def test_share_issn_false3(self):
+        self.assertFalse(self.datahandler.share_issn(
+            "doi:10.1108/jd-12-2013-0166",
+            "doi:10.6092/issn.2532-8816/8555"
+        ))
+
+    # Verifies that an oci is correctly considered as existing
+    def test_oci_exists_true(self):
+        self.assertTrue(
+            self.datahandler.oci_exists("02001000002361927283705040000")
+        )
+
+    # Creates a new ad-hoc oci using timestamp and checks that addition
+    # works and therefore existence is false
+    def test_oci_exists_false(self):
+        self.assertFalse(
+            self.datahandler.oci_exists(int(time.time()))
+        )
+        
+    # Get date and checks that the value retrivied is correct
+    def test_get_date_value(self):
+        self.assertEqual(
+            self.datahandler.get_date("doi:10.1007/s11192-018-2988-z"),
+            "2019-01-02"
+        )
+
+    # Get null date
+    def test_get_date_none(self):
+        self.assertIsNone(
+            self.datahandler.get_date("doi:10.1108/12-2013-0166")
+        )
+        
+    # Both doi are valid
+    def test_are_valid_true(self):
+        self.assertTrue(
+            self.datahandler.are_valid(
+                "doi:10.1007/s11192-018-2988-z",
+                "doi:10.1108/jd-12-2013-0166"
+            )
+        )
+
+    # One of the doi is not valid
+    def test_are_valid_false1(self):
+        self.assertFalse(
+            self.datahandler.are_valid(
+                "doi:10.1007/s11192-018-1234-z",
+                "doi:10.1108/12-2013-0166"
+            )
+        )
+
+    # Both the doi are not valid
+    def test_are_valid_false2(self):
+        self.assertFalse(
+            self.datahandler.are_valid(
+                "doi:10.1007/s11192-018-1234-z",
+                "doi:10.1108/jd-12-2013-0166"
+            )
+        )
+
+    # One of the doi does not exists
+    def test_are_valid_false3(self):
+        self.assertFalse(
+            self.datahandler.are_valid(
+                "doi:10.1007/test",
+                "doi:10.1108/jd-12-2013-0166"
+            )
+        )
