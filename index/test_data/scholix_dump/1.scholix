@@ -1,0 +1,1482 @@
+[
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1007/s13197-015-1920-2",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1007/s13197-015-1920-2"
+        },
+        "PublicationDate": "2015-06-25",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biortech.2005.11.017",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biortech.2005.11.017"
+        },
+        "PublicationDate": "2007-01",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1021/jf000167b",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1021/jf000167b"
+        },
+        "PublicationDate": "2000-09",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1556/achrom.21.2009.2.1",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1556/achrom.21.2009.2.1"
+        },
+        "PublicationDate": "2009-06",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/s1369-703x(99)00014-5",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/s1369-703x%2899%2900014-5"
+        },
+        "PublicationDate": "1999-06",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1159/000106089",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1159/000106089"
+        },
+        "PublicationDate": "2007-10-24",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1021/jf970484r",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1021/jf970484r"
+        },
+        "PublicationDate": "1998-06",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biortech.2005.03.016",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biortech.2005.03.016"
+        },
+        "PublicationDate": "2006-02",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/s0141-0229(99)00155-6",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/s0141-0229%2899%2900155-6"
+        },
+        "PublicationDate": "2000-02",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.fct.2007.07.003",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.fct.2007.07.003"
+        },
+        "PublicationDate": "2008-01",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1128/mmbr.59.2.171-200.1995",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1128/mmbr.59.2.171-200.1995"
+        },
+        "PublicationDate": "1995",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1590/s1517-83822011000400039",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1590/s1517-83822011000400039"
+        },
+        "PublicationDate": "2011-12",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biotechadv.2008.10.004",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biotechadv.2008.10.004"
+        },
+        "PublicationDate": "2009-03",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1046/j.1365-2672.2003.01984.x",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1046/j.1365-2672.2003.01984.x"
+        },
+        "PublicationDate": "2003-08",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.aquaculture.2007.11.019",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.aquaculture.2007.11.019"
+        },
+        "PublicationDate": "2008-01",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1007/s10532-007-9159-x",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1007/s10532-007-9159-x"
+        },
+        "PublicationDate": "2007-10-20",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biortech.2007.05.001",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biortech.2007.05.001"
+        },
+        "PublicationDate": "2008-05",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:54",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biortech.2007.03.025",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biortech.2007.03.025"
+        },
+        "PublicationDate": "2008-04",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1021/jf034980t",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1021/jf034980t"
+        },
+        "PublicationDate": "2004-01",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.tifs.2012.11.007",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.tifs.2012.11.007"
+        },
+        "PublicationDate": "2013-03",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/s0168-1605(00)00419-0",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/s0168-1605%2800%2900419-0"
+        },
+        "PublicationDate": "2001-02",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biortech.2004.05.020",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biortech.2004.05.020"
+        },
+        "PublicationDate": "2005-03",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.fsi.2010.02.017",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.fsi.2010.02.017"
+        },
+        "PublicationDate": "2010-07",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1111/j.1750-3841.2011.02161.x",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1111/j.1750-3841.2011.02161.x"
+        },
+        "PublicationDate": "2011-05-09",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1093/biomet/33.4.305",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1093/biomet/33.4.305"
+        },
+        "PublicationDate": "1946",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.foodchem.2007.07.063",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.foodchem.2007.07.063"
+        },
+        "PublicationDate": "2008-02",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1007/s00253-009-1970-3",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1007/s00253-009-1970-3"
+        },
+        "PublicationDate": "2009-03-31",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biortech.2009.10.015",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biortech.2009.10.015"
+        },
+        "PublicationDate": "2010-03",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/s0960-8524(02)00113-x",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/s0960-8524%2802%2900113-x"
+        },
+        "PublicationDate": "2003-01",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1007/s12010-008-8222-3",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1007/s12010-008-8222-3"
+        },
+        "PublicationDate": "2008-05-29",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.procbio.2010.12.005",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.procbio.2010.12.005"
+        },
+        "PublicationDate": "2011-04",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biortech.2007.05.006",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biortech.2007.05.006"
+        },
+        "PublicationDate": "2008-05",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1007/s13197-012-0730-z",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1007/s13197-012-0730-z"
+        },
+        "PublicationDate": "2012-05-12",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.biortech.2008.04.036",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.biortech.2008.04.036"
+        },
+        "PublicationDate": "2008-12",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.molcatb.2010.12.012",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.molcatb.2010.12.012"
+        },
+        "PublicationDate": "2011-04",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1016/j.sjbs.2013.04.009",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1016/j.sjbs.2013.04.009"
+        },
+        "PublicationDate": "2014-01",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1111/j.2042-7158.1997.tb06761.x",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1111/j.2042-7158.1997.tb06761.x"
+        },
+        "PublicationDate": "1997-01",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.1002/elsc.201100097",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1002/elsc.201100097"
+        },
+        "PublicationDate": "2012-04",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.3923/joafsnu.2010.6.10",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.3923/joafsnu.2010.6.10"
+        },
+        "PublicationDate": "2010-02-01",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+},
+{
+    "LinkPublicationDate": "2020-08-26T16:22:55",
+    "LinkProvider": [
+        {
+            "Name": "OpenCitations"
+        },
+        {
+            "Name": "OpenCitations Index: COCI"
+        }
+    ],
+    "Source": {
+        "Identifier": {
+            "ID": "10.1080/10242422.2020.1786071",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.1080/10242422.2020.1786071"
+        },
+        "PublicationDate": "2020-07-01",
+        "Type": {
+            "Name": "literature"
+        }
+    },
+    "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
+    "RelationshipType": {
+        "Name": "References"
+    },
+    "Target": {
+        "Identifier": {
+            "ID": "10.2478/s11696-007-0022-7",
+            "IDScheme": "doi",
+            "IDURL": "http://dx.doi.org/10.2478/s11696-007-0022-7"
+        },
+        "PublicationDate": "2007",
+        "Type": {
+            "Name": "literature"
+        }
+    }
+}
+]

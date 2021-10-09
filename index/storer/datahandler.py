@@ -26,6 +26,10 @@ from index.finder.crossrefresourcefinder import CrossrefResourceFinder
 from index.finder.resourcefinder import ResourceFinderHandler
 from index.citation.oci import OCIManager
 from os import sep
+from re import match
+from collections import OrderedDict
+
+from rethinkdb import RethinkDB
 
 
 class DataHandler(object):
@@ -94,7 +98,6 @@ class DataHandler(object):
         database (it returns True in this case, otherwise it returns False)."""
         pass
 
-
 class FileDataHandler(DataHandler):
     @staticmethod
     def _create_csv(doi_file, date_file, orcid_file, issn_file):
@@ -148,4 +151,82 @@ class FileDataHandler(DataHandler):
             self.citations_already_present += 1
         else:
             self.exi_ocis.add(oci)
+        return result
+
+class RethinkDBCache:
+    def __init__(self, size):
+        self.__size = size
+        self.__mem = OrderedDict()
+        self.__n = 0 
+    
+    def add(self, key, value):
+        if(self.__n >= self.__size):
+            self.__mem.popitem(last=False)
+        self.__mem[key] = value
+        self.__n = len(self.__mem.keys())
+    
+    def get(self, key):
+        return self.__mem.get(key)
+
+class RethinkDBDataHandler(DataHandler): 
+    def __init__(self, pclass, inp, lookup, address, port, cache_size):
+        #super().__init__(pclass, inp, lookup)
+        self.__r = RethinkDB()
+        self.__r.connect(address, port).repl()
+        self.__cache_doi = RethinkDBCache(cache_size)
+        self.__doi_manager = DOIManager()
+    
+    def share_orcid(self, citing, cited):
+        return self.__check_intersection(citing, cited, "orcid")
+    
+    def share_issn(self, doi, issn):
+        return self.__check_intersection(doi, issn, "issn")
+
+    def __get_doi(self, doi):
+        doi = self.__doi_manager.normalise(doi, include_prefix=True)
+        if doi is None or match("^doi:10\\..+/.+$", doi) is None:
+            return None
+
+        cached_value = self.__cache_doi.get(doi)
+        if cached_value is None:
+            return self.__r.db("oc").table("doi").get(doi).run()
+        else:
+            return cached_value
+
+    def __check_intersection(self, doi_1, doi_2, field):
+        doi_1 = self.__get_doi(doi_1)
+        doi_2 = self.__get_doi(doi_2)
+        if doi_1 is None or doi_2 is None:
+            return False
+        intersection = set(doi_1[field]) & set(doi_2[field])
+        return len(intersection) > 0
+    
+    def get_date(self, doi):
+        doi = self.__get_doi(doi)
+        if(doi != None):
+            return doi["date"]
+        else:
+            return None
+
+    def oci_exists(self, oci):
+        insert_obj = self.__r.db("oc").table("oci").insert({
+            "oci": oci
+        }).run()
+        if insert_obj["errors"] > 0:
+            #self.citations_already_present += 1
+            return True
+        return False
+
+    def are_valid(self, citing, cited):
+        doi_citing = self.__get_doi(citing)
+        doi_cited = self.__get_doi(cited)
+        result = (not doi_citing is None) and doi_citing["validity"] and (not doi_cited is None) and doi_cited["validity"]
+        
+        if result:
+            #self.new_citations_added += 1
+            pass
+        else:
+            #self.error_in_ids_existence += 1
+            pass
+        
         return result
