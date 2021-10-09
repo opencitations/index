@@ -22,14 +22,13 @@ from index.identifier.doimanager import DOIManager
 from index.identifier.issnmanager import ISSNManager
 from index.identifier.orcidmanager import ORCIDManager
 from os import sep, makedirs, walk
-from os.path import exists
-from json import load
+from os.path import exists, basename, isdir
+from json import load, loads
 from collections import Counter
 from datetime import date
 from re import sub
 from index.citation.oci import Citation
-from zipfile import ZipFile
-from tarfile import TarFile
+import tarfile
 import codecs
 
 
@@ -74,29 +73,39 @@ def build_pubdate(obj):
     return None
 
 
-def get_all_files(i_dir):
+def get_all_files(i_dir_or_targz_file):
     result = []
-    opener = None
-    
-    if i_dir.endswith(".zip"):
-        zf = ZipFile(i_dir)
-        for name in zf.namelist():
-            if name.lower().endswith(".json"):
-                result.append(name)
-        opener = zf.open
-    elif i_dir.endswith(".tar.gz"):
-        tf = TarFile.open(i_dir)
-        for name in tf.getnames():
-            if name.lower().endswith(".json"):
-                result.append(name)
-        opener = tf.extractfile
+    targz_fd = None
+
+    if isdir(i_dir_or_targz_file):
+        for cur_dir, cur_subdir, cur_files in walk(i_dir_or_targz_file):
+            for cur_file in cur_files:
+                if cur_file.endswith(".json") and not basename(cur_file).startswith("."):
+                    result.append(cur_dir + sep + cur_file)
+    elif i_dir_or_targz_file.endswith("tar.gz"):
+        targz_fd = tarfile.open(i_dir_or_targz_file, "r:gz", encoding="utf-8")
+        for cur_file in targz_fd:
+            if cur_file.name.endswith(".json") and not basename(cur_file.name).startswith("."):
+                result.append(cur_file)
     else:
-        for cur_dir, cur_subdir, cur_files in walk(i_dir):
-            for file in cur_files:
-                if file.lower().endswith('.json'):
-                    result.append(cur_dir + sep + file)
-        opener = open
-    return result, opener
+        print("It is not possible to process the input path.")
+        
+    return result, targz_fd
+
+
+def load_json(file, targz_fd, file_idx, len_all_files):
+    result = None
+
+    if targz_fd is None:
+        print("Open file %s of %s" % (file_idx, len_all_files))
+        with open(file, encoding="utf8") as f:
+            daresultta = load(f)
+    else:
+        print("Open file %s of %s (in tar.gz archive)" % (file_idx, len_all_files))
+        cur_tar_file = targz_fd.extractfile(file)
+        result = loads(cur_tar_file.read())
+    
+    return result
 
 
 def process(input_dir, output_dir):
@@ -113,78 +122,69 @@ def process(input_dir, output_dir):
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
 
-    all_files, opener = get_all_files(input_dir)
+    all_files, targz_fd = get_all_files(input_dir)
     len_all_files = len(all_files)
 
     # Read all the JSON file in the Crossref dump to create the main information of all the indexes
     print("\n\n# Add valid DOIs from Crossref metadata")
     for file_idx, file in enumerate(all_files, 1):
-        with opener(file) as f:
-            print("Open file %s of %s" % (file_idx, len_all_files))
-            try:
-                data = load(f)
-            # When using tar.gz file or zip file a stream of byte is returned by the opener. Thus,
-            # it must be converted into an utf-8 string before loading it into a JSON.
-            except TypeError:
-                utf8reader = codecs.getreader("utf-8")
-                data = load(utf8reader(f))
+        data = load_json(file, targz_fd, file_idx, len_all_files)
 
-            if "items" in data:
-                for obj in data['items']:
-                    if "DOI" in obj:
-                        citing_doi = doi_manager.normalise(obj["DOI"], True)
-                        doi_manager.set_valid(citing_doi)
+        if "items" in data:
+            for obj in data['items']:
+                if "DOI" in obj:
+                    citing_doi = doi_manager.normalise(obj["DOI"], True)
+                    doi_manager.set_valid(citing_doi)
 
-                        if id_date.get_value(citing_doi) is None:
-                            citing_date = Citation.check_date(build_pubdate(obj))
-                            if citing_date is not None:
-                                id_date.add_value(citing_doi, citing_date)
-                                if citing_doi in citing_doi_with_no_date:
-                                    citing_doi_with_no_date.remove(citing_doi)
-                            else:
-                                citing_doi_with_no_date.add(citing_doi)
+                    if id_date.get_value(citing_doi) is None:
+                        citing_date = Citation.check_date(build_pubdate(obj))
+                        if citing_date is not None:
+                            id_date.add_value(citing_doi, citing_date)
+                            if citing_doi in citing_doi_with_no_date:
+                                citing_doi_with_no_date.remove(citing_doi)
+                        else:
+                            citing_doi_with_no_date.add(citing_doi)
 
-                        if id_issn.get_value(citing_doi) is None:
-                            if "type" in obj:
-                                cur_type = obj["type"]
-                                if cur_type is not None and "journal" in cur_type and "ISSN" in obj:
-                                    cur_issn = obj["ISSN"]
-                                    if cur_issn is not None:
-                                        for issn in [issn_manager.normalise(issn) for issn in cur_issn]:
-                                            if issn is not None:
-                                                id_issn.add_value(citing_doi, issn)
+                    if id_issn.get_value(citing_doi) is None:
+                        if "type" in obj:
+                            cur_type = obj["type"]
+                            if cur_type is not None and "journal" in cur_type and "ISSN" in obj:
+                                cur_issn = obj["ISSN"]
+                                if cur_issn is not None:
+                                    for issn in [issn_manager.normalise(issn) for issn in cur_issn]:
+                                        if issn is not None:
+                                            id_issn.add_value(citing_doi, issn)
 
-                        if id_orcid.get_value(citing_doi) is None:
-                            if "author" in obj:
-                                cur_author = obj['author']
-                                if cur_author is not None:
-                                    for author in cur_author:
-                                        if "ORCID" in author:
-                                            orcid = orcid_manager.normalise(author["ORCID"])
-                                            if orcid is not None:
-                                                id_orcid.add_value(citing_doi, orcid)
+                    if id_orcid.get_value(citing_doi) is None:
+                        if "author" in obj:
+                            cur_author = obj['author']
+                            if cur_author is not None:
+                                for author in cur_author:
+                                    if "ORCID" in author:
+                                        orcid = orcid_manager.normalise(author["ORCID"])
+                                        if orcid is not None:
+                                            id_orcid.add_value(citing_doi, orcid)
 
     # Do it again for updating the dates of the cited DOIs, if these are valid
     print("\n\n# Check cited DOIs from Crossref reference field")
     doi_date = {}
     for file_idx, file in enumerate(all_files, 1):
-        with opener(file) as f:
-            print("Open file %s of %s" % (file_idx, len_all_files))
-            data = load(f)
-            if "items" in data:
-                for obj in data['items']:
-                    if "DOI" in obj and "reference" in obj:
-                        for ref in obj['reference']:
-                            if "DOI" in ref:
-                                cited_doi = doi_manager.normalise(ref["DOI"], True)
-                                if doi_manager.is_valid(cited_doi) and id_date.get_value(cited_doi) is None:
-                                    if cited_doi not in doi_date:
-                                        doi_date[cited_doi] = []
-                                    cited_date = Citation.check_date(build_pubdate(ref))
-                                    if cited_date is not None:
-                                        doi_date[cited_doi].append(cited_date)
-                                        if cited_doi in citing_doi_with_no_date:
-                                            citing_doi_with_no_date.remove(cited_doi)
+        data = load_json(file, targz_fd, file_idx, len_all_files)
+
+        if "items" in data:
+            for obj in data['items']:
+                if "DOI" in obj and "reference" in obj:
+                    for ref in obj['reference']:
+                        if "DOI" in ref:
+                            cited_doi = doi_manager.normalise(ref["DOI"], True)
+                            if doi_manager.is_valid(cited_doi) and id_date.get_value(cited_doi) is None:
+                                if cited_doi not in doi_date:
+                                    doi_date[cited_doi] = []
+                                cited_date = Citation.check_date(build_pubdate(ref))
+                                if cited_date is not None:
+                                    doi_date[cited_doi].append(cited_date)
+                                    if cited_doi in citing_doi_with_no_date:
+                                        citing_doi_with_no_date.remove(cited_doi)
 
     # Add the date to the DOI if such date is the most adopted one in the various references.
     # In case two distinct dates are used the most, select the older one.
@@ -204,6 +204,10 @@ def process(input_dir, output_dir):
     # Add emtpy dates for the remaining DOIs
     for doi in citing_doi_with_no_date:
         id_date.add_value(doi, "")
+    
+    # Close the file descriptor of the tar.gz archive if it was used
+    if targz_fd is not None:
+        targz_fd.close()
 
 
 if __name__ == "__main__":
