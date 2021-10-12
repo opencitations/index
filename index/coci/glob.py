@@ -89,7 +89,6 @@ def get_all_files(i_dir_or_targz_file):
                 result.append(cur_file)
     else:
         print("It is not possible to process the input path.")
-        
     return result, targz_fd
 
 
@@ -99,10 +98,20 @@ def load_json(file, targz_fd, file_idx, len_all_files):
     if targz_fd is None:
         print("Open file %s of %s" % (file_idx, len_all_files))
         with open(file, encoding="utf8") as f:
-            daresultta = load(f)
+            result = load(f)
     else:
         print("Open file %s of %s (in tar.gz archive)" % (file_idx, len_all_files))
         cur_tar_file = targz_fd.extractfile(file)
+
+        # In Python 3.5 it seems that, for some reason, the extractfile method returns an 
+        # object 'bytes' that cannot be managed by the function 'load' in the json package.
+        # Thus, to avoid issues, in case an object having type 'bytes' is return, it is
+        # transformed as a string before passing it to the function 'loads'. Please note
+        # that Python 3.9 does not show this behaviour, and it works correctly without
+        # any transformation.
+        if type(cur_tar_file) is bytes:
+            cur_tar_file = cur_tar_file.decode("utf-8")
+        
         result = loads(cur_tar_file.read())
     
     return result
