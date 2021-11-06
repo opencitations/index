@@ -154,10 +154,6 @@ if __name__ == "__main__":
         metadata_fields = [item.split("=>") for item in metadata_fields]
         metadata_values = [item.split(":", 1) for item in metadata_values]
 
-        print(metadata_fields)
-        print(metadata_values)
-        exit(0)
-
         process(args.input_dir, args.output_dir, metadata_fields, metadata_values)
     else:
         print("Error: different number of metadata fields and values specified.")
