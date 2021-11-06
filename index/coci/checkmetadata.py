@@ -45,15 +45,29 @@ def process(input_dir_or_targz_file, metadata_field):
         print("It is not possible to process the input path.")
         return
     
-    for cur_file in list_of_files:
+    for file_idx, cur_file in enumerate(list_of_files):
         json_file = None
+        len_all_files = len(list_of_files)
 
-        if is_targz:
-            cur_tar_file = targz_fd.extractfile(cur_file)
-            json_file = loads(cur_tar_file.read())
-        else:
-            with open(cur_dir + sep + cur_file, encoding="utf8") as f:
+        if targz_fd is None:
+            print("Open file %s of %s" % (file_idx, len_all_files))
+            with open(cur_file, encoding="utf8") as f:
                 json_file = load(f)
+        else:
+            print("Open file %s of %s (in tar.gz archive)" % (file_idx, len_all_files))
+            cur_tar_file = targz_fd.extractfile(cur_file)
+            json_str = cur_tar_file.read()
+
+            # In Python 3.5 it seems that, for some reason, the extractfile method returns an 
+            # object 'bytes' that cannot be managed by the function 'load' in the json package.
+            # Thus, to avoid issues, in case an object having type 'bytes' is return, it is
+            # transformed as a string before passing it to the function 'loads'. Please note
+            # that Python 3.9 does not show this behaviour, and it works correctly without
+            # any transformation.
+            if type(json_str) is bytes:
+                json_str = json_str.decode("utf-8")
+            
+            json_file = loads(json_str)
         
         if "items" not in json_file and "message" in json_file:
             json_file = json_file["message"]
