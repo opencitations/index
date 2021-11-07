@@ -79,9 +79,9 @@ def process(input_dir_or_targz, output_dir, metadata_field, metadata_value):
 
     all_files = get_all_files(input_dir_or_targz)
     for cur_file in all_files:
-        load_json = load_json(cur_file)
+        json_doc = load_json(cur_file)
 
-        for item in load_json.get("items", []):
+        for item in json_doc.get("items", []):
             if "reference" in item and len(item["reference"]) > 0:
 
                 matching = False
