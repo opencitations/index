@@ -79,8 +79,8 @@ def process(input_dir_or_targz, output_dir, metadata_field, metadata_value):
 
     all_files, targz_fd = get_all_files(input_dir_or_targz)
     len_all_files = len(all_files)
-    for idx, cur_file in enumerate(all_files):
-        json_doc = load_json(cur_file, targz_fd, idx+1, len_all_files)
+    for jdx, cur_file in enumerate(all_files):
+        json_doc = load_json(cur_file, targz_fd, jdx+1, len_all_files)
 
         for item in json_doc.get("items", []):
             if "reference" in item and len(item["reference"]) > 0:
