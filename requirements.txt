@@ -1,0 +1,5 @@
+ray
+kafka
+mysql-connector-python
+SPARQLWrapper
+rdflib

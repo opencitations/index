@@ -1,19 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019, Silvio Peroni <essepuntato@gmail.com>
-#
-# Permission to use, copy, modify, and/or distribute this software for any purpose
-# with or without fee is hereby granted, provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
-# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
-# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
-# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-# SOFTWARE.
-
 from index.finder.resourcefinder import ApiDOIResourceFinder
 from json import loads
 from urllib.parse import quote
@@ -22,11 +6,25 @@ import index.support.dictionary as sd
 
 
 class DataCiteResourceFinder(ApiDOIResourceFinder):
-    def __init__(self, date=None, orcid=None, issn=None, doi=None, use_api_service=True):
+    """This class implements an identifier manager for data cite identifier"""
+
+    def __init__(
+        self, date=None, orcid=None, issn=None, doi=None, use_api_service=True
+    ):
+        """Data cite resource finder constructor.
+
+        Args:
+            date (str, optional): path to date file. Defaults to None.
+            orcid (str, optional): path to orcid file. Defaults to None.
+            issn (str, optional): path to issn file. Defaults to None.
+            doi (str, optional): path to doi file. Defaults to None.
+            use_api_service (bool, optional): true if you want to use api service. Defaults to True.
+        """
         self.api = "https://api.datacite.org/dois/"
         self.use_api_service = use_api_service
-        super(DataCiteResourceFinder, self).__init__(date=date, orcid=orcid, issn=issn, doi=doi,
-                                                     use_api_service=use_api_service)
+        super(DataCiteResourceFinder, self).__init__(
+            date=date, orcid=orcid, issn=issn, doi=doi, use_api_service=use_api_service
+        )
 
     def _get_orcid(self, json_obj):
         result = set()
@@ -39,7 +37,9 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
                     if author_ids is not None:
                         for author_id in author_ids:
                             if sd.contains(author_id, "nameIdentifierScheme", "ORCID"):
-                                orcid = self.om.normalise(author_id.get("nameIdentifier"))
+                                orcid = self.om.normalise(
+                                    author_id.get("nameIdentifier")
+                                )
                                 if orcid is not None:
                                     result.add(orcid)
 
@@ -47,12 +47,14 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
 
     def _get_issn(self, json_obj):
         result = set()
-        
+
         if json_obj is not None:
             obj_types = json_obj.get("types")
             if obj_types is not None and sd.contains(obj_types, "citeproc", "journal"):
                 container = json_obj.get("container")
-                if container is not None and sd.contains(container, "identifierType", "ISSN"):
+                if container is not None and sd.contains(
+                    container, "identifierType", "ISSN"
+                ):
                     issn = self.im.normalise(container.get("identifier"))
                     if issn is not None:
                         result.add(issn)

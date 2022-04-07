@@ -1,26 +1,8 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019, Silvio Peroni <essepuntato@gmail.com>
-#
-# Permission to use, copy, modify, and/or distribute this software for any purpose
-# with or without fee is hereby granted, provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
-# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
-# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
-# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-# SOFTWARE.
-
-from index.storer.csvmanager import CSVManager
+from index.support.csv_manager import CSVManager
 from index.identifier.orcidmanager import ORCIDManager
 from index.identifier.doimanager import DOIManager
 from index.identifier.issnmanager import ISSNManager
 from collections import deque
-# TODO: For multiprocessing purposes
-# from multiprocessing.managers import BaseManager
 
 
 class ResourceFinder(object):
@@ -30,6 +12,14 @@ class ResourceFinder(object):
     constructor."""
 
     def __init__(self, date=None, orcid=None, issn=None, doi=None, **params):
+        """Resource finder constructor.
+
+        Args:
+            date (str, optional): path to date file. Defaults to None.
+            orcid (str, optional): path to orcid file. Defaults to None.
+            issn (str, optional): path to issn file. Defaults to None.
+            doi (str, optional): path to doi file. Defaults to None.
+        """
         if date is None:
             date = CSVManager(store_new=False)
         if orcid is None:
@@ -45,7 +35,7 @@ class ResourceFinder(object):
         self.issn = issn
         self.date = date
         self.orcid = orcid
-        if hasattr(self, 'use_api_service'):
+        if hasattr(self, "use_api_service"):
             self.dm = DOIManager(doi, self.use_api_service)
         else:
             self.dm = DOIManager(doi)
@@ -54,65 +44,152 @@ class ResourceFinder(object):
 
         self.headers = {
             "User-Agent": "ResourceFinder / OpenCitations Indexes "
-                          "(http://opencitations.net; mailto:contact@opencitations.net)"
+            "(http://opencitations.net; mailto:contact@opencitations.net)"
         }
 
-        # TODO: For multiprocessing purposes
-        # c_type = type(self)
-        # BaseManager.register(c_type.__name__, c_type)
-
     def get_orcid(self, id_string):
+        """Returns the orcid associated to a specific id.
+
+        Args:
+            id_string (str): id
+        """
         pass
 
     def get_pub_date(self, id_string):
+        """Returns the pub date associated to a specific id.
+
+        Args:
+            id_string (str): id
+        """
         pass
 
     def get_container_issn(self, id_string):
+        """It returns the container issn.
+
+        Args:
+            id_string (_type_): id
+        """
         pass
 
     def is_valid(self, id_string):
+        """It checks if the id is valid.
+
+        Args:
+            id_string (str): id
+        Returns:
+            bool: True if the id is valid, false otherwise.
+        """
         pass
 
     def normalise(self, id_string):
+        """Normalize a specific id.
+
+        Args:
+            id_string (_type_): the id to normalize
+        Returns:
+            str: the id normalized
+        """
         pass
 
 
 class ApiDOIResourceFinder(ResourceFinder):
     """This is the abstract class that must be implemented by any resource finder
-        for a particular service which is based on DOI retrieving via HTTP REST APIs
-        (Crossref, DataCite). It provides basic methods that are be used for
-        implementing the main methods of the ResourceFinder abstract class."""
+    for a particular service which is based on DOI retrieving via HTTP REST APIs
+    (Crossref, DataCite). It provides basic methods that are be used for
+    implementing the main methods of the ResourceFinder abstract class."""
 
-    # The following four methods are those ones that should be implemented in
-    # the concrete subclasses of this abstract class.
     def _get_date(self, json_obj):
+        """_summary_
+
+        Args:
+            json_obj (_type_): _description_
+        """
         pass
 
     def _get_issn(self, json_obj):
-        return set()
+        """_summary_
+
+        Args:
+            json_obj (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        pass
 
     def _get_orcid(self, json_obj):
-        return set()
+        """_summary_
+
+        Args:
+            json_obj (_type_): _description_
+        """
+        pass
 
     def _call_api(self, doi_full):
+        """_summary_
+
+        Args:
+            doi_full (_type_): _description_
+        """
         pass
 
     # The implementation of the following methods is strictly dependent on the actual
     # implementation of the previous three methods, since they strictly reuse them
     # for returning the result.
+
     def get_orcid(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         return self._get_item(id_string, self.orcid)
 
     def get_pub_date(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         return self._get_item(id_string, self.date)
 
     def get_container_issn(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         return self._get_item(id_string, self.issn)
 
     def is_valid(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         return self.dm.is_valid(id_string)
 
     def normalise(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         return self.dm.normalise(id_string, include_prefix=True)
 
     def _get_item(self, doi_entity, csv_manager):
@@ -143,9 +220,22 @@ class ResourceFinderHandler(object):
     include in the index."""
 
     def __init__(self, resource_finders):
+        """_summary_
+
+        Args:
+            resource_finders (_type_): _description_
+        """
         self.resource_finders = resource_finders
 
     def get_date(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         result = None
         finders = deque(self.resource_finders)
 
@@ -163,9 +253,27 @@ class ResourceFinderHandler(object):
         return result
 
     def share_issn(self, id_string_1, id_string_2):
+        """_summary_
+
+        Args:
+            id_string_1 (_type_): _description_
+            id_string_2 (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         return self.__share_data(id_string_1, id_string_2, "get_container_issn")
 
     def share_orcid(self, id_string_1, id_string_2):
+        """_summary_
+
+        Args:
+            id_string_1 (_type_): _description_
+            id_string_2 (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         return self.__share_data(id_string_1, id_string_2, "get_orcid")
 
     def __share_data(self, id_string_1, id_string_2, method):

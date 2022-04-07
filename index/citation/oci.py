@@ -1,22 +1,3 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2018,
-# Silvio Peroni <essepuntato@gmail.com>
-# Ivan Heibi <ivanhb.ita@gmail.com>
-#
-# Permission to use, copy, modify, and/or distribute this software for any purpose
-# with or without fee is hereby granted, provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
-# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
-# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
-# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-# SOFTWARE.
-
-from argparse import ArgumentParser
 from collections import deque
 from csv import DictReader
 from csv import DictWriter
@@ -41,7 +22,10 @@ DEFAULT_CITATION_TYPE = REFERENCE_CITATION_TYPE
 CITATION_TYPES = (REFERENCE_CITATION_TYPE, SUPPLEMENT_CITATION_TYPE)
 DEFAULT_DATE = datetime(1970, 1, 1, 0, 0)
 AGENT_NAME = "OpenCitations"
-USER_AGENT = "OCI / %s (via OpenCitations - http://opencitations.net; mailto:contact@opencitations.net)" % AGENT_NAME
+USER_AGENT = (
+    "OCI / %s (via OpenCitations - http://opencitations.net; mailto:contact@opencitations.net)"
+    % AGENT_NAME
+)
 URL = "https://github.com/opencitations/oci/blob/master/oci.py"
 BASE_URL = "https://w3id.org/oc/virtual/"
 W = "WARNING"
@@ -71,11 +55,13 @@ FORMATS = {
     "text/plain": "nt11",
     "text/n-triples": "nt11",
     "csv": "csv",
-    "text/csv": "csv"
+    "text/csv": "csv",
 }
 
 
 class Citation(object):
+    """This class represents the citation inside index."""
+
     cito_base = "http://purl.org/spar/cito/"
     cites = URIRef(cito_base + "cites")
     citation = URIRef(cito_base + "Citation")
@@ -113,36 +99,104 @@ class Citation(object):
     dc_base = "http://purl.org/dc/terms/"
     description = URIRef(dc_base + "description")
 
-    header_citation_data = ["oci", "citing", "cited", "creation", "timespan",
-                              "journal_sc", "author_sc"]
-    header_provenance_data = ["oci", "snapshot", "agent", "source", "created",
-                              "invalidated", "description", "update"]
+    header_citation_data = [
+        "oci",
+        "citing",
+        "cited",
+        "creation",
+        "timespan",
+        "journal_sc",
+        "author_sc",
+    ]
+    header_provenance_data = [
+        "oci",
+        "snapshot",
+        "agent",
+        "source",
+        "created",
+        "invalidated",
+        "description",
+        "update",
+    ]
 
-    def __init__(self,
-                 oci, citing_url, citing_pub_date,
-                 cited_url, cited_pub_date,
-                 creation, timespan,
-                 prov_entity_number, prov_agent_url, source, prov_date,
-                 service_name, id_type, id_shape, citation_type,
-                 journal_sc=False, author_sc=False,
-                 prov_inv_date=None, prov_description=None, prov_update=None):
+    def __init__(
+        self,
+        oci,
+        citing_url,
+        citing_pub_date,
+        cited_url,
+        cited_pub_date,
+        creation,
+        timespan,
+        prov_entity_number,
+        prov_agent_url,
+        source,
+        prov_date,
+        service_name,
+        id_type,
+        id_shape,
+        citation_type,
+        journal_sc=False,
+        author_sc=False,
+        prov_inv_date=None,
+        prov_description=None,
+        prov_update=None,
+    ):
+        """Citation constructor.
+
+        Args:
+            oci (str): citation identifier.
+            citing_url (str): citing url.
+            citing_pub_date (str): citing publication date.
+            cited_url (str): cited url.
+            cited_pub_date (str): cited publication date.
+            creation (str): creation time.
+            timespan (str): timespan.
+            prov_entity_number (str): provenance entity number.
+            prov_agent_url (str): provenance agent url.
+            source (str): source string.
+            prov_date (str): provenance date.
+            service_name (str): service name.
+            id_type (str): id type, e.g. doi.
+            id_shape (str): url to the id shape.
+            citation_type (str): citation type.
+            journal_sc (bool, optional): true if it is a journal self-cited. Defaults to False.
+            author_sc (bool, optional): true if it is a  author self-cited. Defaults to False.
+            prov_inv_date (str, optional): provenance invalidation time. Defaults to None.
+            prov_description (str, optional): provenance description. Defaults to None.
+            prov_update (str, optional): provenance update. Defaults to None.
+        """
         self.oci = oci
         self.citing_url = citing_url
         self.cited_url = cited_url
         self.duration = Citation.check_duration(timespan)
-        self.creation_date = Citation.check_date(creation[:10] if creation else creation)
+        self.creation_date = Citation.check_date(
+            creation[:10] if creation else creation
+        )
         self.author_sc = "yes" if author_sc else "no"
         self.journal_sc = "yes" if journal_sc else "no"
-        self.citing_pub_date = Citation.check_date(citing_pub_date[:10] if citing_pub_date else citing_pub_date)
-        self.cited_pub_date = Citation.check_date(cited_pub_date[:10] if cited_pub_date else cited_pub_date)
+        self.citing_pub_date = Citation.check_date(
+            citing_pub_date[:10] if citing_pub_date else citing_pub_date
+        )
+        self.cited_pub_date = Citation.check_date(
+            cited_pub_date[:10] if cited_pub_date else cited_pub_date
+        )
 
-        self.citation_type = citation_type if citation_type in CITATION_TYPES else DEFAULT_CITATION_TYPE
+        self.citation_type = (
+            citation_type if citation_type in CITATION_TYPES else DEFAULT_CITATION_TYPE
+        )
 
         # Set uniformly all the time-related data in a citation
         if self.citing_pub_date is None and self.creation_date is not None:
             self.citing_pub_date = self.creation_date
-        if self.cited_pub_date is None and self.creation_date is not None and self.duration:
-            self.cited_pub_date = Citation.check_date(Citation.get_date(self.creation_date, self.duration))
+        if (
+            self.cited_pub_date is None
+            and self.creation_date is not None
+            and self.duration
+        ):
+            self.cited_pub_date = Citation.check_date(
+                Citation.get_date(self.creation_date, self.duration)
+            )
         if self.cited_pub_date is None:
             self.duration = None
 
@@ -168,19 +222,28 @@ class Citation(object):
                     citing_complete_pub_date += self.cited_pub_date[7:]
 
                 try:
-                    citing_pub_datetime = parse(citing_complete_pub_date, default=DEFAULT_DATE)
+                    citing_pub_datetime = parse(
+                        citing_complete_pub_date, default=DEFAULT_DATE
+                    )
                 except ValueError:  # It is not a leap year
-                    citing_pub_datetime = parse(citing_complete_pub_date[:7] + "-28", default=DEFAULT_DATE)
+                    citing_pub_datetime = parse(
+                        citing_complete_pub_date[:7] + "-28", default=DEFAULT_DATE
+                    )
                 try:
-                    cited_pub_datetime = parse(cited_complete_pub_date, default=DEFAULT_DATE)
+                    cited_pub_datetime = parse(
+                        cited_complete_pub_date, default=DEFAULT_DATE
+                    )
                 except ValueError:  # It is not a leap year
-                    cited_pub_datetime = parse(cited_complete_pub_date[:7] + "-28", default=DEFAULT_DATE)
+                    cited_pub_datetime = parse(
+                        cited_complete_pub_date[:7] + "-28", default=DEFAULT_DATE
+                    )
 
                 delta = relativedelta(citing_pub_datetime, cited_pub_datetime)
                 self.duration = Citation.get_duration(
                     delta,
                     citing_contains_months and cited_contains_months,
-                    citing_contains_days and cited_contains_days)
+                    citing_contains_days and cited_contains_days,
+                )
 
         self.prov_entity_number = prov_entity_number
         self.prov_agent_url = prov_agent_url
@@ -195,9 +258,13 @@ class Citation(object):
 
         self.source = source
         if "[[citing]]" in self.source:
-            self.source = self.source.replace("[[citing]]", quote(self.get_id(citing_url)))
+            self.source = self.source.replace(
+                "[[citing]]", quote(self.get_id(citing_url))
+            )
         elif "[[cited]]" in self.source:
-            self.source = self.source.replace("[[cited]]", quote(self.get_id(cited_url)))
+            self.source = self.source.replace(
+                "[[cited]]", quote(self.get_id(cited_url))
+            )
 
     @staticmethod
     def check_duration(s):
@@ -221,7 +288,9 @@ class Citation(object):
     @staticmethod
     def check_datetime(s):
         datetime = sub("\s+", "", s)[:19] if s is not None else ""
-        if not match("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$", datetime):
+        if not match(
+            "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$", datetime
+        ):
             datetime = None
         return datetime
 
@@ -238,15 +307,38 @@ class Citation(object):
         g.namespace_manager.bind("literal", Namespace(Citation.literal_base))
         g.namespace_manager.bind("prov", Namespace(Citation.prov_base))
 
-    def get_citation_rdf(self, baseurl, include_oci=True, include_label=True, include_prov=True):
-        citation_graph, citation, citation_corpus_id, prov_entity = self.__get_citation_rdf_entity(baseurl)
+    def get_citation_rdf(
+        self, baseurl, include_oci=True, include_label=True, include_prov=True
+    ):
+        """It returns citation rdf.
+
+        Args:
+            baseurl (str): base url
+            include_oci (bool, optional): true if you want include the oci. Defaults to True.
+            include_label (bool, optional): true if you want include the label. Defaults to True.
+            include_prov (bool, optional): true if you want include the provenance. Defaults to True.
+
+        Returns:
+            ConjunctiveGraph: citation graph
+        """
+        (
+            citation_graph,
+            citation,
+            citation_corpus_id,
+            prov_entity,
+        ) = self.__get_citation_rdf_entity(baseurl)
 
         citing_br = URIRef(self.citing_url)
         cited_br = URIRef(self.cited_url)
 
         if include_label:
-            citation_graph.add((citation, RDFS.label,
-                                Literal("citation %s [%s]" % (self.oci, citation_corpus_id))))
+            citation_graph.add(
+                (
+                    citation,
+                    RDFS.label,
+                    Literal("citation %s [%s]" % (self.oci, citation_corpus_id)),
+                )
+            )
         citation_graph.add((citation, RDF.type, self.citation))
         if self.author_sc == "yes":
             citation_graph.add((citation, RDF.type, self.author_self_citation))
@@ -264,45 +356,93 @@ class Citation(object):
             else:
                 xsd_type = XSD.gYear
 
-            citation_graph.add((citation, self.has_citation_creation_date,
-                                Literal(self.creation_date, datatype=xsd_type, normalize=False)))
+            citation_graph.add(
+                (
+                    citation,
+                    self.has_citation_creation_date,
+                    Literal(self.creation_date, datatype=xsd_type, normalize=False),
+                )
+            )
             if self.duration is not None:
-                citation_graph.add((citation, self.has_citation_time_span,
-                                    Literal(self.duration, datatype=XSD.duration)))
-                
+                citation_graph.add(
+                    (
+                        citation,
+                        self.has_citation_time_span,
+                        Literal(self.duration, datatype=XSD.duration),
+                    )
+                )
+
         if include_oci:
-            for s, p, o in self.get_oci_rdf(baseurl, include_label, include_prov).triples((None, None, None)):
+            for s, p, o in self.get_oci_rdf(
+                baseurl, include_label, include_prov
+            ).triples((None, None, None)):
                 citation_graph.add((s, p, o))
 
         if include_prov:
-            for s, p, o in self.get_citation_prov_rdf(baseurl).triples((None, None, None)):
+            for s, p, o in self.get_citation_prov_rdf(baseurl).triples(
+                (None, None, None)
+            ):
                 citation_graph.add((s, p, o))
 
         return citation_graph
 
     def get_citation_prov_rdf(self, baseurl):
-        citation_graph, citation, citation_corpus_id, prov_entity = \
-            self.__get_citation_rdf_entity(baseurl, is_prov=True)
+        """It returns the citation provenance in rdf.
+
+        Args:
+            baseurl (str): base url
+
+        Returns:
+            ConjunctiveGraph: citation graph
+        """
+        (
+            citation_graph,
+            citation,
+            citation_corpus_id,
+            prov_entity,
+        ) = self.__get_citation_rdf_entity(baseurl, is_prov=True)
 
         citation_graph.add((prov_entity, RDF.type, self.prov_entity))
         citation_graph.add((prov_entity, self.specialization_of, citation))
-        citation_graph.add((prov_entity, self.was_attributed_to, URIRef(self.prov_agent_url)))
+        citation_graph.add(
+            (prov_entity, self.was_attributed_to, URIRef(self.prov_agent_url))
+        )
         citation_graph.add((prov_entity, self.had_primary_source, URIRef(self.source)))
-        citation_graph.add((prov_entity, self.generated_at_time,
-                            Literal(self.prov_date, datatype=XSD.dateTime)))
+        citation_graph.add(
+            (
+                prov_entity,
+                self.generated_at_time,
+                Literal(self.prov_date, datatype=XSD.dateTime),
+            )
+        )
 
         if self.prov_inv_date is not None:
-            citation_graph.add((prov_entity, self.invalidated_at_time,
-                                Literal(self.prov_inv_date, datatype=XSD.dateTime)))
+            citation_graph.add(
+                (
+                    prov_entity,
+                    self.invalidated_at_time,
+                    Literal(self.prov_inv_date, datatype=XSD.dateTime),
+                )
+            )
         if self.prov_description is not None:
-            citation_graph.add((prov_entity, self.description,
-                                Literal(self.prov_description)))
+            citation_graph.add(
+                (prov_entity, self.description, Literal(self.prov_description))
+            )
         if self.prov_update is not None:
-            citation_graph.add((prov_entity, self.has_update_query,
-                                Literal(self.prov_update)))
-            citation_graph.add((prov_entity, self.was_derived_from,
-                                URIRef(str(prov_entity).rsplit("/", 1)[0] + "/" +
-                                       str(self.prov_entity_number - 1))))
+            citation_graph.add(
+                (prov_entity, self.has_update_query, Literal(self.prov_update))
+            )
+            citation_graph.add(
+                (
+                    prov_entity,
+                    self.was_derived_from,
+                    URIRef(
+                        str(prov_entity).rsplit("/", 1)[0]
+                        + "/"
+                        + str(self.prov_entity_number - 1)
+                    ),
+                )
+            )
 
         return citation_graph
 
@@ -323,12 +463,35 @@ class Citation(object):
         return citation_graph, citation, citation_corpus_id, prov_entity
 
     def get_oci_rdf(self, baseurl, include_label=True, include_prov=True):
-        identifier_graph, identifier, identifier_local_id, identifier_corpus_id, prov_entity = \
-            self.__get_oci_rdf_entity(baseurl)
+        """It returns the oci rdf.
+
+        Args:
+            baseurl (str): base url
+            include_label (bool, optional): true if you want include the label. Defaults to True.
+            include_prov (bool, optional): true if you want include the provenance. Defaults to True.
+
+        Returns:
+            ConjunctiveGraph: identifier graph
+        """
+        (
+            identifier_graph,
+            identifier,
+            identifier_local_id,
+            identifier_corpus_id,
+            prov_entity,
+        ) = self.__get_oci_rdf_entity(baseurl)
 
         if include_label:
-            identifier_graph.add((identifier, RDFS.label,
-                                  Literal("identifier %s [%s]" % (identifier_local_id, identifier_corpus_id))))
+            identifier_graph.add(
+                (
+                    identifier,
+                    RDFS.label,
+                    Literal(
+                        "identifier %s [%s]"
+                        % (identifier_local_id, identifier_corpus_id)
+                    ),
+                )
+            )
         identifier_graph.add((identifier, RDF.type, self.identifier))
         identifier_graph.add((identifier, self.uses_identifier_scheme, self.oci))
         identifier_graph.add((identifier, self.has_literal_value, Literal(self.oci)))
@@ -340,15 +503,37 @@ class Citation(object):
         return identifier_graph
 
     def get_oci_prov_rdf(self, baseurl):
-        identifier_graph, identifier, identifier_local_id, identifier_corpus_id, prov_entity = \
-            self.__get_oci_rdf_entity(baseurl, True)
+        """It returns the oci provenance.
+
+        Args:
+            baseurl (str): base url
+
+        Returns:
+            ConjunctiveGraph: citation graph
+        """
+        (
+            identifier_graph,
+            identifier,
+            identifier_local_id,
+            identifier_corpus_id,
+            prov_entity,
+        ) = self.__get_oci_rdf_entity(baseurl, True)
 
         identifier_graph.add((prov_entity, RDF.type, self.prov_entity))
         identifier_graph.add((prov_entity, self.specialization_of, identifier))
-        identifier_graph.add((prov_entity, self.was_attributed_to, URIRef(self.prov_agent_url)))
-        identifier_graph.add((prov_entity, self.had_primary_source, URIRef(self.source)))
-        identifier_graph.add((prov_entity, self.generated_at_time,
-                              Literal(self.prov_date, datatype=XSD.dateTime)))
+        identifier_graph.add(
+            (prov_entity, self.was_attributed_to, URIRef(self.prov_agent_url))
+        )
+        identifier_graph.add(
+            (prov_entity, self.had_primary_source, URIRef(self.source))
+        )
+        identifier_graph.add(
+            (
+                prov_entity,
+                self.generated_at_time,
+                Literal(self.prov_date, datatype=XSD.dateTime),
+            )
+        )
 
         return identifier_graph
 
@@ -367,9 +552,20 @@ class Citation(object):
             identifier_graph = ConjunctiveGraph()
         Citation.set_ns(identifier_graph)
 
-        return identifier_graph, identifier, identifier_local_id, identifier_corpus_id, prov_entity
+        return (
+            identifier_graph,
+            identifier,
+            identifier_local_id,
+            identifier_corpus_id,
+            prov_entity,
+        )
 
     def get_citation_csv(self):
+        """It returns the citation in csv.
+
+        Returns:
+            str: citation in csv format.
+        """
         s_res = StringIO()
         writer = DictWriter(s_res, Citation.header_citation_data)
         writer.writeheader()
@@ -377,6 +573,11 @@ class Citation(object):
         return s_res.getvalue()
 
     def get_citation_prov_csv(self):
+        """It returns the citation provenance in csv.
+
+        Returns:
+            str: citation provenance in csv format.
+        """
         s_res = StringIO()
         writer = DictWriter(s_res, Citation.header_provenance_data)
         writer.writeheader()
@@ -384,6 +585,11 @@ class Citation(object):
         return s_res.getvalue()
 
     def get_citation_json(self):
+        """It returns the citation in json.
+
+        Returns:
+            str: citation in json format.
+        """
         result = {
             "oci": self.oci.replace("oci:", ""),
             "citing": self.get_id(self.citing_url),
@@ -391,18 +597,23 @@ class Citation(object):
             "creation": self.creation_date,
             "timespan": self.duration,
             "journal_sc": self.journal_sc,
-            "author_sc": self.author_sc
+            "author_sc": self.author_sc,
         }
 
         return dumps(result, indent=4, ensure_ascii=False)
 
     def get_citation_prov_json(self):
+        """It returns the citation provenance in json.
+
+        Returns:
+            str: citation provenance in json format.
+        """
         result = {
             "snapshot": self.prov_entity_number,
             "oci": self.oci.replace("oci:", ""),
             "agent": self.prov_agent_url,
             "source": self.source,
-            "created": self.prov_date
+            "created": self.prov_date,
         }
 
         if self.prov_inv_date is not None:
@@ -415,6 +626,11 @@ class Citation(object):
         return dumps(result, indent=4, ensure_ascii=False)
 
     def get_citation_scholix(self):
+        """It returns the citation in scholix.
+
+        Returns:
+            str: citation in scholix format.
+        """
         if self.citation_type == REFERENCE_CITATION_TYPE:
             rel_type = "References"
         elif self.citation_type == SUPPLEMENT_CITATION_TYPE:
@@ -424,28 +640,25 @@ class Citation(object):
 
         result = {
             "LinkPublicationDate": self.prov_date,
-            "LinkProvider": [
-                {"Name": AGENT_NAME},
-                {"Name": self.service_name}
-            ],
+            "LinkProvider": [{"Name": AGENT_NAME}, {"Name": self.service_name}],
             "RelationshipType": {"Name": rel_type},
             "LicenseURL": "https://creativecommons.org/publicdomain/zero/1.0/legalcode",
             "Source": {
                 "Identifier": {
                     "ID": self.get_id(self.citing_url),
                     "IDScheme": self.id_type,
-                    "IDURL": self.citing_url
+                    "IDURL": self.citing_url,
                 },
-                "Type": {"Name": "literature"}
+                "Type": {"Name": "literature"},
             },
             "Target": {
                 "Identifier": {
                     "ID": self.get_id(self.cited_url),
                     "IDScheme": self.id_type,
-                    "IDURL": self.cited_url
+                    "IDURL": self.cited_url,
                 },
-                "Type": {"Name": "literature"}
-            }
+                "Type": {"Name": "literature"},
+            },
         }
 
         if self.citing_pub_date:
@@ -457,6 +670,11 @@ class Citation(object):
         return dumps(result, indent=4, ensure_ascii=False)
 
     def get_id(self, entity_url):
+        """It returns the id associated to a specific entity url.
+
+        Returns:
+            str: the id
+        """
         decode = "XXX__decode]]" in self.id_shape
         entity_regex = sub("\[\[[^\]]+\]\]", ".+", self.id_shape)
         entity_token = sub(entity_regex, "\\1", entity_url)
@@ -477,9 +695,16 @@ class Citation(object):
     @staticmethod
     def get_duration(delta, consider_months, consider_days):
         result = ""
-        if delta.years < 0 or \
-                (delta.years == 0 and delta.months < 0 and consider_months) or \
-                (delta.years == 0 and delta.months == 0 and delta.days < 0 and consider_days):
+        if (
+            delta.years < 0
+            or (delta.years == 0 and delta.months < 0 and consider_months)
+            or (
+                delta.years == 0
+                and delta.months == 0
+                and delta.days < 0
+                and consider_days
+            )
+        ):
             result += "-"
         result += "P%sY" % abs(delta.years)
 
@@ -516,7 +741,7 @@ class Citation(object):
         else:
             cut = 4
 
-        return result.strftime('%Y-%m-%d')[:cut]
+        return result.strftime("%Y-%m-%d")[:cut]
 
     @staticmethod
     def format_rdf(g, f="text/turtle"):
@@ -527,7 +752,27 @@ class Citation(object):
 
 
 class OCIManager(object):
-    def __init__(self, oci_string=None, lookup_file=None, conf_file=None, doi_1=None, doi_2=None, prefix=""):
+    """This class manages the oci idientifiers."""
+
+    def __init__(
+        self,
+        oci_string=None,
+        lookup_file=None,
+        conf_file=None,
+        doi_1=None,
+        doi_2=None,
+        prefix="",
+    ):
+        """OCI manager constructor.
+
+        Args:
+            oci_string (str, optional): _description_. Defaults to None.
+            lookup_file (str, optional): path to the lookup file. Defaults to None.
+            conf_file (str, optional): path to the config file. Defaults to None.
+            doi_1 (str, optional): _description_. Defaults to None.
+            doi_2 (str, optional): _description_. Defaults to None.
+            prefix (str, optional): prefix to use. Defaults to "".
+        """
         self.is_valid = None
         self.messages = []
         self.f = {
@@ -539,7 +784,7 @@ class OCIManager(object):
             "normdate": OCIManager.__normdate,
             "datestrings": OCIManager.__datestrings,
             "api": OCIManager.__call_api,
-            "avoid_prefix_removal": OCIManager.__avoid_prefix_removal
+            "avoid_prefix_removal": OCIManager.__avoid_prefix_removal,
         }
         self.lookup = {}
         self.inverse_lookup = {}
@@ -547,25 +792,33 @@ class OCIManager(object):
         self.lookup_code = -1
         if self.lookup_file is not None:
             if exists(self.lookup_file):
-                with open(self.lookup_file, 'r', encoding="utf8") as f:
+                with open(self.lookup_file, "r", encoding="utf8") as f:
                     lookupcsv_reader = DictReader(f)
                     code = -1
                     for row in lookupcsv_reader:
                         self.lookup[row["code"]] = row["c"]
                         self.inverse_lookup[row["c"]] = row["code"]
-                        code = int(row['code'])
+                        code = int(row["code"])
                     self.lookup_code = code
             else:
-                with open(self.lookup_file, 'w', encoding="utf8") as f:
+                with open(self.lookup_file, "w", encoding="utf8") as f:
                     f.write('"c","code"')
         else:
-            self.add_message("__init__", W, "No lookup file has been found (path: '%s')." % lookup_file)
+            self.add_message(
+                "__init__",
+                W,
+                "No lookup file has been found (path: '%s')." % lookup_file,
+            )
         self.conf = None
         if conf_file is not None and exists(conf_file):
             with open(conf_file, encoding="utf8") as f:
                 self.conf = load(f)
         else:
-            self.add_message("__init__", W, "No configuration file has been found (path: '%s')." % conf_file)
+            self.add_message(
+                "__init__",
+                W,
+                "No configuration file has been found (path: '%s')." % conf_file,
+            )
 
         if oci_string:
             self.oci = oci_string.lower().strip()
@@ -596,7 +849,7 @@ class OCIManager(object):
     def __write_txtblock_on_csv(self, csv_path, block_txt):
         if csv_path is not None and exists(csv_path):
             self.__check_make_dirs(csv_path)
-            with open(csv_path, 'a', newline='', encoding="utf8") as csvfile:
+            with open(csv_path, "a", newline="", encoding="utf8") as csvfile:
                 csvfile.write(block_txt)
 
     def __calc_next_lookup_code(self):
@@ -606,7 +859,7 @@ class OCIManager(object):
             newcode = newcode * 10
         self.lookup_code = newcode
 
-    def __check_make_dirs(self, filename) :
+    def __check_make_dirs(self, filename):
         if not exists(dirname(filename)):
             try:
                 makedirs(dirname(filename))
@@ -629,7 +882,22 @@ class OCIManager(object):
         return self.__match_str_to_lookup(doi.replace("10.", ""))
 
     def get_oci(self, doi_1, doi_2, prefix):
-        self.oci = "oci:%s%s-%s%s" % (prefix, self.__decode_inverse(doi_1), prefix, self.__decode_inverse(doi_2))
+        """It returns the oci associated to the citation.
+
+        Args:
+            doi_1 (str): citing
+            doi_2 (str): cited
+            prefix (str): prefix
+
+        Returns:
+            str: the oci
+        """
+        self.oci = "oci:%s%s-%s%s" % (
+            prefix,
+            self.__decode_inverse(doi_1),
+            prefix,
+            self.__decode_inverse(doi_2),
+        )
         return self.oci
 
     @staticmethod
@@ -671,21 +939,47 @@ class OCIManager(object):
         result = None
 
         if self.conf is None:
-            self.add_message("__execute_query", E, "No citations can be retrieved since no configuration "
-                                                   "file has been specified.")
+            self.add_message(
+                "__execute_query",
+                E,
+                "No citations can be retrieved since no configuration "
+                "file has been specified.",
+            )
         else:
             try:
                 i = iter(self.conf["services"])
                 while result is None:
                     item = next(i)
-                    name, query, api, tp, use_it, preprocess, prefix, id_type, id_shape, citation_type = \
-                        item.get("name"), item.get("query"), item.get("api"), item.get("tp"), item.get("use_it"), \
-                        item["preprocess"] if "preprocess" in item else [], \
-                        item["prefix"] if "prefix" in item else [], item.get("id_type"), item.get("id_shape"), \
-                        item["citation_type"] if "citation_type" in item else DEFAULT_CITATION_TYPE
+                    (
+                        name,
+                        query,
+                        api,
+                        tp,
+                        use_it,
+                        preprocess,
+                        prefix,
+                        id_type,
+                        id_shape,
+                        citation_type,
+                    ) = (
+                        item.get("name"),
+                        item.get("query"),
+                        item.get("api"),
+                        item.get("tp"),
+                        item.get("use_it"),
+                        item["preprocess"] if "preprocess" in item else [],
+                        item["prefix"] if "prefix" in item else [],
+                        item.get("id_type"),
+                        item.get("id_shape"),
+                        item["citation_type"]
+                        if "citation_type" in item
+                        else DEFAULT_CITATION_TYPE,
+                    )
 
-                    if use_it == "yes" and all(sub("^(%s).+$" % PREFIX_REGEX, "\\1", p) in prefix
-                                               for p in (citing_entity, cited_entity)):
+                    if use_it == "yes" and all(
+                        sub("^(%s).+$" % PREFIX_REGEX, "\\1", p) in prefix
+                        for p in (citing_entity, cited_entity)
+                    ):
                         citing = sub("^%s(.+)$" % PREFIX_REGEX, "\\1", citing_entity)
                         cited = sub("^%s(.+)$" % PREFIX_REGEX, "\\1", cited_entity)
 
@@ -694,38 +988,100 @@ class OCIManager(object):
                             cited = self.f[f_name](cited)
 
                         if tp is None:
-                            rest_query = api.replace("[[CITING]]", quote(citing)).replace("[[CITED]]", quote(cited))
+                            rest_query = api.replace(
+                                "[[CITING]]", quote(citing)
+                            ).replace("[[CITED]]", quote(cited))
                             structured_res, type_res = OCIManager.__call_api(rest_query)
                             if structured_res:
-                                result = self.__read_api_data(structured_res, type_res, query.get("citing"),
-                                                              citing, cited, api), \
-                                         self.__read_api_data(structured_res, type_res, query.get("cited"),
-                                                              citing, cited, api), \
-                                         self.__read_api_data(structured_res, type_res, query.get("citing_date"),
-                                                              citing, cited, api), \
-                                         self.__read_api_data(structured_res, type_res, query.get("cited_date"),
-                                                              citing, cited, api), \
-                                         self.__read_api_data(structured_res, type_res, query.get("creation"),
-                                                              citing, cited, api), \
-                                         self.__read_api_data(structured_res, type_res, query.get("timespan"),
-                                                              citing, cited, api), \
-                                         rest_query, name, id_type, id_shape, citation_type
+                                result = (
+                                    self.__read_api_data(
+                                        structured_res,
+                                        type_res,
+                                        query.get("citing"),
+                                        citing,
+                                        cited,
+                                        api,
+                                    ),
+                                    self.__read_api_data(
+                                        structured_res,
+                                        type_res,
+                                        query.get("cited"),
+                                        citing,
+                                        cited,
+                                        api,
+                                    ),
+                                    self.__read_api_data(
+                                        structured_res,
+                                        type_res,
+                                        query.get("citing_date"),
+                                        citing,
+                                        cited,
+                                        api,
+                                    ),
+                                    self.__read_api_data(
+                                        structured_res,
+                                        type_res,
+                                        query.get("cited_date"),
+                                        citing,
+                                        cited,
+                                        api,
+                                    ),
+                                    self.__read_api_data(
+                                        structured_res,
+                                        type_res,
+                                        query.get("creation"),
+                                        citing,
+                                        cited,
+                                        api,
+                                    ),
+                                    self.__read_api_data(
+                                        structured_res,
+                                        type_res,
+                                        query.get("timespan"),
+                                        citing,
+                                        cited,
+                                        api,
+                                    ),
+                                    rest_query,
+                                    name,
+                                    id_type,
+                                    id_shape,
+                                    citation_type,
+                                )
                         else:
                             sparql = SPARQLWrapper(tp)
-                            sparql_query = sub("\\[\\[CITED\\]\\]", cited, sub("\\[\\[CITING\\]\\]", citing, query))
+                            sparql_query = sub(
+                                "\\[\\[CITED\\]\\]",
+                                cited,
+                                sub("\\[\\[CITING\\]\\]", citing, query),
+                            )
 
                             sparql.setQuery(sparql_query)
                             sparql.setReturnFormat(JSON)
                             q_res = sparql.query().convert()["results"]["bindings"]
                             if len(q_res) > 0:
                                 answer = q_res[0]
-                                result = answer["citing"]["value"], \
-                                         answer["cited"]["value"], \
-                                         answer["citing_date"]["value"] if "citing_date" in answer else None, \
-                                         answer["cited_date"]["value"] if "cited_date" in answer else None, \
-                                         answer["creation"]["value"] if "creation" in answer else None, \
-                                         answer["timespan"]["value"] if "timespan" in answer else None, \
-                                         tp + "?query=" + quote(sparql_query), name, id_type, id_shape, citation_type
+                                result = (
+                                    answer["citing"]["value"],
+                                    answer["cited"]["value"],
+                                    answer["citing_date"]["value"]
+                                    if "citing_date" in answer
+                                    else None,
+                                    answer["cited_date"]["value"]
+                                    if "cited_date" in answer
+                                    else None,
+                                    answer["creation"]["value"]
+                                    if "creation" in answer
+                                    else None,
+                                    answer["timespan"]["value"]
+                                    if "timespan" in answer
+                                    else None,
+                                    tp + "?query=" + quote(sparql_query),
+                                    name,
+                                    id_type,
+                                    id_shape,
+                                    citation_type,
+                                )
 
             except StopIteration:
                 pass  # No nothing
@@ -791,7 +1147,10 @@ class OCIManager(object):
                         while result is None and list_queue:
                             item = list_queue.popleft()
                             item_value = item.get(left)
-                            if item_value is not None and item_value.lower() == right.lower():
+                            if (
+                                item_value is not None
+                                and item_value.lower() == right.lower()
+                            ):
                                 result = item
                 else:
                     if type_format == "json":
@@ -810,7 +1169,11 @@ class OCIManager(object):
 
                         result = el
 
-                if result is not None and not access_operations and type_format == "xml":
+                if (
+                    result is not None
+                    and not access_operations
+                    and type_format == "xml"
+                ):
                     result = sub("\s+", " ", result.text).strip()
 
                 if f_to_execute and result is not None:
@@ -823,18 +1186,33 @@ class OCIManager(object):
                             result, type_format = result
 
                 if access_operations:
-                    result = self.__read_api_data(result, type_format, ["::".join(access_operations)],
-                                                  citing, cited, api)
+                    result = self.__read_api_data(
+                        result,
+                        type_format,
+                        ["::".join(access_operations)],
+                        citing,
+                        cited,
+                        api,
+                    )
 
         return result
 
     def validate(self):
+        """It validates the oci.
+
+        Returns:
+            bool: true if the oci is valid, false oterswise.
+        """
         if self.is_valid is None:
             if not self.oci.startswith("oci:"):
                 self.oci = "oci:" + self.oci
-                self.add_message("validate", W, "The OCI specified as input doesn't start with the 'oci:' "
-                                                "prefix. This has beed automatically added, resulting in "
-                                                "the OCI '%s'." % self.oci)
+                self.add_message(
+                    "validate",
+                    W,
+                    "The OCI specified as input doesn't start with the 'oci:' "
+                    "prefix. This has beed automatically added, resulting in "
+                    "the OCI '%s'." % self.oci,
+                )
 
             self.is_valid = False
             entities = self.oci.replace("oci:", "").split("-")
@@ -843,56 +1221,115 @@ class OCIManager(object):
 
                 while service_queue and not self.is_valid:
                     service_prefixes = service_queue.popleft()["prefix"]
-                    self.is_valid = all(sub("^(%s).+$" % PREFIX_REGEX, "\\1", entity) in service_prefixes
-                                        for entity in entities)
+                    self.is_valid = all(
+                        sub("^(%s).+$" % PREFIX_REGEX, "\\1", entity)
+                        in service_prefixes
+                        for entity in entities
+                    )
 
                 if self.is_valid:
-                    self.add_message("validate", I, "The OCI '%s' is syntactically valid." % self.oci)
+                    self.add_message(
+                        "validate", I, "The OCI '%s' is syntactically valid." % self.oci
+                    )
                 else:
-                    self.add_message("validate", E, "The supplier prefixes '%s' and '%s' used in the identifiers of "
-                                                    "the citing and cited entities described by the OCI '%s' must be "
-                                                    "assigned to the same supplier. A list of all the available "
-                                                    "suppliers is available at http://opencitations.net/oci." %
-                                     (tuple(sub("^(%s).+$" % PREFIX_REGEX, "\\1", entity)
-                                            for entity in entities) + (self.oci,)))
+                    self.add_message(
+                        "validate",
+                        E,
+                        "The supplier prefixes '%s' and '%s' used in the identifiers of "
+                        "the citing and cited entities described by the OCI '%s' must be "
+                        "assigned to the same supplier. A list of all the available "
+                        "suppliers is available at http://opencitations.net/oci."
+                        % (
+                            tuple(
+                                sub("^(%s).+$" % PREFIX_REGEX, "\\1", entity)
+                                for entity in entities
+                            )
+                            + (self.oci,)
+                        ),
+                    )
 
             else:
-                self.add_message("validate", E, "The OCI '%s' is not syntactically correct, since at least "
-                                                "one of the two identifiers of the citing and cited entities "
-                                                "described by the OCI are not compliant with the following "
-                                                "regular expression: '%s'." % (self.oci, VALIDATION_REGEX))
+                self.add_message(
+                    "validate",
+                    E,
+                    "The OCI '%s' is not syntactically correct, since at least "
+                    "one of the two identifiers of the citing and cited entities "
+                    "described by the OCI are not compliant with the following "
+                    "regular expression: '%s'." % (self.oci, VALIDATION_REGEX),
+                )
 
         return self.is_valid
 
     def get_citation_object(self):
+        """It returns the citation object corresponding to the oci.
+
+        Returns:
+            Citation: the citation associated to the oci.
+        """
         if self.validate():
             citing_entity_local_id = sub("^oci:([0-9]+)-([0-9]+)$", "\\1", self.oci)
             cited_entity_local_id = sub("^oci:([0-9]+)-([0-9]+)$", "\\2", self.oci)
 
             res = self.__execute_query(citing_entity_local_id, cited_entity_local_id)
             if res is not None:
-                citing_url, cited_url, full_citing_pub_date, full_cited_pub_date, \
-                creation, timespan, sparql_query_url, name, id_type, id_shape, citation_type = res
+                (
+                    citing_url,
+                    cited_url,
+                    full_citing_pub_date,
+                    full_cited_pub_date,
+                    creation,
+                    timespan,
+                    sparql_query_url,
+                    name,
+                    id_type,
+                    id_shape,
+                    citation_type,
+                ) = res
 
-                citation = Citation(self.oci,
-                                    citing_url, full_citing_pub_date,
-                                    cited_url, full_cited_pub_date,
-                                    creation, timespan,
-                                    URL, sparql_query_url,
-                                    datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
-                                    name, id_type, id_shape, citation_type)
+                citation = Citation(
+                    self.oci,
+                    citing_url,
+                    full_citing_pub_date,
+                    cited_url,
+                    full_cited_pub_date,
+                    creation,
+                    timespan,
+                    URL,
+                    sparql_query_url,
+                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                    name,
+                    id_type,
+                    id_shape,
+                    citation_type,
+                )
 
                 return citation
             else:
-                self.add_message("get_citation_object", I, "No citation data have been found for the OCI '%s'. "
-                                                           "While the OCI specified is syntactically valid, "
-                                                           "it is possible that it does not identify any "
-                                                           "citation at all." % self.oci)
+                self.add_message(
+                    "get_citation_object",
+                    I,
+                    "No citation data have been found for the OCI '%s'. "
+                    "While the OCI specified is syntactically valid, "
+                    "it is possible that it does not identify any "
+                    "citation at all." % self.oci,
+                )
         else:
-            self.add_message("get_citation_object", E, "No citation data can be returned since the OCI specified is "
-                                                       "not valid.")
+            self.add_message(
+                "get_citation_object",
+                E,
+                "No citation data can be returned since the OCI specified is "
+                "not valid.",
+            )
 
     def get_citation_data(self, f="json"):
+        """It returns the citation data in a specific format.
+
+        Args:
+            f (str, optional): format to use. Defaults to "json".
+
+        Returns:
+            str: the citation data in the specified format.
+        """
         citation = self.get_citation_object()
         if citation:
             result = None
@@ -907,44 +1344,23 @@ class OCIManager(object):
             elif cur_format == "scholix":
                 result = citation.get_citation_scholix()
             else:  # RDF format
-                result = Citation.format_rdf(citation.get_citation_rdf(BASE_URL), cur_format)
+                result = Citation.format_rdf(
+                    citation.get_citation_rdf(BASE_URL), cur_format
+                )
 
             return result
 
     def print_messages(self):
+        """_summary_"""
         for mes in self.messages:
             print("{%s} [%s] %s" % (mes["operation"], mes["type"], mes["text"]))
 
     def add_message(self, fun, mes_type, text):
+        """_summary_
+
+        Args:
+            fun (_type_): _description_
+            mes_type (_type_): _description_
+            text (_type_): _description_
+        """
         self.messages.append({"operation": fun, "type": mes_type, "text": text})
-
-
-if __name__ == "__main__":
-    arg_parser = ArgumentParser("oci.py", description="This script allows one to validate and retrieve citationd data "
-                                                      "associated to an OCI (Open Citation Identifier).")
-
-    arg_parser.add_argument("-o", "--oci", dest="oci", required=True,
-                            help="The input OCI to use.")
-    arg_parser.add_argument("-l", "--lookup", dest="lookup", default="lookup.csv",
-                            help="The lookup file to be used for encoding identifiers.")
-    arg_parser.add_argument("-c", "--conf", dest="conf", default="oci.json",
-                            help="The configuration file to run the query services to retrieve citation information.")
-    arg_parser.add_argument("-f", "--format", dest="format", default=None,
-                            help="If the format is specified, the script tries to retrieve citation information that "
-                                 "will be returned in the requested format. Possible formats: 'csv', 'json', "
-                                 "'scholix', 'jsonld', 'ttl', 'rdfxml', 'nt'")
-
-    args = arg_parser.parse_args()
-
-    om = OCIManager(args.oci, args.lookup, args.conf)
-
-    result = None
-    if args.format is None:
-        result = om.validate()
-    else:
-        result = om.get_citation_data(args.format)
-
-    om.print_messages()
-
-    if result is not None:
-        print(result)

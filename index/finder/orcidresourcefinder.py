@@ -1,34 +1,32 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019, Silvio Peroni <essepuntato@gmail.com>
-#
-# Permission to use, copy, modify, and/or distribute this software for any purpose
-# with or without fee is hereby granted, provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
-# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
-# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
-# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-# SOFTWARE.
-
 from index.finder.resourcefinder import ApiDOIResourceFinder
 from requests import get
 from urllib.parse import quote
 from json import loads
 import index.support.dictionary as sd
-from datetime import datetime
 
 
 class ORCIDResourceFinder(ApiDOIResourceFinder):
-    def __init__(self, date=None, orcid=None, issn=None, doi=None, use_api_service=True, key=None):
+    """This class implements an identifier manager for orcid identifier"""
+
+    def __init__(
+        self, date=None, orcid=None, issn=None, doi=None, use_api_service=True, key=None
+    ):
+        """ORCID resource finder constructor.
+
+        Args:
+            date (str, optional): path to date file. Defaults to None.
+            orcid (str, optional): path to orcid file. Defaults to None.
+            issn (str, optional): path to issn file. Defaults to None.
+            doi (str, optional): path to doi file. Defaults to None.
+            use_api_service (bool, optional): true if you want to use api service. Defaults to True.
+            key (str, optional): api key. Defaults to None.
+        """
         self.key = key
         self.use_api_service = use_api_service
         self.api = "https://pub.orcid.org/v2.1/search?q="
-        super(ORCIDResourceFinder, self).__init__(date=date, orcid=orcid, issn=issn, doi=doi,
-                                                  use_api_service=use_api_service)
+        super(ORCIDResourceFinder, self).__init__(
+            date=date, orcid=orcid, issn=issn, doi=doi, use_api_service=use_api_service
+        )
 
     def _get_orcid(self, json_obj):
         result = set()
@@ -50,8 +48,11 @@ class ORCIDResourceFinder(ApiDOIResourceFinder):
             self.headers["Content-Type"] = "application/json"
 
             doi = self.dm.normalise(doi_full)
-            r = get(self.api + quote("doi-self:\"%s\" OR doi-self:\"%s\"" % (doi, doi.upper())),
-                    headers=self.headers, timeout=30)
+            r = get(
+                self.api + quote('doi-self:"%s" OR doi-self:"%s"' % (doi, doi.upper())),
+                headers=self.headers,
+                timeout=30,
+            )
             if r.status_code == 200:
                 r.encoding = "utf-8"
                 json_res = loads(r.text)

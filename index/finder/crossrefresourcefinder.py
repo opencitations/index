@@ -1,33 +1,30 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019, Silvio Peroni <essepuntato@gmail.com>
-#
-# Permission to use, copy, modify, and/or distribute this software for any purpose
-# with or without fee is hereby granted, provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
-# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
-# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
-# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-# SOFTWARE.
-
 from index.finder.resourcefinder import ApiDOIResourceFinder
 from requests import get
 from urllib.parse import quote
-from json import loads
 import index.support.dictionary as sd
 from datetime import datetime
 
 
 class CrossrefResourceFinder(ApiDOIResourceFinder):
-    def __init__(self, date=None, orcid=None, issn=None, doi=None, use_api_service=True):
+    """This class implements an api doi resource finder for crossref"""
+
+    def __init__(
+        self, date=None, orcid=None, issn=None, doi=None, use_api_service=True
+    ):
+        """Crossref resource finder constructor.
+
+        Args:
+            date (str, optional): path to date file. Defaults to None.
+            orcid (str, optional): path to orcid file. Defaults to None.
+            issn (str, optional): path to issn file. Defaults to None.
+            doi (str, optional): path to doi file. Defaults to None.
+            use_api_service (bool, optional): true if you want to use api service. Defaults to True.
+        """
         self.use_api_service = use_api_service
         self.api = "https://api.crossref.org/works/"
-        super(CrossrefResourceFinder, self).__init__(date=date, orcid=orcid, issn=issn, doi=doi,
-                                                     use_api_service=use_api_service)
+        super(CrossrefResourceFinder, self).__init__(
+            date=date, orcid=orcid, issn=issn, doi=doi, use_api_service=use_api_service
+        )
 
     def _get_orcid(self, json_obj):
         result = set()
@@ -66,14 +63,17 @@ class CrossrefResourceFinder(ApiDOIResourceFinder):
             return
         l_date_list = len(date_list)
         if l_date_list != 0 and date_list[0] is not None:
-            if l_date_list == 3 and \
-                    ((date_list[1] is not None and date_list[1] != 1) or
-                     (date_list[2] is not None and date_list[2] != 1)):
-                result = datetime(date_list[0], date_list[1], date_list[2], 0, 0).strftime('%Y-%m-%d')
+            if l_date_list == 3 and (
+                (date_list[1] is not None and date_list[1] != 1)
+                or (date_list[2] is not None and date_list[2] != 1)
+            ):
+                result = datetime(
+                    date_list[0], date_list[1], date_list[2], 0, 0
+                ).strftime("%Y-%m-%d")
             elif l_date_list == 2 and date_list[1] is not None:
-                result = datetime(date_list[0], date_list[1], 1, 0, 0).strftime('%Y-%m')
+                result = datetime(date_list[0], date_list[1], 1, 0, 0).strftime("%Y-%m")
             else:
-                result = datetime(date_list[0], 1, 1, 0, 0).strftime('%Y')
+                result = datetime(date_list[0], 1, 1, 0, 0).strftime("%Y")
 
             return result
 
