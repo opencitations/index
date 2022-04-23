@@ -1,0 +1,123 @@
+#!python
+import os
+import time
+
+from argparse import ArgumentParser
+from subprocess import check_output
+from tqdm import tqdm
+from errno import ENOENT
+
+from oc.index.utils.logging import get_logger
+from oc.index.utils.config import get_config
+from oc.index.glob.datasource import DataSource
+
+
+def process_glob_file(ds, filename, column, append=False):
+    logger = get_logger()
+    config = get_config()
+    logger.info("Processing " + filename)
+    lines = int(
+        check_output(
+            ["wc", "-l", filename],
+        ).split()[0]
+    )
+
+    logger.info("Reading values...")
+    fp = open(filename, "r")
+    fp.readline()
+    pbar = tqdm(total=lines)
+
+    batch_size = config.get("redis", "batch_size")
+    buffer_keys = []
+    buffer_values = []
+    while True:
+        line = fp.readline()
+        resources = {}
+
+        # Flushing buffered data into the datasource
+        if len(buffer_keys) > batch_size or not line:
+            entries = ds.mget(buffer_keys)
+            for key in buffer_keys:
+                entry = entries[key]
+                if entries[key] is None:
+                    entry = ds.new()
+                if append:
+                    entry[column].append(value)
+                else:
+                    if column == "valid":
+                        entry[column] = value.strip() == "v"
+                    else:
+                        entry[column] = value.strip()
+                resources[key] = entry
+            ds.mset(resources)
+            buffer_keys = []
+            buffer_values = []
+
+        if not line:
+            break
+
+        key, value = [val.replace('"', "") for val in line.split('",')]
+        buffer_keys.append(key)
+        buffer_values.append(value)
+
+        pbar.update(1)
+
+    logger.info("Values read")
+    logger.info("Updating the datasource...")
+    start = time.time()
+    logger.info(f"Datasource updated in {start-time.time()} seconds")
+    fp.close()
+    logger.info(filename + " processed")
+
+
+def main():
+    arg_parser = ArgumentParser(description="OCDS - OpenCitations Data Source Manager")
+    arg_parser.add_argument(
+        "-o",
+        "--operation",
+        required=True,
+        choices=["populate"],
+    )
+    arg_parser.add_argument(
+        "-i",
+        "--input",
+        required=False,
+        help="Input to parse and use for the operation",
+    )
+    args = arg_parser.parse_args()
+
+    logger = get_logger()
+
+    # Arguments
+    input = args.input
+
+    id_date = os.path.join(input, "id_date.csv")
+    if not os.path.exists(id_date):
+        logger.error("id_date.csv not found in the input directory")
+
+    id_issn = os.path.join(input, "id_issn.csv")
+    if not os.path.exists(id_issn):
+        logger.error("id_issn.csv not found in the input directory")
+        raise FileNotFoundError(ENOENT, os.strerror(ENOENT), id_issn)
+
+    id_orcid = os.path.join(input, "id_orcid.csv")
+    if not os.path.exists(id_orcid):
+        logger.error("id_orcid.csv not found in the input directory")
+        raise FileNotFoundError(ENOENT, os.strerror(ENOENT), id_orcid)
+
+    valid_doi = os.path.join(input, "valid_doi.csv")
+    if not os.path.exists(valid_doi):
+        logger.error("valid_doi.csv not found in the input directory")
+        raise FileNotFoundError(ENOENT, os.strerror(ENOENT), valid_doi)
+
+    ds = DataSource()
+
+    logger.info("Populating the datasource with glob files...")
+    start = time.time()
+    process_glob_file(ds, valid_doi, "valid")
+    process_glob_file(ds, id_date, "date")
+    process_glob_file(ds, id_issn, "issn", True)
+    process_glob_file(ds, id_orcid, "orcid", True)
+    logger.info(
+        f"All the files have been processed in {(time.time() - start)/ 60} minutes"
+    )
