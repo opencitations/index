@@ -1,7 +1,7 @@
 from csv import DictReader
 
 from oc.index.identifier.doi import DOIManager
-from oc.index.parsing.parser import CitationParser
+from oc.index.parsing.base import CitationParser
 
 
 class CrowdsourcedParser(CitationParser):
