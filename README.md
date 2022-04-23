@@ -1,5 +1,5 @@
 # OpenCitations: Index
-[<img src="http://opencitations.net/static/img/logo.png" width="20"/>](http://opencitations.net) &nbsp; &nbsp; [<img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-brightgreen">](https://www.python.org/) &nbsp; [<img src="https://img.shields.io/badge/-c++-black?logo=c%2B%2B&style=social">](https://en.cppreference.com/) &nbsp; [<img src="https://img.shields.io/badge/os-linux-gray">](https://www.linux.org) &nbsp; [<img src="https://img.shields.io/badge/os-macOS-gray">](https://www.apple.com/macos/) 
+[<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net) &nbsp; [<img src="https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10-brightgreen">](https://www.python.org/) &nbsp; [<img src="https://img.shields.io/badge/-c++-black?logo=c%2B%2B&style=social">](https://en.cppreference.com/) &nbsp; [<img src="https://img.shields.io/badge/os-linux-gray">](https://www.linux.org) &nbsp; [<img src="https://img.shields.io/badge/os-macOS-gray">](https://www.apple.com/macos/) 
 
 This software allows the creation of indexes of open citations (e.g. COCI).
 
