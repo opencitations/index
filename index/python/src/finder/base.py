@@ -28,7 +28,12 @@ class ResourceFinder(metaclass=ABCMeta):
     constructor."""
 
     def __init__(self, data={}, use_api_service=True):
-        """Resource finder constructor."""
+        """Resource finder constructor.
+
+        Args:
+            data (dict): support data to use prior to api.
+            use_api_service (bool): true whenever you want make use of api, false otherwise.
+        """
         self._data = data
         self._dm = DOIManager(data, use_api_service)
         self._im = ISSNManager()
