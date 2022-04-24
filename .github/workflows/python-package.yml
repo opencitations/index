@@ -3,11 +3,14 @@ name: Python package
 on:
   push:
     branches: [ farm_revision ]
+    paths:
+      - index/python/**
+      - scripts/**
   pull_request:
     branches: [ farm_revision ]
-  paths:
-    - index/python/**
-    - scripts/**
+    paths:
+      - index/python/**
+      - scripts/**
 
 jobs:
   build:
