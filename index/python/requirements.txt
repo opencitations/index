@@ -1,3 +1,5 @@
 redis
 SPARQLWrapper
 rdflib
+requests
+python-dateutil
