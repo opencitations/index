@@ -16,14 +16,14 @@ class CrowdsourcedParser(CitationParser):
     def parse(self, filename: str):
         super().parse(filename)
         with open(filename, encoding="utf8") as fp:
-            self._rows = DictReader(fp)
+            self._rows = list(DictReader(fp))
         self._items = len(self._rows)
 
     def get_next_citation_data(self):
         if len(self._rows) == 0:
             return None
 
-        row = self._rows.pop()
+        row = self._rows.pop(0)
         self._current_item += 1
         citing = self._doi_manager.normalise(row.get("citing_id"))
         cited = self._doi_manager.normalise(row.get("cited_id"))

@@ -152,7 +152,6 @@ int main(int argc, char **argv)
                 }
             }
             zip_close(input_archive);
-            break;
         }
     }
 

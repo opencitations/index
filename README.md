@@ -23,6 +23,11 @@ $ sudo make install
 $ pip install .
 ```
 
+4. To ensure that the installation has been carried out correctly start the tests
+```console
+$ python -m unittest discover -s ./index/python/test -p "test_*.py"
+```
+
 Done, enjoy :)
 
 ## Configuration

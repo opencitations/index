@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod
 from collections import deque
 
-from oc.index.glob.datasource import DataSource
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager

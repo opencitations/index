@@ -13,6 +13,11 @@ config_file = os.path.join(ocindex_dir, "config.ini")
 if not os.path.exists(config_file):
     shutil.copy(os.path.join(".", "config.ini"), config_file)
 
+# If lookup file does not exists, copy the default one
+lookup_file = os.path.join(ocindex_dir, "lookup.csv")
+if not os.path.exists(lookup_file):
+    shutil.copy(os.path.join(".", "lookup.csv"), lookup_file)
+
 python_source_dir = os.path.join(".", "index", "python", "src")
 with open("README.md", "r") as f:
     long_description = f.read()

@@ -21,7 +21,7 @@ from oc.index.oci.citation import Citation, OCIManager
 from oc.index.oci.storer import CitationStorer
 
 _config = get_config()
-_oci_manager = OCIManager(lookup_file=_config.get("cnc", "lookup"))
+_oci_manager = OCIManager(lookup_file=os.path.expanduser(_config.get("cnc", "lookup")))
 _storer = None
 _storer_lock = threading.Lock()
 _multithread = False

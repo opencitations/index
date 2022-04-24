@@ -24,7 +24,6 @@ from collections import Counter
 from datetime import date
 from re import sub
 import tarfile
-import codecs
 
 
 from oc.index.oci.citation import Citation
