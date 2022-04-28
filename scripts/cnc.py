@@ -65,7 +65,6 @@ def cnc(service, file, parser, ds):
             ids = ids + [citation_data[0], citation_data[1]]
         pbar.update(parser.current_item - pbar.n)
         citation_data = parser.get_next_citation_data()
-        break
     pbar.close()
 
     ids = list(set(ids))
