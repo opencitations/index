@@ -36,9 +36,8 @@ from oc.index.oci.storer import CitationStorer
 
 _config = get_config()
 _oci_manager = OCIManager(lookup_file=os.path.expanduser(_config.get("cnc", "lookup")))
-_storer = None
-_storer_lock = threading.Lock()
 _multithread = False
+_citations_created_lock = threading.Lock()
 _citations_created = 0
 
 
@@ -91,7 +90,9 @@ def cnc(service, file, parser, ds):
         ]
     )
 
-    logger.info("Creating Citation objects using citation data and support information")
+    logger.info(
+        f"Working on {len(citation_data_list)} citation data with related support information"
+    )
     citations_created = 0
     idbase_url = _config.get(service, "idbaseurl")
     prefix = _config.get(service, "prefix")
@@ -152,25 +153,30 @@ def cnc(service, file, parser, ds):
     return citations
 
 
-def thread_body(input_files, service):
-    global _storer
-    global _storer_lock
+def thread_body(input_files, output, service, tid):
     global _multithread
+    global _citations_created_lock
     global _citations_created
 
     ds = DataSource()
     logger = get_logger()
     parser = get_parser(service)
+    baseurl = baseurl = _config.get(service, "baseurl")
+    storer = CitationStorer(
+        output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
+    )
 
     for file in input_files:
         citations = cnc(service, file, parser, ds)
+
         logger.info("Saving citations...")
-        _storer_lock.acquire()
         for citation in tqdm(citations, disable=_multithread):
-            _storer.store_citation(citation)
+            storer.store_citation(citation)
+
+        _citations_created_lock.acquire()
         _citations_created += len(citations)
-        _storer_lock.release()
-        logger.info("Citations saved")
+        _citations_created_lock.release()
+        logger.info(f"{len(citations)} citations saved")
     return
 
 
@@ -237,14 +243,7 @@ def main():
                     input_files.append(file_path)
     elif parser.is_valid(input):
         input_files.append(input)
-
     logger.info(f"{len(input_files)} files were found")
-
-    baseurl = _config.get(service, "baseurl")
-    global _storer
-    _storer = CitationStorer(
-        output, baseurl + "/" if not baseurl.endswith("/") else baseurl
-    )
 
     start = time.time()
     threads = []
@@ -256,16 +255,21 @@ def main():
         for tid in range(workers - 1):
             thread = threading.Thread(
                 target=thread_body,
-                args=(input_files[last_index : (last_index + chunk_size)], service),
+                args=(
+                    input_files[last_index : (last_index + chunk_size)],
+                    output,
+                    service,
+                    tid + 1,
+                ),
             )
             last_index += chunk_size
-            thread.name = "WorkerThread:" + str(tid)
+            thread.name = "WorkerThread:" + str(tid + 1)
             threads.append(thread)
             thread.start()
         logger.info("All workers have been started")
 
     # No active wait also the main thread work on processing file
-    thread_body(input_files[last_index : len(input_files)], service)
+    thread_body(input_files[last_index : len(input_files)], output, service, 0)
     if _multithread:
         for thread in threads:
             thread.join()

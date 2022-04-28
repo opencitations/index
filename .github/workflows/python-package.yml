@@ -4,11 +4,13 @@ on:
   push:
     branches: [ farm_revision ]
     paths:
+      - .github/workflows/python-package.yml
       - index/python/**
       - scripts/**
   pull_request:
     branches: [ farm_revision ]
     paths:
+      - .github/workflows/python-package.yml
       - index/python/**
       - scripts/**
 
@@ -18,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.5", "3.6", "3.7", "3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v3
