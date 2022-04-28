@@ -15,6 +15,7 @@
 
 import os
 import time
+from sys import platform
 
 from argparse import ArgumentParser
 from subprocess import check_output
@@ -30,18 +31,23 @@ def process_glob_file(ds, filename, column, append=False):
     logger = get_logger()
     config = get_config()
     logger.info("Processing " + filename)
-    lines = int(
-        check_output(
-            ["wc", "-l", filename],
-        ).split()[0]
-    )
+    tqdm_disabled = False
+    lines = 0
+    if platform == "win32":
+        tqdm_disabled = True
+    else:
+        lines = int(
+            check_output(
+                ["wc", "-l", filename],
+            ).split()[0]
+        )
 
     logger.info("Reading values...")
     fp = open(filename, "r")
     fp.readline()
-    pbar = tqdm(total=lines)
+    pbar = tqdm(total=lines, disable=tqdm_disabled)
 
-    batch_size = config.get("redis", "batch_size")
+    batch_size = config.getint("redis", "batch_size")
     buffer_keys = []
     buffer_values = []
     while True:
