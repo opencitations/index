@@ -35,7 +35,7 @@ $ python -m unittest discover -s ./index/python/test -p "test_*.py"
 Done, enjoy :)
 
 ## Configuration
-By default when index is installed a configuration file is created in ~/.opencitations/index/, namely config.ini. For more information about the semantics of the settings see [config.ini](config.ini). Note, by default no value is assigned to the lookup setting, for run cnc the path to the table to be used must be indicated.
+By default when index is installed a configuration file is created in ~/.opencitations/index/, namely config.ini. For more information about the semantics of the settings see [config.ini](config.ini).
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
