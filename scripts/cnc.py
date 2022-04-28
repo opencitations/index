@@ -26,13 +26,14 @@ from datetime import datetime
 
 from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
-from oc.index.glob.datasource import DataSource
 from oc.index.finder.base import ResourceFinderHandler
 from oc.index.finder.orcid import ORCIDResourceFinder
 from oc.index.finder.crossref import CrossrefResourceFinder
 from oc.index.finder.datacite import DataCiteResourceFinder
 from oc.index.oci.citation import Citation, OCIManager
 from oc.index.oci.storer import CitationStorer
+from oc.index.glob.redis import RedisDataSource
+from oc.index.glob.csv import CSVDataSource
 
 _config = get_config()
 _oci_manager = OCIManager(lookup_file=os.path.expanduser(_config.get("cnc", "lookup")))
@@ -64,6 +65,7 @@ def cnc(service, file, parser, ds):
             ids = ids + [citation_data[0], citation_data[1]]
         pbar.update(parser.current_item - pbar.n)
         citation_data = parser.get_next_citation_data()
+        break
     pbar.close()
 
     ids = list(set(ids))
@@ -110,6 +112,10 @@ def cnc(service, file, parser, ds):
             journal_sc,
         ) = citation_data
 
+        citing_issn = []
+        cited_issn = []
+        citing_orcid = []
+        cited_orcid = []
         if crossref_rc.is_valid(citing) and crossref_rc.is_valid(cited):
             if citing_date is None:
                 citing_date = rf_handler.get_date(citing)
@@ -118,10 +124,29 @@ def cnc(service, file, parser, ds):
                 cited_date = rf_handler.get_date(cited)
 
             if journal_sc is None or type(journal_sc) is not bool:
-                journal_sc = rf_handler.share_issn(citing, cited)
+                journal_sc, citing_issn, cited_issn = rf_handler.share_issn(
+                    citing, cited
+                )
 
             if author_sc is None or type(author_sc) is not bool:
-                author_sc = rf_handler.share_orcid(citing, cited)
+                author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(
+                    citing, cited
+                )
+
+            # Update support data if the resources were not found in the datasource
+            if resources[citing] is None:
+                row = ds.new()
+                row["valid"] = True
+                row["date"] = citing_date
+                row["issn"] = list(citing_issn)
+                row["orcid"] = list(citing_orcid)
+                ds.set(citing, row)
+            if resources[cited] is None:
+                row["valid"] = True
+                row["date"] = cited_date
+                row["issn"] = list(cited_issn)
+                row["orcid"] = list(cited_orcid)
+                ds.set(cited, row)
 
             citations.append(
                 Citation(
@@ -149,6 +174,15 @@ def cnc(service, file, parser, ds):
             )
 
             citations_created += 1
+        else:
+            if resources[citing] is None:
+                row = ds.new()
+                row["valid"] = False
+                ds.set(citing, row)
+            if resources[cited] is None:
+                row = ds.new()
+                row["valid"] = False
+                ds.set(cited, row)
     logger.info(f"{citations_created}/{len(citation_data_list)} Citations created")
     return citations
 
@@ -157,8 +191,16 @@ def thread_body(input_files, output, service, tid):
     global _multithread
     global _citations_created_lock
     global _citations_created
+    global _config
 
-    ds = DataSource()
+    service_ds = _config.get(service, "datasource")
+    ds = None
+    if service_ds == "redis":
+        ds = RedisDataSource()
+    elif service_ds == "csv":
+        ds = CSVDataSource()
+    else:
+        raise Exception(service_ds + " is not a valid data source")
     logger = get_logger()
     parser = get_parser(service)
     baseurl = baseurl = _config.get(service, "baseurl")

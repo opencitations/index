@@ -30,7 +30,7 @@ class CSVManager(object):
         self.data = {}
         self.store_new = store_new
 
-        if csv_path is not None and exists(csv_path):
+        if csv_path is not None:
             CSVManager.__load_all_csv_files(
                 [csv_path], self.__load_csv, line_threshold=line_threshold
             )

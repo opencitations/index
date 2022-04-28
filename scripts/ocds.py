@@ -24,7 +24,7 @@ from errno import ENOENT
 
 from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
-from oc.index.glob.datasource import DataSource
+from oc.index.glob.redis import RedisDataSource
 
 
 def process_glob_file(ds, filename, column, append=False):
@@ -130,7 +130,7 @@ def main():
         logger.error("valid_doi.csv not found in the input directory")
         raise FileNotFoundError(ENOENT, os.strerror(ENOENT), valid_doi)
 
-    ds = DataSource()
+    ds = RedisDataSource()
 
     logger.info("Populating the datasource with glob files...")
     start = time.time()

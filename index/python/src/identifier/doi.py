@@ -49,7 +49,7 @@ class DOIManager(IdentifierManager):
         if doi is None or match("^doi:10\\..+/.+$", doi) is None:
             return False
         else:
-            if not doi in self._data:
+            if not doi in self._data or self._data[doi] is None:
                 return self.__doi_exists(doi)
             return self._data[doi].get("valid")
 

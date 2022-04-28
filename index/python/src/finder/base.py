@@ -148,7 +148,10 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         Returns:
             _type_: _description_
         """
-        return self._get_item(id_string, "orcid")
+        if not id_string in self._data or self._data[id_string] is None:
+            return self._get_item(id_string, "orcid")
+        else:
+            return self._data[id_string]["orcid"]
 
     def get_pub_date(self, id_string):
         """_summary_
@@ -159,7 +162,10 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         Returns:
             _type_: _description_
         """
-        return self._get_item(id_string, "date")
+        if not id_string in self._data or self._data[id_string] is None:
+            return self._get_item(id_string, "date")
+        else:
+            return self._data[id_string]["date"]
 
     def get_container_issn(self, id_string):
         """_summary_
@@ -170,7 +176,10 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         Returns:
             _type_: _description_
         """
-        return self._get_item(id_string, "issn")
+        if not id_string in self._data or self._data[id_string] is None:
+            return self._get_item(id_string, "issn")
+        else:
+            return self._data[id_string]["issn"]
 
     def is_valid(self, id_string):
         """_summary_
@@ -181,7 +190,10 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         Returns:
             _type_: _description_
         """
-        return self._dm.is_valid(id_string)
+        if not id_string in self._data or self._data[id_string] is None:
+            return self._dm.is_valid(id_string)
+        else:
+            return self._data[id_string]["valid"]
 
     def normalise(self, id_string):
         """_summary_
@@ -298,4 +310,4 @@ class ResourceFinderHandler(object):
 
             result = len(set_1.intersection(set_2)) > 0
 
-        return result
+        return result, set_1, set_2
