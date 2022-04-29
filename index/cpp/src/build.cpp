@@ -24,137 +24,15 @@ void usage(const char *basename)
             "  -v, --verbose\t\t"
             "Additional help text logged in console.\n"
             "  -i, --input=DIRNAME\t"
-            "Path to the input directory.\n";
+            "Path to the input directory.\n"
+            "  -o, --output=DIRNAME\t"
+            "Path to the output directory.\n"
+            "  -b, --batchsize=batchsize\t"
+            "Batch size to use to create hash tables, by default is 5E7.\n";
 }
 
-int main(int argc, char **argv)
+void save_moph(vector<string> input_keys, bool verbose, int workers, string filename)
 {
-    /* take only the last portion of the path */
-    const char *basename = strrchr(argv[0], '/');
-    basename = basename ? basename + 1 : argv[0];
-
-    int verbose = 0;
-    string input;
-
-    int required_parameters = 1;
-    struct option longopts[] = {
-        {"help", no_argument, nullptr, 'h'},
-        {"verbose", no_argument, nullptr, 'v'},
-        {"workers", required_argument, nullptr, 'w'},
-        {"input", required_argument, nullptr, 'i'},
-        {0, 0, 0, 0}};
-
-    auto parameter_error = [basename](string message)
-    {
-        cerr << basename << ": " << message << endl;
-        usage(basename);
-        return EXIT_FAILURE;
-    };
-    int workers = 1;
-
-    // Parse the parameters
-    int opt;
-    while ((opt = getopt_long(argc, argv, "hvi:w:", longopts, 0)) != -1)
-    {
-        switch (opt)
-        {
-        case 'w':
-            workers = atoi(optarg);
-            break;
-        case 'v':
-            verbose = 1;
-            break;
-        case 'i':
-            input = optarg;
-            if (!filesystem::is_directory(input))
-                return parameter_error("The input must be a valid directory");
-            required_parameters--;
-            break;
-        case 'h':
-            usage(basename);
-            return EXIT_SUCCESS;
-        default:
-            usage(basename);
-            return EXIT_FAILURE;
-        }
-    }
-    if (required_parameters)
-        return parameter_error("The mandatory parameters have not been provided");
-
-    vector<string> input_keys;
-
-    filesystem::path input_directory(input);
-    zip_file *input_file;
-    zip *input_archive;
-    zip_stat_t f_stat;
-    int err = 0;
-    filesystem::path file_path;
-    char errstr[1024];
-    size_t file_length;
-    int header = 0;
-    vector<string> citations();
-    int oci_size = 0;
-    for (const auto &entry : filesystem::directory_iterator(input_directory))
-    {
-        file_path = entry.path();
-        if (filesystem::path{file_path}.extension() == ".zip")
-        {
-            if (verbose)
-            {
-                cout << "Processing : " << file_path << endl;
-            }
-            input_archive = zip_open(file_path.c_str(), 0, &err);
-            if (input_archive == NULL)
-            {
-                zip_error_to_str(errstr, sizeof(errstr), err, errno);
-                cerr << "Cannot open zip archive " << file_path << endl;
-                cerr << errstr << endl;
-                return EXIT_FAILURE;
-            }
-
-            for (int i = 0; i < zip_get_num_files(input_archive); i++)
-            {
-                if (zip_stat_index(input_archive, i, 0, &f_stat) == 0)
-                {
-                    input_file = zip_fopen_index(input_archive, i, 0);
-                    if (input_file == NULL)
-                    {
-                        zip_error_to_str(errstr, sizeof(errstr), err, errno);
-                        cerr << "Cannot open file " << f_stat.name << " in " << file_path << endl;
-                        cerr << errstr << endl;
-                        return EXIT_FAILURE;
-                    }
-
-                    char *buffer = (char *)calloc(f_stat.size, sizeof(char));
-                    file_length = zip_fread(input_file, buffer, f_stat.size);
-                    if (file_length < 0)
-                    {
-                        zip_error_to_str(errstr, sizeof(errstr), err, errno);
-                        cerr << "Error filling buffer using file " << f_stat.name << " in " << file_path << endl;
-                        cerr << errstr << endl;
-                        return EXIT_FAILURE;
-                    }
-
-                    header = 1;
-                    string lines(buffer);
-                    istringstream split(lines);
-                    for (string line; getline(split, line, '\n');)
-                    {
-                        if (header)
-                        {
-                            header = 0;
-                            continue;
-                        }
-                        string oci = line.substr(0, line.find(','));
-                        input_keys.push_back(oci);
-                    }
-                    free(buffer);
-                }
-            }
-            zip_close(input_archive);
-        }
-    }
-
     typedef boomphf::mphf<string, StringHasher> boophf_t;
     boophf_t *bphf = NULL;
     double t_begin, t_end;
@@ -187,11 +65,191 @@ int main(int argc, char **argv)
         cout << "MOPH bits per element: " << (float)(bphf->totalBitSize()) / nelem << endl;
         cout << "Saving the MOPH on disk..." << endl;
     }
-    ofstream fout("moph.dat", ios::out | ios::binary);
+    ofstream fout(filename, ios::out | ios::binary);
     bphf->save(fout);
     if (verbose)
     {
         cout << "MOPH saved on disk" << endl;
     }
+}
+
+int main(int argc, char **argv)
+{
+    /* take only the last portion of the path */
+    const char *basename = strrchr(argv[0], '/');
+    basename = basename ? basename + 1 : argv[0];
+
+    int verbose = 0;
+    string input;
+    string output;
+
+    int required_parameters = 2;
+    struct option longopts[] = {
+        {"help", no_argument, nullptr, 'h'},
+        {"verbose", no_argument, nullptr, 'v'},
+        {"workers", required_argument, nullptr, 'w'},
+        {"input", required_argument, nullptr, 'i'},
+        {"output", required_argument, nullptr, 'o'},
+        {"batchsize", required_argument, nullptr, 'b'},
+        {0, 0, 0, 0}};
+
+    auto parameter_error = [basename](string message)
+    {
+        cerr << basename << ": " << message << endl;
+        usage(basename);
+        return EXIT_FAILURE;
+    };
+    int workers = 1;
+    int batch_size = 5E7;
+    // Parse the parameters
+    int opt;
+    while ((opt = getopt_long(argc, argv, "hvi:w:o:b:", longopts, 0)) != -1)
+    {
+        switch (opt)
+        {
+        case 'w':
+            workers = atoi(optarg);
+            break;
+        case 'v':
+            verbose = 1;
+            break;
+        case 'i':
+            input = optarg;
+            if (!filesystem::is_directory(input))
+                return parameter_error("The input must be a valid directory");
+            required_parameters--;
+            break;
+        case 'b':
+            batch_size = atoi(optarg);
+            break;
+        case 'o':
+            output = optarg;
+            if (!filesystem::exists(output))
+            {
+                filesystem::create_directories(output);
+            }
+            required_parameters--;
+            break;
+        case 'h':
+            usage(basename);
+            return EXIT_SUCCESS;
+        default:
+            usage(basename);
+            return EXIT_FAILURE;
+        }
+    }
+    if (required_parameters)
+        return parameter_error("The mandatory parameters have not been provided");
+
+    struct timeval timet;
+    double t_begin, t_end;
+    gettimeofday(&timet, NULL);
+    t_begin = timet.tv_sec + (timet.tv_usec / 1000000.0);
+    filesystem::path input_directory(input);
+    zip_file *input_file;
+    zip *input_archive;
+    zip_stat_t f_stat;
+    int err = 0;
+    filesystem::path file_path;
+    char errstr[1024];
+    size_t file_length;
+    int header = 0;
+    vector<string> citations();
+    int oci_size = 0;
+    vector<string> input_keys;
+    int next_file = 0;
+    int input_keys_size = 0;
+    for (const auto &entry : filesystem::directory_iterator(input_directory))
+    {
+        file_path = entry.path();
+        if (filesystem::path{file_path}.extension() == ".zip")
+        {
+            if (verbose)
+            {
+                cout << "Processing : " << file_path << endl;
+            }
+            input_archive = zip_open(file_path.c_str(), 0, &err);
+            if (input_archive == NULL)
+            {
+                zip_error_to_str(errstr, sizeof(errstr), err, errno);
+                cerr << "Cannot open zip archive " << file_path << endl;
+                cerr << errstr << endl;
+                return EXIT_FAILURE;
+            }
+
+            for (int i = 0; i < zip_get_num_files(input_archive); i++)
+            {
+                if (zip_stat_index(input_archive, i, 0, &f_stat) == 0)
+                {
+                    input_file = zip_fopen_index(input_archive, i, 0);
+                    if (input_file == NULL)
+                    {
+                        zip_error_to_str(errstr, sizeof(errstr), err, errno);
+                        cerr << "Cannot open file " << f_stat.name << " in " << file_path << endl;
+                        cerr << errstr << endl;
+                        return EXIT_FAILURE;
+                    }
+                    if (verbose)
+                    {
+                        cout << "\t Working on : " << f_stat.name << endl;
+                    }
+
+                    char *buffer = (char *)calloc(f_stat.size, sizeof(char));
+                    file_length = zip_fread(input_file, buffer, f_stat.size);
+                    if (file_length < 0)
+                    {
+                        zip_error_to_str(errstr, sizeof(errstr), err, errno);
+                        cerr << "Error filling buffer using file " << f_stat.name << " in " << file_path << endl;
+                        cerr << errstr << endl;
+                        return EXIT_FAILURE;
+                    }
+
+                    header = 1;
+                    string lines(buffer);
+                    istringstream split(lines);
+                    for (string line; getline(split, line, '\n');)
+                    {
+                        if (header)
+                        {
+                            header = 0;
+                            continue;
+                        }
+                        string oci = line.substr(0, line.find(','));
+                        input_keys.push_back(oci);
+                        input_keys_size += 1;
+                        if (input_keys_size >= batch_size)
+                        {
+                            save_moph(
+                                input_keys,
+                                verbose,
+                                workers,
+                                filesystem::path(output) / filesystem::path(to_string(next_file) + ".bin"));
+                            next_file += 1;
+                            input_keys_size = 0;
+                            input_keys.clear();
+                        }
+                    }
+                    free(buffer);
+                }
+            }
+            zip_close(input_archive);
+        }
+    }
+    if (input_keys_size > 0)
+    {
+        save_moph(
+            input_keys,
+            verbose,
+            workers,
+            filesystem::path(output) / filesystem::path(to_string(next_file) + ".bin"));
+        next_file += 1;
+        input_keys_size = 0;
+        input_keys.clear();
+    }
+
+    gettimeofday(&timet, NULL);
+    t_end = timet.tv_sec + (timet.tv_usec / 1000000.0);
+    double elapsed = t_end - t_begin;
+    cout << "The process of building the tables took " << elapsed / 60 << " minutes" << endl;
     return EXIT_SUCCESS;
 }

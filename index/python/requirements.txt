@@ -3,3 +3,4 @@ SPARQLWrapper
 rdflib
 requests
 python-dateutil
+tqdm
