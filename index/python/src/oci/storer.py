@@ -412,10 +412,12 @@ class CitationStorer(object):
         data_f_path, prov_f_path, service_name, id_type, id_shape, citation_type
     ):
         citation_data = Graph()
-        citation_data.load(data_f_path, format="nt11")
+        # Changed from load to parse since load has been deprecated
+        citation_data.parse(data_f_path, format="nt11")
 
         citation_prov = ConjunctiveGraph()
-        citation_prov.load(prov_f_path, format="nquads")
+        # Changed from load to parse since load has been deprecated
+        citation_prov.parse(prov_f_path, format="nquads")
 
         for cit_ent in citation_data.subjects(RDF.type, Citation.citation):
             prov_entity = None

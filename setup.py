@@ -23,7 +23,7 @@ with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
-    name="OpenCitations Index",
+    name="oc-index",
     version="1.0.0",
     description="Software for creating all the OpenCitations indexes",
     author="OpenCitations",
@@ -43,6 +43,7 @@ setup(
             "ocds=oc.index.scripts.ocds:main",
             "glob_crossref=oc.index.scripts.crossref_glob:main",
             "trim_crossref=oc.index.scripts.crossref_trim:main",
+            "validate_crossref=oc.index.scripts.crossref_validate:main",
             "checkmetadata_crossref=oc.index.scripts.crossref_checkmetadata:main",
             "oci=oc.index.scripts.oci:main",
         ],

@@ -14,7 +14,6 @@
 # SOFTWARE.
 
 import unittest
-from os import sep
 from os.path import join
 from csv import DictReader
 

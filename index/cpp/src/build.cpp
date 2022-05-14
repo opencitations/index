@@ -7,6 +7,8 @@
 #include <getopt.h>
 #include <time.h>
 #include <thread>
+#include <algorithm>
+#include <iterator>
 
 #include "BooPHF.h"
 
@@ -31,14 +33,15 @@ void usage(const char *basename)
             "Batch size to use to create hash tables, by default is 5E7.\n";
 }
 
-void save_moph(vector<string> input_keys, bool verbose, int workers, string filename)
+typedef boomphf::mphf<string, StringHasher> boophf_t;
+
+void save_moph(vector<string> input_keys, vector<pair<uint, uint>> input_keys_offsets, bool verbose, uint workers, string filename)
 {
-    typedef boomphf::mphf<string, StringHasher> boophf_t;
     boophf_t *bphf = NULL;
     double t_begin, t_end;
     struct timeval timet;
 
-    int nelem = input_keys.size();
+    uint nelem = input_keys.size();
 
     if (verbose)
     {
@@ -63,13 +66,38 @@ void save_moph(vector<string> input_keys, bool verbose, int workers, string file
     {
         cout << "MOPH constructed in " << elapsed << " seconds" << endl;
         cout << "MOPH bits per element: " << (float)(bphf->totalBitSize()) / nelem << endl;
-        cout << "Saving the MOPH on disk..." << endl;
+        cout << "Saving the MOPH " << filename + ".bin"
+             << "..." << endl;
     }
-    ofstream fout(filename, ios::out | ios::binary);
-    bphf->save(fout);
+    ofstream moph_os(filename + ".bin", ios::out | ios::binary);
+    bphf->save(moph_os);
     if (verbose)
     {
         cout << "MOPH saved on disk" << endl;
+    }
+
+    if (verbose)
+    {
+        cout << "Saving indexed offset " << filename + ".csv"
+             << "..." << endl;
+    }
+    // Save offset vector in csv format in according to lookup table ranking
+    ofstream offset_os(filename + ".csv", ios::out | ios::binary);
+    vector<pair<uint, uint>> input_keys_offsets_ordered(input_keys_offsets.size());
+    for (uint i = 0; i < input_keys_offsets.size(); i++)
+    {
+        uint position = bphf->lookup(input_keys[i]);
+        input_keys_offsets_ordered[position] = input_keys_offsets[i];
+    }
+    for (uint i = 0; i < input_keys_offsets.size(); i++)
+    {
+        pair<uint, uint> offset = input_keys_offsets_ordered[i];
+        offset_os << offset.first << "," << offset.second << endl;
+    }
+    offset_os.close();
+    if (verbose)
+    {
+        cout << "Indexed offset saved" << endl;
     }
 }
 
@@ -101,6 +129,7 @@ int main(int argc, char **argv)
     };
     int workers = 1;
     int batch_size = 5E7;
+
     // Parse the parameters
     int opt;
     while ((opt = getopt_long(argc, argv, "hvi:w:o:b:", longopts, 0)) != -1)
@@ -141,33 +170,34 @@ int main(int argc, char **argv)
     if (required_parameters)
         return parameter_error("The mandatory parameters have not been provided");
 
+    // Get current time
     struct timeval timet;
     double t_begin, t_end;
     gettimeofday(&timet, NULL);
     t_begin = timet.tv_sec + (timet.tv_usec / 1000000.0);
+
+    // Declare input variables
     filesystem::path input_directory(input);
-    zip_file *input_file;
     zip *input_archive;
     zip_stat_t f_stat;
-    int err = 0;
     filesystem::path file_path;
-    char errstr[1024];
     size_t file_length;
-    int header = 0;
-    vector<string> citations();
-    int oci_size = 0;
-    vector<string> input_keys;
-    int next_file = 0;
-    int input_keys_size = 0;
+    zip_file *input_file;
+    int err = 0;
+    char errstr[1024];
+    uint header = 0;
+
+    // Iterate over the files in the input directory
     for (const auto &entry : filesystem::directory_iterator(input_directory))
     {
         file_path = entry.path();
+
+        // Process only zip files
         if (filesystem::path{file_path}.extension() == ".zip")
         {
+            // Open zip archive
             if (verbose)
-            {
                 cout << "Processing : " << file_path << endl;
-            }
             input_archive = zip_open(file_path.c_str(), 0, &err);
             if (input_archive == NULL)
             {
@@ -177,10 +207,12 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
 
-            for (int i = 0; i < zip_get_num_files(input_archive); i++)
+            // Iterate over all the files in the zip archive
+            for (uint i = 0; i < zip_get_num_files(input_archive); i++)
             {
                 if (zip_stat_index(input_archive, i, 0, &f_stat) == 0)
                 {
+                    // Open the zip file
                     input_file = zip_fopen_index(input_archive, i, 0);
                     if (input_file == NULL)
                     {
@@ -207,44 +239,43 @@ int main(int argc, char **argv)
                     header = 1;
                     string lines(buffer);
                     istringstream split(lines);
+
+                    // Oci list and their offset in the file
+                    vector<string> input_keys;
+                    vector<pair<uint, uint>> input_keys_offsets;
+                    uint start = 0;
+
+                    // Read all the oci and save the position in the file
                     for (string line; getline(split, line, '\n');)
                     {
                         if (header)
                         {
+                            start += line.length() + 2;
                             header = 0;
                             continue;
                         }
-                        string oci = line.substr(0, line.find(','));
+                        uint end = line.find(',');
+                        string oci = line.substr(0, end);
                         input_keys.push_back(oci);
-                        input_keys_size += 1;
-                        if (input_keys_size >= batch_size)
-                        {
-                            save_moph(
-                                input_keys,
-                                verbose,
-                                workers,
-                                filesystem::path(output) / filesystem::path(to_string(next_file) + ".bin"));
-                            next_file += 1;
-                            input_keys_size = 0;
-                            input_keys.clear();
-                        }
+
+                        pair<uint, uint> offset;
+                        offset.first = start;
+                        offset.second = oci.length();
+                        input_keys_offsets.push_back(offset);
+                        start += line.length() + 1;
                     }
+                    string archive_name = file_path.filename().string();
+                    save_moph(
+                        input_keys,
+                        input_keys_offsets,
+                        verbose,
+                        workers,
+                        filesystem::path(output) / filesystem::path(archive_name.substr(0, archive_name.length() - 4) + "_" + to_string(i)));
                     free(buffer);
                 }
             }
             zip_close(input_archive);
         }
-    }
-    if (input_keys_size > 0)
-    {
-        save_moph(
-            input_keys,
-            verbose,
-            workers,
-            filesystem::path(output) / filesystem::path(to_string(next_file) + ".bin"));
-        next_file += 1;
-        input_keys_size = 0;
-        input_keys.clear();
     }
 
     gettimeofday(&timet, NULL);

@@ -387,7 +387,8 @@ class CitationTest(unittest.TestCase):
 
     def test_citation_data_ttl(self):
         g1 = ConjunctiveGraph()
-        g1.load(self.citation_data_ttl_path, format="nt11")
+        # Changed from load to parse since load has been deprecated
+        g1.parse(self.citation_data_ttl_path, format="nt11")
 
         g2 = ConjunctiveGraph()
         for c in [
@@ -405,7 +406,8 @@ class CitationTest(unittest.TestCase):
 
     def test_citation_prov_ttl(self):
         g1 = ConjunctiveGraph()
-        g1.load(self.citation_prov_ttl_path, format="nquads")
+        # Changed from load to parse since load has been deprecated
+        g1.parse(self.citation_prov_ttl_path, format="nquads")
 
         g2 = ConjunctiveGraph()
         for c in [

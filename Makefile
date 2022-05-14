@@ -10,10 +10,13 @@ build:
 	mkdir -p ./bin
 	@echo "Compiling build.cpp"
 	$(CXX) ./index/cpp/src/build.cpp -o ./bin/oci_moph $(CXXFLAGS) $(INCLUDE) -lzip
+	@echo "Compiling lookup.cpp"
+	$(CXX) ./index/cpp/src/lookup.cpp -o ./bin/oci_lookup $(CXXFLAGS) $(INCLUDE) -lzip
 
 install:
 	@echo "Installing oci_moph"
 	cp ./bin/oci_moph /usr/local/bin/oci_moph
+	cp ./bin/oci_lookup /usr/local/bin/oci_lookup
 
 .PHONY: clean
 clean: 

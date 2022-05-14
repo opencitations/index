@@ -43,27 +43,27 @@ class ResourceFinderTest(unittest.TestCase):
         handler = ResourceFinderHandler(
             [CrossrefResourceFinder(), DataCiteResourceFinder(), ORCIDResourceFinder()]
         )
-        self.assertTrue(
-            handler.share_issn("10.1007/s11192-018-2988-z", "10.1007/s11192-015-1565-y")
+        share_issn, _, __ = handler.share_issn(
+            "10.1007/s11192-018-2988-z", "10.1007/s11192-015-1565-y"
         )
-        self.assertFalse(
-            handler.share_issn(
-                "10.1007/s11192-018-2988-z", "10.6092/issn.2532-8816/8555"
-            )
+        self.assertTrue(share_issn)
+        share_issn, _, __ = handler.share_issn(
+            "10.1007/s11192-018-2988-z", "10.6092/issn.2532-8816/8555"
         )
+        self.assertFalse(share_issn)
 
     def test_handler_share_orcid(self):
         handler = ResourceFinderHandler(
             [CrossrefResourceFinder(), DataCiteResourceFinder(), ORCIDResourceFinder()]
         )
-        self.assertTrue(
-            handler.share_orcid("10.1007/s11192-018-2988-z", "10.5281/zenodo.3344898")
+        share_orcid, _, __ = handler.share_orcid(
+            "10.1007/s11192-018-2988-z", "10.5281/zenodo.3344898"
         )
-        self.assertFalse(
-            handler.share_issn(
-                "10.1007/s11192-018-2988-z", "10.1007/s11192-015-1565-y5"
-            )
+        self.assertTrue(share_orcid)
+        share_orcid, _, __ = handler.share_orcid(
+            "10.1007/s11192-018-2988-z", "10.1007/s11192-015-1565-y5"
         )
+        self.assertFalse(share_orcid)
 
     def test_orcid_get_orcid(self):
         # Do not use support dict, only APIs

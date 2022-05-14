@@ -1,16 +1,13 @@
-[<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net)
+[<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net) [![Python package](https://github.com/opencitations/index/actions/workflows/python-package.yml/badge.svg?branch=farm_revision)](https://github.com/opencitations/index/actions/workflows/python-package.yml)
 # OpenCitations: Index
 
 This software allows the creation of indexes of open citations (e.g. COCI).
-
-**Branch status:**
-
-[![Python package](https://github.com/opencitations/index/actions/workflows/python-package.yml/badge.svg?branch=farm_revision)](https://github.com/opencitations/index/actions/workflows/python-package.yml)
-
 ## Requirements
+### Mandatory
 - Python 3.7+
-- Redis, see [Installing Redis](https://redis.io/docs/getting-started/installation/) for additional information.
 - libzip, see [INSTALL.md](https://github.com/nih-at/libzip/blob/master/INSTALL.md) from official repository for additional information.
+### Optional
+- Redis (* mandatory for redis data source), see [Installing Redis](https://redis.io/docs/getting-started/installation/) for additional information.
 ## Install
 To install the index software you must first meet all the requirements above.
 

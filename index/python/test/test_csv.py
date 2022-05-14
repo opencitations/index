@@ -25,7 +25,7 @@ class CSVManagerTest(unittest.TestCase):
     def setUp(self):
         test_dir = join("index", "python", "test", "data")
         self.initial_path = join(test_dir, "initial_data.csv")
-        self.addition_path = join(test_dir, "additional_data.csv")
+        self.addition_path = join("tmp", "additional_data.csv")
         self.citation_path = join(test_dir, "citations_data.csv")
 
     def test_creation(self):

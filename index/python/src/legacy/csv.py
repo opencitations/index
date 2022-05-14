@@ -75,6 +75,8 @@ class CSVManager(object):
         header = None
 
         for csv_path in list_of_csv_files:
+            if not exists(csv_path):
+                open(csv_path, "w").close()
             with open(csv_path, encoding="utf-8") as f:
                 csv_content = ""
                 for idx, line in enumerate(f.readlines()):
