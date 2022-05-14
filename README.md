@@ -39,4 +39,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 Please make sure to update tests as appropriate.
 
 ## License
-OpenCitations Index is released under the [CC0 License](LICENSE).
+OpenCitations Index is released under the [ISC License](LICENSE).
