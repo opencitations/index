@@ -14,7 +14,7 @@
 # SOFTWARE.
 
 import unittest
-from os import remove
+from os import remove, makedirs
 from os.path import exists, join
 from oc.index.legacy.csv import CSVManager
 
@@ -23,6 +23,8 @@ class CSVManagerTest(unittest.TestCase):
     """This class aim at testing the methods of the class CSVManager."""
 
     def setUp(self):
+        if not exists("tmp"):
+            makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
         self.initial_path = join(test_dir, "initial_data.csv")
         self.addition_path = join("tmp", "additional_data.csv")

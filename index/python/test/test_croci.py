@@ -14,7 +14,8 @@
 # SOFTWARE.
 
 import unittest
-from os.path import join
+from os import makedirs
+from os.path import join, exists
 from csv import DictReader
 
 from oc.index.parsing.crowdsourced import CrowdsourcedParser
@@ -23,6 +24,8 @@ from oc.index.oci.citation import Citation
 
 class CROCITest(unittest.TestCase):
     def setUp(self):
+        if not exists("tmp"):
+            makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
         self.input = join(test_dir, "croci_dump.csv")
         self.citations = join(test_dir, "croci_citations.csv")

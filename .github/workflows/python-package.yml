@@ -37,5 +37,4 @@ jobs:
         pip install .
     - name: Test with pytest
       run: |
-        mkdir tmp
         python -m unittest discover -s ./index/python/test -p "test_*.py"

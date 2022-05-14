@@ -14,7 +14,7 @@
 # SOFTWARE.
 
 import unittest
-from os import sep
+from os import sep, makedirs
 from shutil import rmtree
 from os.path import exists, join
 from rdflib import ConjunctiveGraph
@@ -30,6 +30,8 @@ class CitationStorerTest(unittest.TestCase):
     """This class aim at testing the methods of the class CitationStorer."""
 
     def setUp(self):
+        if not exists("tmp"):
+            makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
         self.citation_data_csv_path = join(test_dir, "citations_data.csv")
         self.citation_prov_csv_path = join(test_dir, "citations_prov.csv")

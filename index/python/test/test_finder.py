@@ -16,7 +16,8 @@
 import unittest
 import json
 
-from os.path import join
+from os import makedirs
+from os.path import join, exists
 
 from oc.index.finder.crossref import CrossrefResourceFinder
 from oc.index.finder.datacite import DataCiteResourceFinder
@@ -28,6 +29,8 @@ class ResourceFinderTest(unittest.TestCase):
     """This class aim at testing resource finders."""
 
     def setUp(self):
+        if not exists("tmp"):
+            makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
         with open(join(test_dir, "glob.json"), encoding="utf-8") as fp:
             self.data = json.load(fp)

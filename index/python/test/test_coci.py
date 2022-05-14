@@ -14,7 +14,8 @@
 # SOFTWARE.
 
 import unittest
-from os.path import join
+from os import makedirs
+from os.path import join, exists
 from csv import DictReader
 
 from oc.index.parsing.crossref import CrossrefParser
@@ -22,6 +23,8 @@ from oc.index.parsing.crossref import CrossrefParser
 
 class COCITest(unittest.TestCase):
     def setUp(self):
+        if not exists("tmp"):
+            makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
         self.input = join(test_dir, "crossref_dump.json")
         self.citations = join(test_dir, "crossref_citations.csv")

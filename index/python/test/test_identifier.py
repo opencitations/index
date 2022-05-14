@@ -16,7 +16,8 @@
 import unittest
 import json
 
-from os.path import join
+from os import makedirs
+from os.path import join, exists
 
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
@@ -27,6 +28,8 @@ class IdentifierManagerTest(unittest.TestCase):
     """This class aim at testing identifiers manager."""
 
     def setUp(self):
+        if not exists("tmp"):
+            makedirs("tmp")
         self.valid_doi_1 = "10.1108/jd-12-2013-0166"
         self.valid_doi_2 = "10.1130/2015.2513(00)"
         self.invalid_doi_1 = "10.1108/12-2013-0166"

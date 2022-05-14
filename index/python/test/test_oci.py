@@ -14,7 +14,7 @@
 # SOFTWARE.
 
 import unittest
-from os import remove
+from os import remove, makedirs
 from os.path import exists, join
 from csv import DictReader
 from json import load, loads
@@ -33,6 +33,8 @@ class CitationTest(unittest.TestCase):
     belongs to package oc.index.oci"""
 
     def setUp(self):
+        if not exists("tmp"):
+            makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
         self.citation_data_csv_path = join(test_dir, "citations_data.csv")
         self.citation_prov_csv_path = join(test_dir, "citations_prov.csv")
