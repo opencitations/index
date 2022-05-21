@@ -14,7 +14,6 @@
 # SOFTWARE.
 
 from json import load
-
 from oc.index.identifier.doi import DOIManager
 from oc.index.parsing.base import CitationParser
 
