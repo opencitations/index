@@ -22,6 +22,7 @@ from oc.index.parsing.datacite import DataciteParser
 import json
 
 class DOCITest(unittest.TestCase):
+    """This class aims at testing the methods of the class DataciteParser."""
     def setUp(self):
         if not exists("tmp"):
             makedirs("tmp")
