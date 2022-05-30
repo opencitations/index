@@ -34,5 +34,29 @@
         "valid": true,
         "issn": [],
         "orcid": ["0000-0001-7734-8388"]
+    },
+        "pmid:67308798798": {
+        "date": null,
+        "valid": false,
+        "issn": [],
+        "orcid": []
+    },
+    "pmid:174777777777": {
+        "date": null,
+        "valid": false,
+        "issn": [],
+        "orcid": []
+    },
+    "pmid:2942070": {
+        "date": "1986-08",
+        "valid": true,
+        "issn": ["0003-4819"],
+        "orcid": []
+    },
+    "pmid:1509982": {
+        "date": "1992-01",
+        "valid": true,
+        "issn": ["0065-4299"],
+        "orcid": []
     }
 }
