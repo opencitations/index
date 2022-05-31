@@ -78,7 +78,7 @@ class DatacitePreProcessing():
                 n_lines = 0
                 for line in tqdm(f):
                     n_lines += 1
-                    print("ENTITIES:", n_lines)
+                    print("Processing entity n.:", n_lines)
 
                     linedict = json.loads(line)
                     attributes = linedict["attributes"]

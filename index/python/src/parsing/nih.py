@@ -12,10 +12,11 @@
 # DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
-from csv import DictReader
 
 from index.python.src.identifier.pmid import PMIDManager #TO BE REFACTORED : from oc.index.identifier.pmid import PMIDManager
 from oc.index.parsing.base import CitationParser
+import pandas as pd
+
 
 class NIHParser(CitationParser):
     def __init__(self):
@@ -28,9 +29,12 @@ class NIHParser(CitationParser):
 
     def parse(self, filename: str):
         super().parse(filename)
-        with open( filename, encoding="utf8" ) as fp: #chunks (?)
-            self._rows = list(DictReader(fp))
-        self._items = len(self._rows)
+        df = pd.DataFrame()
+        for chunk in pd.read_csv(filename, chunksize=1000):
+            f = pd.concat([df, chunk], ignore_index=True)
+            f.fillna("", inplace=True)
+            self._rows = f.to_dict('records')
+            self._items = len(self._rows)
 
     def get_next_citation_data(self):
         if len(self._rows) == 0:
