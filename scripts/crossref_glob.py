@@ -19,6 +19,7 @@ from os.path import exists, basename, isdir
 from json import load, loads
 from collections import Counter
 from datetime import date
+from timeit import default_timer as timer
 from re import sub
 import tarfile
 
@@ -127,6 +128,7 @@ def load_json(file, targz_fd, file_idx, len_all_files):
 
 
 def process(input_dir, output_dir):
+    start = timer()
     if not exists(output_dir):
         makedirs(output_dir)
 
@@ -152,9 +154,8 @@ def process(input_dir, output_dir):
             for obj in data["items"]:
                 if "DOI" in obj:
                     citing_doi = doi_manager.normalise(obj["DOI"], True)
-                    valid_doi.add_value(
-                        citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i"
-                    )
+                    #valid_doi.add_value(citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i")
+                    valid_doi.add_value(citing_doi, "v") # NB:  add value aggiunge l'id se non c'era e aggiunge il valore al set di valori. Cosa succede se il valore c'è giù ed è invalid?
 
                     if id_date.get_value(citing_doi) is None:
                         citing_date = Citation.check_date(build_pubdate(obj))
@@ -192,6 +193,9 @@ def process(input_dir, output_dir):
                                         if orcid is not None:
                                             id_orcid.add_value(citing_doi, orcid)
 
+
+    middle =timer()
+    print("first process duration: :", (middle - start))
     # Do it again for updating the dates of the cited DOIs, if these are valid
     print("\n\n# Check cited DOIs from Crossref reference field")
     doi_date = {}
@@ -204,10 +208,11 @@ def process(input_dir, output_dir):
                     for ref in obj["reference"]:
                         if "DOI" in ref:
                             cited_doi = doi_manager.normalise(ref["DOI"], True)
-                            if (
-                                doi_manager.is_valid(cited_doi)
-                                and id_date.get_value(cited_doi) is None
-                            ):
+                            if valid_doi.get_value(cited_doi) is None or valid_doi.get_value(cited_doi) == "i":
+                                # condizione aggiunta per evitare di validare di nuovo tramite API doi già validati
+                                # DA OTTIMIZZARE
+                                valid_doi.add_value(cited_doi, "v" if doi_manager.is_valid(cited_doi) else "i" )
+                            if doi_manager.is_valid(cited_doi) and id_date.get_value(cited_doi) is None:
                                 if cited_doi not in doi_date:
                                     doi_date[cited_doi] = []
                                 cited_date = Citation.check_date(build_pubdate(ref))
@@ -229,7 +234,9 @@ def process(input_dir, output_dir):
             best_date = sorted(selected_dates)[0]
             id_date.add_value(doi, best_date)
         else:
-            id_date.add_value(doi, "")
+            # id_date.add_value(doi, "")
+            pass
+
 
     # Add emtpy dates for the remaining DOIs
     for doi in citing_doi_with_no_date:
@@ -239,6 +246,9 @@ def process(input_dir, output_dir):
     if targz_fd is not None:
         targz_fd.close()
 
+    end = timer()
+    print("second process duration: ", end-middle)
+    print("full process duration: ", end-start)
 
 def main():
     arg_parser = ArgumentParser(
@@ -264,3 +274,9 @@ def main():
 
     args = arg_parser.parse_args()
     process(args.input_dir, args.output_dir)
+
+# Added for testing purposes, in the official version it should be removed
+if __name__ == '__main__':
+    main()
+
+# GitHub\index>python "scripts/crossref_glob.py" -i ./index/python/test/data/crossref_glob_dump_input -o ./index/python/test/data/crossref_glob_dump_output
