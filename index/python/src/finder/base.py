@@ -13,12 +13,13 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+import importlib
 from abc import ABCMeta, abstractmethod
 from collections import deque
 
-from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
+from oc.index.utils.config import get_config
 
 
 class ResourceFinder(metaclass=ABCMeta):
@@ -27,7 +28,7 @@ class ResourceFinder(metaclass=ABCMeta):
     the signatures of the methods that should be implemented, and a basic
     constructor."""
 
-    def __init__(self, data={}, use_api_service=True):
+    def __init__(self, data={}, use_api_service=True, id_type="doi"):
         """Resource finder constructor.
 
         Args:
@@ -35,7 +36,14 @@ class ResourceFinder(metaclass=ABCMeta):
             use_api_service (bool): true whenever you want make use of api, false otherwise.
         """
         self._data = data
-        self._dm = DOIManager(data, use_api_service)
+
+        config = get_config()
+        module, classname = config.get("identifier", id_type).split(":")
+        self.__id_type_manager_class = getattr(
+            importlib.import_module(module), classname
+        )
+
+        self._dm = self.__id_type_manager_class(data, use_api_service)
         self._im = ISSNManager()
         self._om = ORCIDManager()
 

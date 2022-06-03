@@ -13,7 +13,7 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from index.python.src.identifier.pmid import PMIDManager #TO BE REFACTORED : from oc.index.identifier.pmid import PMIDManager
+from oc.index.identifier.pmid import PMIDManager
 from oc.index.parsing.base import CitationParser
 import pandas as pd
 

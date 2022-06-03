@@ -16,8 +16,7 @@
 import unittest
 from os import makedirs
 from os.path import join, exists
-from index.python.src.preprocessing.datacite_pp import DatacitePreProcessing
-#to be changed in : from oc.index.preprocessing.datacite_pp import DatacitePreProcessing
+from oc.index.preprocessing.datacite_pp import DatacitePreProcessing
 import shutil
 import json
 

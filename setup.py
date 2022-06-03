@@ -31,6 +31,17 @@ setup(
     author_email="tech@opencitations.net",
     url="https://www.python.org/sigs/distutils-sig/",
     package_dir={"oc.index": python_source_dir, "oc.index.scripts": "./scripts"},
+    install_requires=[
+        "redis",
+        "SPARQLWrapper",
+        "rdflib",
+        "requests",
+        "python-dateutil",
+        "tqdm",
+        "beautifulsoup4",
+        "pandas",
+        "lxml",
+    ],
     packages=[
         f"oc.index.{mod}"
         for mod in find_packages(where=python_source_dir, exclude="./test_data")

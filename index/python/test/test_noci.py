@@ -18,18 +18,18 @@ from os import makedirs
 from os.path import join, exists
 from os.path import join
 from csv import DictReader
-from index.python.src.parsing.nih import NIHParser # TO BE REFACTORED : from oc.index.parsing.nih import NIHParser
+from oc.index.parsing.nih import NIHParser
 
 
 class NOCITest(unittest.TestCase):
     """This class aims at testing the methods of the class NIHParser."""
+
     def setUp(self):
         if not exists("tmp"):
             makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
         self.input = join(test_dir, "noci_dump.csv")
         self.citations = join(test_dir, "noci_citations.csv")
-
 
     def test_citation_source(self):
         parser = NIHParser()
@@ -38,7 +38,7 @@ class NOCITest(unittest.TestCase):
         counter = 0
         cit = parser.get_next_citation_data()
         while cit is not None:
-            print("PROCESSING CIT N.", counter, ":", cit)
+            # print("PROCESSING CIT N.", counter, ":", cit)
             citing, cited, creation, timespan, journal_sc, author_sc = cit
             new.append(
                 {

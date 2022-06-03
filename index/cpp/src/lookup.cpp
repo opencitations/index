@@ -100,6 +100,12 @@ int main(int argc, char **argv)
     if (required_parameters)
         return parameter_error("The mandatory parameters have not been provided");
 
+    // Get current time
+    struct timeval timet;
+    double t_begin, t_end;
+    gettimeofday(&timet, NULL);
+    t_begin = timet.tv_sec + (timet.tv_usec / 1000000.0);
+
     filesystem::path file_path;
     filesystem::path input_directory(oci_dir);
 
@@ -118,6 +124,8 @@ int main(int argc, char **argv)
     char errstr[1024];
 
     uint max_size = 0;
+
+    cout << "Reading moph" << endl;
 
     zip_source *source;
     vector<lookup_info> lookup;
@@ -172,16 +180,20 @@ int main(int argc, char **argv)
             }
         }
     }
+    cout << "processing oci" << endl;
+    int k = 0;
     vector<bool> results;
+    char *buffer = (char *)calloc(max_size, sizeof(char));
     for (lookup_info info : lookup)
     {
         int j = 0;
 
         // Read the zipped file
-        char *buffer = (char *)calloc(info.fstat.size, sizeof(char));
         zip_file *file = zip_fopen_index(info.input_archive, info.file_index, 0);
         zip_fread(file, buffer, info.fstat.size);
         zip_fclose(file);
+
+        cout << "moph " << k++ << endl;
 
         for (string oci : oci_list)
         {
@@ -196,7 +208,7 @@ int main(int argc, char **argv)
                 strncpy(real_oci, buffer + offset.first - 1, offset.second);
 
                 // Compute the local result w.r.t current lookup info
-                result = oci == real_oci;
+                result = strcmp(oci.c_str(), real_oci) == 0;
             }
             // Update result
             if (j < results.size())
@@ -217,5 +229,10 @@ int main(int argc, char **argv)
         cout << results[i] ? "1" : "0";
     }
     cout << endl;
+    cout << results.size() << endl;
+    gettimeofday(&timet, NULL);
+    t_end = timet.tv_sec + (timet.tv_usec / 1000000.0);
+    double elapsed = t_end - t_begin;
+    cout << "The process of building the tables took " << elapsed / 60 << " minutes" << endl;
     return EXIT_SUCCESS;
 }

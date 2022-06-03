@@ -20,7 +20,7 @@ from os import makedirs
 from os.path import join, exists
 
 from oc.index.identifier.doi import DOIManager
-from index.python.src.identifier.pmid import PMIDManager # from oc.index.identifier.pmid import PMIDManager
+from oc.index.identifier.pmid import PMIDManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 

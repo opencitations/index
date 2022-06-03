@@ -1,11 +1,10 @@
-from alive_progress import alive_it
 from os import sep, makedirs, walk
 import os.path
 from os.path import exists
 import csv
 
 
-class NIHPreProcessing():
+class NIHPreProcessing:
     """This class aims at pre-processing iCite Database Snapshots (NIH Open
     Citation Collection), available at: https://nih.figshare.com/search?q=iCite+Database+Snapshot.
     In particular, NIHPreProcessing splits the original CSV file in many lighter CSV files,
@@ -17,7 +16,7 @@ class NIHPreProcessing():
     def get_all_files(self, i_dir):
         result = []
         for cur_dir, cur_subdir, cur_files in walk(i_dir):
-            for file in alive_it(cur_files):
+            for file in cur_files:
                 if file.lower().endswith(self._req_type):
                     result.append(cur_dir + sep + file)
         return result
@@ -26,18 +25,22 @@ class NIHPreProcessing():
         if not exists(out_dir):
             makedirs(out_dir)
         if int(cur_n) != 0 and int(cur_n) % int(target_n) == 0:
-            print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // target_n)
-            filename = "CSVFile_" + str(cur_n//target_n) + self._req_type
-            with (open(os.path.join(out_dir, filename), 'w', encoding="utf8", newline='')) as f_out:
+            # to be logged: print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // target_n)
+            filename = "CSVFile_" + str(cur_n // target_n) + self._req_type
+            with (
+                open(os.path.join(out_dir, filename), "w", encoding="utf8", newline="")
+            ) as f_out:
                 writer = csv.writer(f_out)
                 writer.writerow(headers)
                 writer.writerows(lines)
                 lines = []
             return lines
         else:
-            print("Processed lines:", cur_n)
+            # to be logged: print("Processed lines:", cur_n)
             filename = "CSVFile_" + "Rem" + self._req_type
-            with (open(os.path.join(out_dir, filename), 'w', encoding="utf8", newline='')) as f_out:
+            with (
+                open(os.path.join(out_dir, filename), "w", encoding="utf8", newline="")
+            ) as f_out:
                 writer = csv.writer(f_out)
                 writer.writerow(headers)
                 writer.writerows(lines)
@@ -48,14 +51,16 @@ class NIHPreProcessing():
         count = 0
         lines = []
         for file_idx, file in enumerate(all_files):
-            with open(file, 'r') as f:
+            with open(file, "r") as f:
                 f = csv.reader(f)
                 headers = next(f)
                 for line in f:
                     count += 1
                     lines.append(line)
                     if int(count) != 0 and int(count) % int(num) == 0:
-                        lines = self.chunk_to_file(count, num, output_dir, headers, lines)
+                        lines = self.chunk_to_file(
+                            count, num, output_dir, headers, lines
+                        )
 
         if len(lines) > 0:
             self.chunk_to_file(count, num, output_dir, headers, lines)

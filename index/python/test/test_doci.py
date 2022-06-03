@@ -24,13 +24,13 @@ import json
 
 class DOCITest(unittest.TestCase):
     """This class aims at testing the methods of the class DataciteParser."""
+
     def setUp(self):
         if not exists("tmp"):
             makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
         self.input = join(test_dir, "doci_dump.json")
         self.citations = join(test_dir, "doci_citations.csv")
-
 
     def test_citation_source(self):
         parser = DataciteParser()
@@ -41,9 +41,9 @@ class DOCITest(unittest.TestCase):
         cit = parser.get_next_citation_data()
 
         while cit is not None:
-            print("PROCESSING ENTITY N.", counter)
+            # print("PROCESSING ENTITY N.", counter)
             for citation_data in cit:
-                print( "PROCESSING CIT N.", counter_cit, ":", citation_data)
+                # print( "PROCESSING CIT N.", counter_cit, ":", citation_data)
                 citing, cited, creation, timespan, journal_sc, author_sc = citation_data
                 new.append(
                     {
@@ -63,7 +63,7 @@ class DOCITest(unittest.TestCase):
             csv_to_dict = list(DictReader(f))
             old = json.loads(json.dumps(csv_to_dict))
 
-        #check that old and new contain the same elements, regardless of their order
+        # check that old and new contain the same elements, regardless of their order
         self.assertTrue([x for x in new if x not in old] == [])
         self.assertTrue([x for x in old if x not in new] == [])
         self.assertCountEqual(new, old)
