@@ -211,7 +211,7 @@ def process(input_dir, output_dir):
                             if valid_doi.get_value(cited_doi) is None or valid_doi.get_value(cited_doi) == "i":
                                 # condizione aggiunta per evitare di validare di nuovo tramite API doi già validati
                                 # DA OTTIMIZZARE
-                                valid_doi.add_value(cited_doi, "v" if doi_manager.is_valid(cited_doi) else "i" )
+                                valid_doi.add_value(cited_doi, "v" if doi_manager.is_valid(cited_doi) else "i")
                             if doi_manager.is_valid(cited_doi) and id_date.get_value(cited_doi) is None:
                                 if cited_doi not in doi_date:
                                     doi_date[cited_doi] = []

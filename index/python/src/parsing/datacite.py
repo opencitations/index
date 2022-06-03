@@ -64,4 +64,3 @@ class DataciteParser(CitationParser):
 
             return citations
         return self.get_next_citation_data()
-

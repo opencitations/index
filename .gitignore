@@ -1,5 +1,10 @@
 bin
 tmp
+build
+.vscode
+.idea
+oc_index.egg-info
+.DS_Store
 
 # Reference: 
 # https://github.com/github/gitignore

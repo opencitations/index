@@ -4,3 +4,5 @@ rdflib
 requests
 python-dateutil
 tqdm
+bs4
+pandas

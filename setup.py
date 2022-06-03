@@ -42,6 +42,7 @@ setup(
             "cnc=oc.index.scripts.cnc:main",
             "ocds=oc.index.scripts.ocds:main",
             "glob_crossref=oc.index.scripts.crossref_glob:main",
+            "glob_doci=oc.index.scripts.doci_glob:main",
             "trim_crossref=oc.index.scripts.crossref_trim:main",
             "validate_crossref=oc.index.scripts.crossref_validate:main",
             "checkmetadata_crossref=oc.index.scripts.crossref_checkmetadata:main",

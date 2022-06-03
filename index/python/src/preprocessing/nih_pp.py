@@ -4,6 +4,7 @@ import os.path
 from os.path import exists
 import csv
 
+
 class NIHPreProcessing():
     """This class aims at pre-processing iCite Database Snapshots (NIH Open
     Citation Collection), available at: https://nih.figshare.com/search?q=iCite+Database+Snapshot.
@@ -25,7 +26,7 @@ class NIHPreProcessing():
         if not exists(out_dir):
             makedirs(out_dir)
         if int(cur_n) != 0 and int(cur_n) % int(target_n) == 0:
-            print( "Processed lines:", cur_n, ". Reduced csv nr.", cur_n //target_n)
+            print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // target_n)
             filename = "CSVFile_" + str(cur_n//target_n) + self._req_type
             with (open(os.path.join(out_dir, filename), 'w', encoding="utf8", newline='')) as f_out:
                 writer = csv.writer(f_out)
@@ -41,7 +42,6 @@ class NIHPreProcessing():
                 writer.writerow(headers)
                 writer.writerows(lines)
             return
-
 
     def dump_split(self, input_dir, output_dir, num):
         all_files = self.get_all_files(input_dir)
