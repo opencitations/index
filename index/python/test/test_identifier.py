@@ -20,6 +20,7 @@ from os import makedirs
 from os.path import join, exists
 
 from oc.index.identifier.doi import DOIManager
+from index.python.src.identifier.pmid import PMIDManager # from oc.index.identifier.pmid import PMIDManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 
@@ -34,6 +35,12 @@ class IdentifierManagerTest(unittest.TestCase):
         self.valid_doi_2 = "10.1130/2015.2513(00)"
         self.invalid_doi_1 = "10.1108/12-2013-0166"
         self.invalid_doi_2 = "10.1371"
+
+        # class extension for pubmedid
+        self.valid_pmid_1 = "2942070"
+        self.valid_pmid_2 = "1509982"
+        self.invalid_pmid_1 = "0067308798798"
+        self.invalid_pmid_2 = "pmid:174777777777"
 
         test_dir = join("index", "python", "test", "data")
         with open(join(test_dir, "glob.json"), encoding="utf-8") as fp:
@@ -83,6 +90,31 @@ class IdentifierManagerTest(unittest.TestCase):
         dm_nofile_noapi = DOIManager(use_api_service=False)
         self.assertFalse(dm_nofile_noapi.is_valid(self.valid_doi_1))
         self.assertFalse(dm_nofile_noapi.is_valid(self.invalid_doi_1))
+
+
+    def test_pmid_normalise(self):
+        pm = PMIDManager()
+        self.assertEqual(self.valid_pmid_1, pm.normalise(self.valid_pmid_1.replace("", "pmid:")))
+        self.assertEqual(self.valid_pmid_1, pm.normalise(self.valid_pmid_1.replace("", " ")))
+        self.assertEqual(self.valid_pmid_1, pm.normalise("https://pubmed.ncbi.nlm.nih.gov/"+self.valid_pmid_1))
+        self.assertEqual(self.valid_pmid_2, pm.normalise("000"+self.valid_pmid_2))
+
+
+    def test_pmid_is_valid(self):
+        pm_nofile = PMIDManager()
+        self.assertTrue(pm_nofile.is_valid(self.valid_pmid_1))
+        self.assertTrue(pm_nofile.is_valid(self.valid_pmid_2))
+        self.assertFalse(pm_nofile.is_valid(self.invalid_pmid_1))
+        self.assertFalse(pm_nofile.is_valid(self.invalid_pmid_2))
+
+        pm_file = PMIDManager(self.data, use_api_service=False)
+        self.assertTrue(pm_file.is_valid(self.valid_pmid_1))
+        self.assertFalse(pm_file.is_valid(self.invalid_pmid_1))
+
+        pm_nofile_noapi = PMIDManager(use_api_service=False)
+        self.assertFalse(pm_nofile_noapi.is_valid(self.valid_pmid_1))
+        self.assertFalse(pm_nofile_noapi.is_valid(self.invalid_pmid_1))
+
 
     def test_issn_normalise(self):
         im = ISSNManager()

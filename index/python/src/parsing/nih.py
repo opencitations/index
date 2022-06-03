@@ -13,44 +13,40 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from json import load
-from oc.index.identifier.doi import DOIManager
+from index.python.src.identifier.pmid import PMIDManager #TO BE REFACTORED : from oc.index.identifier.pmid import PMIDManager
 from oc.index.parsing.base import CitationParser
+import pandas as pd
 
 
-class CrossrefParser(CitationParser):
+class NIHParser(CitationParser):
     def __init__(self):
         self._rows = []
-        self._doi_manager = DOIManager()
+        self._pmid_manager = PMIDManager()
 
     def is_valid(self, filename: str):
         super().is_valid(filename)
-        return filename.endswith(".json")
+        return filename.endswith(".csv")
 
     def parse(self, filename: str):
         super().parse(filename)
-        json_content = None
-        with open(filename, encoding="utf8") as fp:
-            json_content = load(fp)
-
-        if "items" in json_content:
-            self._rows = json_content.get("items")
+        df = pd.DataFrame()
+        for chunk in pd.read_csv(filename, chunksize=1000):
+            f = pd.concat([df, chunk], ignore_index=True)
+            f.fillna("", inplace=True)
+            self._rows = f.to_dict('records')
             self._items = len(self._rows)
 
     def get_next_citation_data(self):
         if len(self._rows) == 0:
             return None
 
-        row = self._rows.pop()
+        row = self._rows.pop(0)
         self._current_item += 1
-        citing = self._doi_manager.normalise(row.get("DOI"))
-        if citing is not None and "reference" in row:
-            citations = []
-            for ref in row["reference"]:
-                cited = self._doi_manager.normalise(ref.get("DOI"))
-                if cited is not None:
-                    citations.append((citing, cited, None, None, None, None))
-            return citations
+        citing = self._pmid_manager.normalise(row.get("citing"))
+        cited = self._pmid_manager.normalise(row.get("referenced"))
+
+        if citing is not None and cited is not None:
+            return citing, cited, None, None, None, None
 
         return self.get_next_citation_data()
-        
+

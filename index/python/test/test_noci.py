@@ -16,39 +16,44 @@
 import unittest
 from os import makedirs
 from os.path import join, exists
+from os.path import join
 from csv import DictReader
-from oc.index.parsing.crossref import CrossrefParser
+from index.python.src.parsing.nih import NIHParser # TO BE REFACTORED : from oc.index.parsing.nih import NIHParser
 
 
-class COCITest(unittest.TestCase):
+class NOCITest(unittest.TestCase):
+    """This class aims at testing the methods of the class NIHParser."""
     def setUp(self):
         if not exists("tmp"):
             makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
-        self.input = join(test_dir, "crossref_dump.json")
-        self.citations = join(test_dir, "crossref_citations.csv")
+        self.input = join(test_dir, "noci_dump.csv")
+        self.citations = join(test_dir, "noci_citations.csv")
+
 
     def test_citation_source(self):
-        parser = CrossrefParser()
+        parser = NIHParser()
         parser.parse(self.input)
         new = []
+        counter = 0
         cit = parser.get_next_citation_data()
         while cit is not None:
-            for citation_data in cit:
-                citing, cited, creation, timespan, journal_sc, author_sc = citation_data
-                new.append(
-                    {
-                        "citing": citing,
-                        "cited": cited,
-                        "creation": "" if creation is None else creation,
-                        "timespan": "" if timespan is None else timespan,
-                        "journal_sc": "" if journal_sc is None else journal_sc,
-                        "author_sc": "" if author_sc is None else author_sc,
-                    }
-                )
+            print("PROCESSING CIT N.", counter, ":", cit)
+            citing, cited, creation, timespan, journal_sc, author_sc = cit
+            new.append(
+                {
+                    "citing": citing,
+                    "cited": cited,
+                    "creation": "" if creation is None else creation,
+                    "timespan": "" if timespan is None else timespan,
+                    "journal_sc": "" if journal_sc is None else journal_sc,
+                    "author_sc": "" if author_sc is None else author_sc,
+                }
+            )
             cit = parser.get_next_citation_data()
+            counter += 1
 
         with open(self.citations, encoding="utf8") as f:
             old = list(DictReader(f))
 
-        self.assertCountEqual(new, old)
+        self.assertEqual(new, old)
