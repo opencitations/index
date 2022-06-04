@@ -4,5 +4,7 @@ rdflib
 requests
 python-dateutil
 tqdm
-bs4
+beautifulsoup4
 pandas
+lxml
+regex

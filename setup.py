@@ -41,6 +41,7 @@ setup(
         "beautifulsoup4",
         "pandas",
         "lxml",
+        "regex",
     ],
     packages=[
         f"oc.index.{mod}"
