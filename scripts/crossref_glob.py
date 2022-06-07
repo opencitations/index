@@ -234,8 +234,7 @@ def process(input_dir, output_dir):
             best_date = sorted(selected_dates)[0]
             id_date.add_value(doi, best_date)
         else:
-            # id_date.add_value(doi, "")
-            pass
+            id_date.add_value(doi, "")
 
 
     # Add emtpy dates for the remaining DOIs
