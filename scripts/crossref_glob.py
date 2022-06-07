@@ -208,18 +208,16 @@ def process(input_dir, output_dir):
                     for ref in obj["reference"]:
                         if "DOI" in ref:
                             cited_doi = doi_manager.normalise(ref["DOI"], True)
-                            if valid_doi.get_value(cited_doi) is None or valid_doi.get_value(cited_doi) == "i":
-                                # condizione aggiunta per evitare di validare di nuovo tramite API doi già validati
-                                # DA OTTIMIZZARE
+                            if valid_doi.get_value(cited_doi) is None:
                                 valid_doi.add_value(cited_doi, "v" if doi_manager.is_valid(cited_doi) else "i")
-                            if doi_manager.is_valid(cited_doi) and id_date.get_value(cited_doi) is None:
-                                if cited_doi not in doi_date:
-                                    doi_date[cited_doi] = []
-                                cited_date = Citation.check_date(build_pubdate(ref))
-                                if cited_date is not None:
-                                    doi_date[cited_doi].append(cited_date)
-                                    if cited_doi in citing_doi_with_no_date:
-                                        citing_doi_with_no_date.remove(cited_doi)
+                                if valid_doi.get_value(cited_doi) == "v" and id_date.get_value(cited_doi) is None:
+                                    if cited_doi not in doi_date:
+                                        doi_date[cited_doi] = []
+                                    cited_date = Citation.check_date(build_pubdate(ref))
+                                    if cited_date is not None:
+                                        doi_date[cited_doi].append(cited_date)
+                                        if cited_doi in citing_doi_with_no_date:
+                                            citing_doi_with_no_date.remove(cited_doi)
 
     # Add the date to the DOI if such date is the most adopted one in the various references.
     # In case two distinct dates are used the most, select the older one.
@@ -235,7 +233,6 @@ def process(input_dir, output_dir):
             id_date.add_value(doi, best_date)
         else:
             id_date.add_value(doi, "")
-
 
     # Add emtpy dates for the remaining DOIs
     for doi in citing_doi_with_no_date:
