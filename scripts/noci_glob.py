@@ -100,7 +100,6 @@ def process(input_dir, output_dir, n, id_orcid_dir):
 
     citing_pmid_with_no_date = set()
     valid_pmid = CSVManager(output_dir + sep + "valid_pmid.csv")
-    valid_doi = CSVManager(output_dir + sep + "valid_doi.csv")
     id_date = CSVManager(output_dir + sep + "id_date_pmid.csv")
     id_issn = CSVManager(output_dir + sep + "id_issn_pmid.csv")
     id_orcid = CSVManager(output_dir + sep + "id_orcid_pmid.csv")
@@ -110,7 +109,7 @@ def process(input_dir, output_dir, n, id_orcid_dir):
     crossref_resource_finder = CrossrefResourceFinder()
     orcid_resource_finder = ORCIDResourceFinder()
 
-    doi_manager = DOIManager(valid_doi)
+    doi_manager = DOIManager()
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
     pmid_manager = PMIDManager()
@@ -201,9 +200,18 @@ def process(input_dir, output_dir, n, id_orcid_dir):
                             print("valid cited pmid added:", cited_pmid)
                         else:
                             print("invalid cited pmid discarded:", cited_pmid)
-                else:
-                    print("the type of row reference is", (row["references"]), type(row["references"]))
-                    print(index, row)
+                if row["cited_by"] != "":
+                    citing_string = row["cited_by"].strip()
+                    citing_string_norm = re.sub("\s+", " ", citing_string)
+                    citing_pmids = set(citing_string_norm.split(" "))
+                    for citing_p in citing_pmids:
+                        citing_p = pmid_manager.normalise(citing_p, True)
+                        if valid_pmid.get_value(citing_p) is None:
+                            valid_pmid.add_value(citing_p, "v" if pmid_manager.is_valid(citing_p) else "i")
+                            print("valid citing pmid added:", citing_p)
+                        else:
+                            print("invalid citing pmid discarded:", citing_p)
+
 
     for pmid in citing_pmid_with_no_date:
         id_date.add_value(pmid, "")
@@ -255,4 +263,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-# GitHub\index>python "scripts/noci_glob.py" -i ./index/python/test/data/noci_glob_dump_input -o ./index/python/test/data/noci_glob_dump_output -n 25 -iod ./index/python/test/data/noci_id_orcid_mapping
+# GitHub\index>python "scripts/noci_glob.py" -i ./index/python/test/data/noci_glob_dump_input -o ./index/python/test/data/noci_glob_dump_output -n 7 -iod ./index/python/test/data/noci_id_orcid_mapping

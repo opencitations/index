@@ -112,7 +112,6 @@ class NOCIPPTest(unittest.TestCase):
                 reader = csv.reader(op_file, delimiter=",")
                 next(reader, None)
                 len_lines = len(list(reader))
-                print("len_lines", len_lines)
                 self.assertTrue(len_lines == 300 or len_lines == 56)
 
     def test_icmd_chunk_to_file(self):
