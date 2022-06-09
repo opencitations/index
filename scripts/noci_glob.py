@@ -16,21 +16,15 @@
 from argparse import ArgumentParser
 from os import sep, makedirs, walk
 import os
+import os.path
 import json
 from zipfile import ZipFile
 from tarfile import TarFile
 import re
-from timeit import default_timer as timer
 from os.path import exists, basename, isdir
-from json import load, loads
-from collections import Counter
-from datetime import date
 from timeit import default_timer as timer
 from re import sub
-import tarfile
 import pandas as pd
-
-
 
 from oc.index.oci.citation import Citation
 from oc.index.legacy.csv import CSVManager
@@ -74,21 +68,20 @@ def get_all_files(i_dir):
     opener = None
     if i_dir.endswith(".zip"):
         zf = ZipFile(i_dir)
-        for name in zf.namelist():
-            if name.lower().endswith(".csv"):
-                result.append(name)
+        namelist = zf.namelist()
+        result = [x for x in namelist if x.lower().endswith(".csv")]
         opener = zf.open
     elif i_dir.endswith(".tar.gz"):
         tf = TarFile.open(i_dir)
         for name in tf.getnames():
-            if name.lower().endswith(".csv") and "citations" not in name.lower() and "source" not in name.lower():
+            if name.lower().endswith(".csv"):
                 result.append(name)
         opener = tf.extractfile
 
     else:
         for cur_dir, cur_subdir, cur_files in walk(i_dir):
             for file in cur_files:
-                if file.lower().endswith(".csv") and "citations" not in file.lower() and "source" not in file.lower():
+                if file.lower().endswith(".csv"):
                     result.append(cur_dir + sep + file)
         opener = open
     return result, opener
@@ -117,6 +110,7 @@ def process(input_dir, output_dir, n, id_orcid_dir):
 
     all_files, opener = get_all_files(input_dir)
     len_all_files = len(all_files)
+    pmid_doi_map = dict()
 
     # Read all the CSV file in the NIH dump to create the main information of all the indexes
     print("\n\n# Add valid PMIDs from NIH metadata")
@@ -136,6 +130,8 @@ def process(input_dir, output_dir, n, id_orcid_dir):
                 citing_pmid = pmid_manager.normalise(row['pmid'], True)
                 valid_pmid.add_value(citing_pmid,"v")
                 citing_doi = doi_manager.normalise(row['doi'], True)
+                if citing_doi and id_orcid.get_value(citing_pmid) is None:
+                    pmid_doi_map[citing_pmid] = {"doi": citing_doi, "has_orcid": False}
 
                 if id_date.get_value(citing_pmid) is None:
                     citing_date = Citation.check_date(build_pubdate(row))
@@ -165,21 +161,39 @@ def process(input_dir, output_dir, n, id_orcid_dir):
                                         journal_issn_dict[journal_name].append(issn_norm)
 
 
-                if id_orcid.get_value(citing_pmid) is None:
-                    if citing_doi is not None:
-                        json_res = orcid_resource_finder._call_api(citing_doi)
+            if len(pmid_doi_map)> 0:
+                if id_orcid_dir and exists(id_orcid_dir):
+                    orcid_id_files, op = get_all_files(id_orcid_dir)
+                    len_orcid_id_files = len(orcid_id_files)
+                    if len_orcid_id_files > 0:
+                        for f_idx, f in enumerate(orcid_id_files, 1):
+                            unzip_file = pd.read_csv(op(f))
+                            for citing_pmid, d in pmid_doi_map.items():
+                                c_doi = d["doi"]
+                                df2 = unzip_file.loc[unzip_file['id'] == c_doi, 'value']
+                                sat_val = df2.tolist()
+                                if len(sat_val) > 0:
+                                    d["has_orcid"] = True
+                                    for orc in sat_val:
+                                        id_orcid.add_value(citing_pmid, orcid_manager.normalise(orc))
+
+                for citing_pmid, d in pmid_doi_map.items():
+                    if d["has_orcid"] == False:
+                        json_res = orcid_resource_finder._call_api(d["doi"])
                         if json_res is not None:
                             orcid_set = orcid_resource_finder._get_orcid(json_res)
-                            for orcid in orcid_set:
-                                orcid_norm = orcid_manager.normalise(orcid)
-                                id_orcid.add_value(citing_pmid, orcid_norm)
+                            if len(orcid_set) > 0:
+                                d["has_orcid"] = True
+                                for orcid in orcid_set:
+                                    orcid_norm = orcid_manager.normalise(orcid)
+                                    id_orcid.add_value(citing_pmid, orcid_norm)
 
+            pmid_doi_map = dict()
             issn_data_to_cache(journal_issn_dict, output_dir)
 
     middle = timer()
 
     print("first process duration: :", (middle - start))
-    # Iterate once again for all the rows of all the csv files, so to check the validity of the referenced pmids.
     print("\n\n# Checking the referenced pmids validity")
     for file_idx, file in enumerate(all_files, 1):
         df = pd.DataFrame()
@@ -197,9 +211,6 @@ def process(input_dir, output_dir, n, id_orcid_dir):
                         cited_pmid = pmid_manager.normalise(cited_pmid, True)
                         if valid_pmid.get_value(cited_pmid) is None:
                             valid_pmid.add_value(cited_pmid, "v" if pmid_manager.is_valid(cited_pmid) else "i")
-                            print("valid cited pmid added:", cited_pmid)
-                        else:
-                            print("invalid cited pmid discarded:", cited_pmid)
                 if row["cited_by"] != "":
                     citing_string = row["cited_by"].strip()
                     citing_string_norm = re.sub("\s+", " ", citing_string)
@@ -208,10 +219,6 @@ def process(input_dir, output_dir, n, id_orcid_dir):
                         citing_p = pmid_manager.normalise(citing_p, True)
                         if valid_pmid.get_value(citing_p) is None:
                             valid_pmid.add_value(citing_p, "v" if pmid_manager.is_valid(citing_p) else "i")
-                            print("valid citing pmid added:", citing_p)
-                        else:
-                            print("invalid citing pmid discarded:", citing_p)
-
 
     for pmid in citing_pmid_with_no_date:
         id_date.add_value(pmid, "")
@@ -263,4 +270,4 @@ def main():
 if __name__ == '__main__':
     main()
 
-# GitHub\index>python "scripts/noci_glob.py" -i ./index/python/test/data/noci_glob_dump_input -o ./index/python/test/data/noci_glob_dump_output -n 7 -iod ./index/python/test/data/noci_id_orcid_mapping
+# python "scripts/noci_glob.py" -i ./index/python/test/data/noci_glob_dump_input -o ./index/python/test/data/noci_glob_dump_output -n 7 -iod ./index/python/test/data/noci_id_orcid_mapping/doi_orcid_index.zip
