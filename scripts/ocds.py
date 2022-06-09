@@ -76,9 +76,14 @@ def process_glob_file(ds, filename, column, append=False):
         if not line:
             break
 
-        key, value = [val.replace('"', "") for val in line.split('",')]
-        buffer_keys.append(key)
-        buffer_values.append(value)
+        if "," in line:
+            splits = line.split('",')
+            if len(splits) > 2:
+                key = splits[0].replace('"', "")
+                value = splits[1].replace('"', "")
+                if len(key) > 0 and len(value) > 0:
+                    buffer_keys.append(key)
+                    buffer_values.append(value)
 
         pbar.update(1)
 

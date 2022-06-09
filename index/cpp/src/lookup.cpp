@@ -175,12 +175,13 @@ int main(int argc, char **argv)
                     file_info.moph.load(moph_fin);
                     file_info.file_index = i;
                     file_info.input_archive = input_archive;
+
+                    cout << moph_filename << endl;
                     lookup.push_back(file_info);
                 }
             }
         }
     }
-    cout << "processing oci" << endl;
     int k = 0;
     vector<bool> results;
     char *buffer = (char *)calloc(max_size, sizeof(char));
@@ -192,8 +193,6 @@ int main(int argc, char **argv)
         zip_file *file = zip_fopen_index(info.input_archive, info.file_index, 0);
         zip_fread(file, buffer, info.fstat.size);
         zip_fclose(file);
-
-        cout << "moph " << k++ << endl;
 
         for (string oci : oci_list)
         {
