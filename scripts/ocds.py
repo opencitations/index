@@ -56,22 +56,24 @@ def process_glob_file(ds, filename, column, append=False):
 
         # Flushing buffered data into the datasource
         if len(buffer_keys) > batch_size or not line:
-            entries = ds.mget(buffer_keys)
-            for key in buffer_keys:
-                entry = entries[key]
-                if entries[key] is None:
-                    entry = ds.new()
-                if append:
-                    entry[column].append(value)
-                else:
-                    if column == "valid":
-                        entry[column] = value.strip() == "v"
+            if len(buffer_keys) > 0:
+                entries = ds.mget(buffer_keys)
+                for key in buffer_keys:
+                    entry = entries[key]
+                    if entries[key] is None:
+                        entry = ds.new()
+                    if append:
+                        entry[column].append(value)
                     else:
-                        entry[column] = value.strip()
-                resources[key] = entry
-            ds.mset(resources)
-            buffer_keys = []
-            buffer_values = []
+                        if column == "valid":
+                            entry[column] = value.strip() == "v"
+                        else:
+                            entry[column] = value.strip()
+                    resources[key] = entry
+                ds.mset(resources)
+                pbar.update(len(buffer_keys))
+                buffer_keys = []
+                buffer_values = []
 
         if not line:
             break
@@ -84,8 +86,6 @@ def process_glob_file(ds, filename, column, append=False):
                 if len(key) > 0 and len(value) > 0:
                     buffer_keys.append(key)
                     buffer_values.append(value)
-
-        pbar.update(1)
 
     logger.info("Values read")
     logger.info("Updating the datasource...")
