@@ -79,8 +79,8 @@ def process_glob_file(ds, filename, column, append=False):
             break
 
         if "," in line:
-            splits = line.split('",')
-            if len(splits) > 2:
+            splits = line.replace("\n", "").split('",')
+            if len(splits) >= 2:
                 key = splits[0].replace('"', "")
                 value = splits[1].replace('"', "")
                 if len(key) > 0 and len(value) > 0:
