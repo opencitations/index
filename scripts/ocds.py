@@ -64,7 +64,7 @@ def process_glob_file(ds, filename, column, append=False):
                     if entries[key] is None:
                         entry = ds.new()
                     if append:
-                        if value not in entry[column]:
+                        if not value in entry[column]:
                             entry[column].append(value)
                     else:
                         if column == "valid":
@@ -120,19 +120,19 @@ def main():
     # Arguments
     input = args.input
 
-    id_date = os.path.join(input, "id_date.csv")
-    if not os.path.exists(id_date):
-        logger.error("id_date.csv not found in the input directory")
+    id_orcid = os.path.join(input, "id_orcid.csv")
+    if not os.path.exists(id_orcid):
+        logger.error("id_orcid.csv not found in the input directory")
+        raise FileNotFoundError(ENOENT, os.strerror(ENOENT), id_orcid)
 
     id_issn = os.path.join(input, "id_issn.csv")
     if not os.path.exists(id_issn):
         logger.error("id_issn.csv not found in the input directory")
         raise FileNotFoundError(ENOENT, os.strerror(ENOENT), id_issn)
 
-    id_orcid = os.path.join(input, "id_orcid.csv")
-    if not os.path.exists(id_orcid):
-        logger.error("id_orcid.csv not found in the input directory")
-        raise FileNotFoundError(ENOENT, os.strerror(ENOENT), id_orcid)
+    id_date = os.path.join(input, "id_date.csv")
+    if not os.path.exists(id_date):
+        logger.error("id_date.csv not found in the input directory")
 
     valid_doi = os.path.join(input, "valid_doi.csv")
     if not os.path.exists(valid_doi):
@@ -143,10 +143,10 @@ def main():
 
     logger.info("Populating the datasource with glob files...")
     start = time.time()
+    process_glob_file(ds, id_orcid, "orcid", True)
     process_glob_file(ds, id_date, "date")
     process_glob_file(ds, valid_doi, "valid")
     process_glob_file(ds, id_issn, "issn", True)
-    process_glob_file(ds, id_orcid, "orcid", True)
     logger.info(
         f"All the files have been processed in {(time.time() - start)/ 60} minutes"
     )
