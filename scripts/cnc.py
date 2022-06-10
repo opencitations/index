@@ -59,10 +59,10 @@ def cnc(service, file, parser, ds):
         if isinstance(citation_data, list):
             citation_data_list = citation_data_list + citation_data
             for c_citation_data in citation_data:
-                ids = ids + [c_citation_data[0], c_citation_data[1]]
+                ids = ids + ["doi:" + c_citation_data[0], "doi:" + c_citation_data[1]]
         else:
             citation_data_list.append(citation_data)
-            ids = ids + [citation_data[0], citation_data[1]]
+            ids = ids + ["doi:" + citation_data[0], "doi:" + citation_data[1]]
         pbar.update(parser.current_item - pbar.n)
         citation_data = parser.get_next_citation_data()
     pbar.close()

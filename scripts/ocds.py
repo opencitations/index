@@ -58,12 +58,14 @@ def process_glob_file(ds, filename, column, append=False):
         if len(buffer_keys) > batch_size or not line:
             if len(buffer_keys) > 0:
                 entries = ds.mget(buffer_keys)
-                for key in buffer_keys:
+                for i, key in enumerate(buffer_keys):
+                    value = buffer_values[i]
                     entry = entries[key]
                     if entries[key] is None:
                         entry = ds.new()
                     if append:
-                        entry[column].append(value)
+                        if value not in entry[column]:
+                            entry[column].append(value)
                     else:
                         if column == "valid":
                             entry[column] = value.strip() == "v"
@@ -82,6 +84,8 @@ def process_glob_file(ds, filename, column, append=False):
             splits = line.replace("\n", "").split('",')
             if len(splits) >= 2:
                 key = splits[0].replace('"', "")
+                if "doi" not in key:
+                    key = "doi:" + key
                 value = splits[1].replace('"', "")
                 if len(key) > 0 and len(value) > 0:
                     buffer_keys.append(key)
@@ -139,8 +143,8 @@ def main():
 
     logger.info("Populating the datasource with glob files...")
     start = time.time()
-    process_glob_file(ds, valid_doi, "valid")
     process_glob_file(ds, id_date, "date")
+    process_glob_file(ds, valid_doi, "valid")
     process_glob_file(ds, id_issn, "issn", True)
     process_glob_file(ds, id_orcid, "orcid", True)
     logger.info(
