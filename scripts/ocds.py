@@ -57,7 +57,7 @@ def process_glob_file(ds, filename, column, append=False):
         # Flushing buffered data into the datasource
         if len(buffer_keys) > batch_size or not line:
             if len(buffer_keys) > 0:
-                entries = ds.mget(buffer_keys)
+                entries = ds.mget(list(set(buffer_keys)))
                 for i, key in enumerate(buffer_keys):
                     value = buffer_values[i]
                     entry = entries[key]
@@ -72,6 +72,7 @@ def process_glob_file(ds, filename, column, append=False):
                         else:
                             entry[column] = value.strip()
                     resources[key] = entry
+                    entries[key] = entry
                 ds.mset(resources)
                 pbar.update(len(buffer_keys))
                 buffer_keys = []
