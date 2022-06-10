@@ -176,7 +176,6 @@ int main(int argc, char **argv)
                     file_info.file_index = i;
                     file_info.input_archive = input_archive;
 
-                    cout << moph_filename << endl;
                     lookup.push_back(file_info);
                 }
             }
@@ -205,6 +204,9 @@ int main(int argc, char **argv)
                 // Seek and read the oci position in the file
                 char *real_oci = (char *)calloc(offset.second, sizeof(char));
                 strncpy(real_oci, buffer + offset.first - 1, offset.second);
+
+                cout << real_oci << endl;
+                cout << oci << endl;
 
                 // Compute the local result w.r.t current lookup info
                 result = strcmp(oci.c_str(), real_oci) == 0;

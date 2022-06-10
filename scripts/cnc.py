@@ -76,7 +76,9 @@ def cnc(service, file, parser, ds):
     while len(ids) > 0:
         current_size = min(len(ids), batch_size)
         batch = ids[:current_size]
-        resources.update(ds.mget(batch))
+        batch_result = ds.mget(batch)
+        for key in batch_result.keys():
+            resources[key.replace("doi:", "")] = batch_result[key]
         ids = ids[batch_size:] if batch_size < len(ids) else []
         pbar.update(current_size)
     pbar.close()
