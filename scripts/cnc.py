@@ -18,7 +18,6 @@ import os
 import importlib
 import time
 import math
-from importlib_metadata import files
 
 from tqdm import tqdm
 from argparse import ArgumentParser
