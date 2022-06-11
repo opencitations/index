@@ -290,7 +290,7 @@ def main():
     last_index = 0
     if _multiprocess:
         # Disable tqdm for multithreading
-        logger.info(f"Multithreading ON, starting {workers} workers")
+        logger.info(f"Multitprocessing ON, starting {workers} workers")
         chunk_size = math.ceil(len(input_files) / workers)
         for tid in range(workers - 1):
             process = multiprocessing.Process(
