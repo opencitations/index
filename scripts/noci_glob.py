@@ -12,7 +12,7 @@
 # DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
-
+import csv
 from argparse import ArgumentParser
 from os import sep, makedirs, walk
 import os
@@ -25,6 +25,7 @@ from os.path import exists, basename, isdir
 from timeit import default_timer as timer
 from re import sub
 import pandas as pd
+import codecs
 
 from oc.index.oci.citation import Citation
 from oc.index.legacy.csv import CSVManager
@@ -129,7 +130,7 @@ def process(input_dir, output_dir, n, id_orcid_dir):
 
                 citing_pmid = pmid_manager.normalise(row['pmid'], True)
                 valid_pmid.add_value(citing_pmid,"v")
-                citing_doi = doi_manager.normalise(row['doi'], True)
+                citing_doi = doi_manager.normalise(row['doi'], False)
                 if citing_doi and id_orcid.get_value(citing_pmid) is None:
                     pmid_doi_map[citing_pmid] = {"doi": citing_doi, "has_orcid": False}
 
@@ -167,18 +168,22 @@ def process(input_dir, output_dir, n, id_orcid_dir):
                     len_orcid_id_files = len(orcid_id_files)
                     if len_orcid_id_files > 0:
                         for f_idx, f in enumerate(orcid_id_files, 1):
-                            unzip_file = pd.read_csv(op(f))
-                            for citing_pmid, d in pmid_doi_map.items():
-                                c_doi = d["doi"]
-                                df2 = unzip_file.loc[unzip_file['id'] == c_doi, 'value']
-                                sat_val = df2.tolist()
-                                if len(sat_val) > 0:
-                                    d["has_orcid"] = True
-                                    for orc in sat_val:
-                                        id_orcid.add_value(citing_pmid, orcid_manager.normalise(orc))
+                            unzip_file = op(f, mode="r")
+                            unzip_file = csv.DictReader(codecs.iterdecode(unzip_file, 'utf-8'))
+                            for row in unzip_file:
+                                if [k for k, v in pmid_doi_map.items() if v["doi"] == row["id"]]:
+                                    c_pmid = [k for k, v in pmid_doi_map.items() if v["doi"] == row["id"]][0] #To do: exact match
+                                    c_doi = doi_manager.normalise(row["id"], False)
+                                    orcid = re.search("\[(([X0-9]\-?){4}){4}]", row["value"], re.IGNORECASE).group(0)
+                                    if orcid:
+                                        nor_orcid = orcid_manager.normalise(orcid)
+                                        id_orcid.add_value(c_pmid, nor_orcid)
+                                        if pmid_doi_map[c_pmid]["has_orcid"] == False:
+                                            pmid_doi_map[c_pmid]["has_orcid"] = True
 
                 for citing_pmid, d in pmid_doi_map.items():
                     if d["has_orcid"] == False:
+                        print("non ha ancora orcid:", citing_pmid, d)
                         json_res = orcid_resource_finder._call_api(d["doi"])
                         if json_res is not None:
                             orcid_set = orcid_resource_finder._get_orcid(json_res)
