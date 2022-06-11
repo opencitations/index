@@ -17,6 +17,7 @@ import logging
 
 from datetime import datetime
 from os.path import expanduser, join
+import multiprocessing
 import threading
 
 from oc.index.utils.config import get_config
@@ -30,7 +31,7 @@ def _setup_logger():
     _logger = logging.getLogger("opencitations.cnc")
     _logger.setLevel(logging.INFO)
     formatter = logging.Formatter(
-        "[%(threadName)s] %(asctime)s | %(levelname)s | oc.index : %(message)s"
+        "[%(processName)s:%(threadName)s] %(asctime)s | %(levelname)s | oc.index : %(message)s"
     )
     fileHandler = logging.FileHandler(
         expanduser(

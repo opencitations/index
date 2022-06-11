@@ -13,11 +13,12 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-import threading
+import multiprocessing
 import os
 import importlib
 import time
 import math
+from importlib_metadata import files
 
 from tqdm import tqdm
 from argparse import ArgumentParser
@@ -37,19 +38,17 @@ from oc.index.glob.csv import CSVDataSource
 
 _config = get_config()
 _oci_manager = OCIManager(lookup_file=os.path.expanduser(_config.get("cnc", "lookup")))
-_multithread = False
-_citations_created_lock = threading.Lock()
-_citations_created = 0
+_multiprocess = False
 
 
 def cnc(service, file, parser, ds):
     global _oci_manager
-    global _multithread
+    global _multiprocess
     logger = get_logger()
 
     logger.info("Reading citation data from " + file)
     parser.parse(file)
-    pbar = tqdm(total=parser.items, disable=_multithread)
+    pbar = tqdm(total=parser.items, disable=_multiprocess)
     citation_data = 1
     citation_data_list = []
     ids = []
@@ -72,7 +71,7 @@ def cnc(service, file, parser, ds):
     logger.info("Retrieving citation data informations from data source")
     resources = {}
     batch_size = _config.getint("redis", "batch_size")
-    pbar = tqdm(total=len(ids), disable=_multithread)
+    pbar = tqdm(total=len(ids), disable=_multiprocess)
     while len(ids) > 0:
         current_size = min(len(ids), batch_size)
         batch = ids[:current_size]
@@ -103,7 +102,7 @@ def cnc(service, file, parser, ds):
     source = _config.get(service, "source")
     service_name = _config.get(service, "service")
     citations = []
-    for citation_data in tqdm(citation_data_list, disable=_multithread):
+    for citation_data in tqdm(citation_data_list, disable=_multiprocess):
         (
             citing,
             cited,
@@ -188,8 +187,8 @@ def cnc(service, file, parser, ds):
     return citations
 
 
-def thread_body(input_files, output, service, tid):
-    global _multithread
+def worker_body(input_files, output, service, tid):
+    global _multiprocess
     global _citations_created_lock
     global _citations_created
     global _config
@@ -202,6 +201,7 @@ def thread_body(input_files, output, service, tid):
         ds = CSVDataSource()
     else:
         raise Exception(service_ds + " is not a valid data source")
+
     logger = get_logger()
     parser = get_parser(service)
     baseurl = baseurl = _config.get(service, "baseurl")
@@ -209,18 +209,16 @@ def thread_body(input_files, output, service, tid):
         output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
     )
 
+    logger.info("Working on " + str(len(input_files)) + " files")
+
     for file in input_files:
         citations = cnc(service, file, parser, ds)
 
         logger.info("Saving citations...")
-        for citation in tqdm(citations, disable=_multithread):
+        for citation in tqdm(citations, disable=_multiprocess):
             storer.store_citation(citation)
 
-        _citations_created_lock.acquire()
-        _citations_created += len(citations)
-        _citations_created_lock.release()
         logger.info(f"{len(citations)} citations saved")
-    return
 
 
 def get_parser(service):
@@ -267,8 +265,8 @@ def main():
     service = args.service
     workers = args.workers
 
-    global _multithread
-    _multithread = workers > 1
+    global _multiprocess
+    _multiprocess = workers > 1
 
     if not os.path.exists(input):
         logger.error(
@@ -289,15 +287,15 @@ def main():
     logger.info(f"{len(input_files)} files were found")
 
     start = time.time()
-    threads = []
+    workers_list = []
     last_index = 0
-    if _multithread:
+    if _multiprocess:
         # Disable tqdm for multithreading
         logger.info(f"Multithreading ON, starting {workers} workers")
         chunk_size = math.ceil(len(input_files) / workers)
         for tid in range(workers - 1):
-            thread = threading.Thread(
-                target=thread_body,
+            process = multiprocessing.Process(
+                target=worker_body,
                 args=(
                     input_files[last_index : (last_index + chunk_size)],
                     output,
@@ -306,16 +304,16 @@ def main():
                 ),
             )
             last_index += chunk_size
-            thread.name = "WorkerThread:" + str(tid + 1)
-            threads.append(thread)
-            thread.start()
+            process.name = "Process:" + str(tid + 1)
+            workers_list.append(process)
+            process.start()
         logger.info("All workers have been started")
 
     # No active wait also the main thread work on processing file
-    thread_body(input_files[last_index : len(input_files)], output, service, 0)
-    if _multithread:
-        for thread in threads:
-            thread.join()
+    worker_body(input_files[last_index : len(input_files)], output, service, 0)
+    if _multiprocess:
+        for worker in workers_list:
+            worker.join()
 
     logger.info(
         f"All the files have been processed in {(time.time() - start)/ 60} minutes"
