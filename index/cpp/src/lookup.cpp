@@ -186,6 +186,10 @@ int main(int argc, char **argv)
     char *buffer = (char *)calloc(max_size, sizeof(char));
     for (lookup_info info : lookup)
     {
+        cout << info.fstat.name << endl;
+        uint line = info.moph.lookup("02001010008360103050202070500010100030604050500-0200101070736010407000708050309090004010000010007");
+        cout << line << endl;
+        break;
         int j = 0;
 
         // Read the zipped file
