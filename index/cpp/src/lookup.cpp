@@ -125,8 +125,6 @@ int main(int argc, char **argv)
 
     uint max_size = 0;
 
-    cout << "Reading moph" << endl;
-
     zip_source *source;
     vector<lookup_info> lookup;
     for (const auto &entry : filesystem::directory_iterator(input_directory))
@@ -186,12 +184,7 @@ int main(int argc, char **argv)
     char *buffer = (char *)calloc(max_size, sizeof(char));
     for (lookup_info info : lookup)
     {
-        cout << info.fstat.name << endl;
-        uint line = info.moph.lookup("02001010008360103050202070500010100030604050500-0200101070736010407000708050309090004010000010007");
-        cout << line << endl;
-        break;
-        int j = 0;
-
+        uint j = 0;
         // Read the zipped file
         zip_file *file = zip_fopen_index(info.input_archive, info.file_index, 0);
         zip_fread(file, buffer, info.fstat.size);
@@ -231,10 +224,8 @@ int main(int argc, char **argv)
         cout << results[i] ? "1" : "0";
     }
     cout << endl;
-    cout << results.size() << endl;
     gettimeofday(&timet, NULL);
     t_end = timet.tv_sec + (timet.tv_usec / 1000000.0);
     double elapsed = t_end - t_begin;
-    cout << "The process of building the tables took " << elapsed / 60 << " minutes" << endl;
     return EXIT_SUCCESS;
 }
