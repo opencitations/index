@@ -14,6 +14,8 @@
 
 #include "StringHasher.hpp"
 
+namespace filesystem = std::experimental::filesystem;
+
 using namespace std;
 
 void usage(const char *basename)

@@ -15,6 +15,8 @@
 
 using namespace std;
 
+namespace filesystem = std::experimental::filesystem;
+
 typedef boomphf::mphf<string, StringHasher> boophf_t;
 
 struct lookup_info
