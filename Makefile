@@ -1,5 +1,5 @@
 CXX = g++ -std=c++17
-CXXFLAGS = -O3 -Wall -ftree-vectorize -lpthread -lstdc++fs
+CXXFLAGS = -O3 -Wall -ftree-vectorize -lpthread
 INCLUDE = -I ./index/cpp/include/ -I ./index/cpp/lib/
 
 all:
@@ -12,6 +12,13 @@ build:
 	$(CXX) ./index/cpp/src/build.cpp -o ./bin/oci_moph $(CXXFLAGS) $(INCLUDE) -lzip
 	@echo "Compiling lookup.cpp"
 	$(CXX) ./index/cpp/src/lookup.cpp -o ./bin/oci_lookup $(CXXFLAGS) $(INCLUDE) -lzip
+
+build-experimental:
+	mkdir -p ./bin
+	@echo "Compiling build.cpp"
+	$(CXX) ./index/cpp/src/build.cpp -o ./bin/oci_moph $(CXXFLAGS) $(INCLUDE) -lzip -lstdc++fs
+	@echo "Compiling lookup.cpp"
+	$(CXX) ./index/cpp/src/lookup.cpp -o ./bin/oci_lookup $(CXXFLAGS) $(INCLUDE) -lzip -lstdc++fs
 
 install:
 	@echo "Installing oci_moph"

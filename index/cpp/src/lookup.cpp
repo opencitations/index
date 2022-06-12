@@ -23,8 +23,6 @@ error "Missing the <filesystem> header."
 
 using namespace std;
 
-namespace filesystem = std::experimental::filesystem;
-
 typedef boomphf::mphf<string, StringHasher> boophf_t;
 
 struct lookup_info
@@ -33,7 +31,7 @@ struct lookup_info
     uint file_index;
     zip_stat_t fstat;
     vector<pair<uint, uint>> offsets;
-    boophf_t moph;
+    boophf_t *moph;
 };
 
 void usage(const char *basename)
@@ -135,6 +133,7 @@ int main(int argc, char **argv)
 
     uint max_size = 0;
 
+    cout << "reading archive..." << endl;
     zip_source *source;
     vector<lookup_info> lookup;
     for (const auto &entry : filesystem::directory_iterator(input_directory))
@@ -154,9 +153,12 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
 
+            cout << file_path << endl;
+
             // Iterate over all the files in the zip archive
             for (uint i = 0; i < zip_get_num_files(input_archive); i++)
             {
+                cout << i << "/" << zip_get_num_files(input_archive) << endl;
                 lookup_info file_info;
                 if (zip_stat_index(input_archive, i, 0, &file_info.fstat) == 0)
                 {
@@ -165,6 +167,10 @@ int main(int argc, char **argv)
                         max_size = size;
                     string archive_name = file_path.filename().string();
                     string moph_filename = (filesystem::path(moph_dir) / filesystem::path(archive_name.substr(0, archive_name.length() - 4) + "_" + to_string(i))).string();
+
+                    cout << moph_filename << endl;
+
+                    cout << "reading offset" << endl;
 
                     // Read offset pairs
                     ifstream offset_fin(moph_filename + ".csv");
@@ -178,9 +184,14 @@ int main(int argc, char **argv)
                         file_info.offsets.push_back(offset);
                     }
 
+                    cout << "reading moph" << endl;
+
                     // Read moph
                     ifstream moph_fin(moph_filename + ".bin", ios::in | ios::binary);
-                    file_info.moph.load(moph_fin);
+                    cout << "reading.." << endl;
+                    file_info.moph = new boomphf::mphf<string, StringHasher>();
+                    file_info.moph->load(moph_fin);
+                    cout << "moph read" << endl;
                     file_info.file_index = i;
                     file_info.input_archive = input_archive;
 
@@ -189,20 +200,26 @@ int main(int argc, char **argv)
             }
         }
     }
+    cout << "archive read" << endl;
     int k = 0;
     vector<bool> results;
     char *buffer = (char *)calloc(max_size, sizeof(char));
     for (lookup_info info : lookup)
     {
         uint j = 0;
+
+        cout << info.fstat.name << endl;
+
         // Read the zipped file
         zip_file *file = zip_fopen_index(info.input_archive, info.file_index, 0);
         zip_fread(file, buffer, info.fstat.size);
         zip_fclose(file);
 
+        cout << "reading oci" << endl;
+
         for (string oci : oci_list)
         {
-            uint i = info.moph.lookup(oci);
+            uint i = info.moph->lookup(oci);
             bool result = false;
             if (i != ULLONG_MAX && i < info.offsets.size())
             {
