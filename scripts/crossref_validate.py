@@ -25,6 +25,20 @@ def main():
         help="The directory contains the Crossref data dump of JSON files.",
     )
     arg_parser.add_argument(
+        "-oci",
+        "--oci_dir",
+        dest="oci_dir",
+        required=True,
+        help="Path to the OCIs directory.",
+    )
+    arg_parser.add_argument(
+        "-m",
+        "--moph_dir",
+        dest="moph_dir",
+        required=True,
+        help="Path to the moph directory.",
+    )
+    arg_parser.add_argument(
         "-o",
         "--output_dir",
         dest="output_dir",
@@ -78,9 +92,9 @@ def main():
                     [
                         "oci_lookup",
                         "-o",
-                        "../coci",
+                        args.oci_dir,
                         "-m",
-                        "../coci_moph",
+                        args.moph_dir,
                         "-i",
                         "./input.csv",
                     ],
