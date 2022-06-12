@@ -233,7 +233,7 @@ def main():
                     items.append(row)
 
             # Save validated citations
-            logger.info(duplicated + " citations deleted")
+            logger.info(str(duplicated) + " citations deleted")
             logger.info("Saving validated citations...")
             with open(os.path.join(args.output_dir, filename), "w") as fp:
                 json.dump({"items": items}, fp)
