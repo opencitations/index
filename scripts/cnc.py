@@ -141,6 +141,7 @@ def cnc(service, file, parser, ds):
                 row["orcid"] = list(citing_orcid)
                 ds.set(citing, row)
             if resources[cited] is None:
+                row = ds.new()
                 row["valid"] = True
                 row["date"] = cited_date
                 row["issn"] = list(cited_issn)
@@ -174,14 +175,16 @@ def cnc(service, file, parser, ds):
 
             citations_created += 1
         else:
-            if resources[citing] is None:
-                row = ds.new()
-                row["valid"] = False
-                ds.set(citing, row)
-            if resources[cited] is None:
-                row = ds.new()
-                row["valid"] = False
-                ds.set(cited, row)
+            if citing is resources:
+                if resources[citing] is None:
+                    row = ds.new()
+                    row["valid"] = False
+                    ds.set(citing, row)
+            if cited is resources:
+                if (not cited in resources) or resources[cited] is None:
+                    row = ds.new()
+                    row["valid"] = False
+                    ds.set(cited, row)
     logger.info(f"{citations_created}/{len(citation_data_list)} Citations created")
     return citations
 

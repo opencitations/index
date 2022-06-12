@@ -87,6 +87,11 @@ void save_moph(vector<string> input_keys, vector<pair<uint, uint>> input_keys_of
     for (uint i = 0; i < input_keys_offsets.size(); i++)
     {
         uint position = bphf->lookup(input_keys[i]);
+        if (input_keys[i] == "02001010008360103050202070500010100030604050500-0200101070736010407000708050309090004010000010007")
+        {
+            cout << position << endl;
+            cout << input_keys_offsets[i].first << " " << input_keys_offsets[i].second << endl;
+        }
         input_keys_offsets_ordered[position] = input_keys_offsets[i];
     }
     for (uint i = 0; i < input_keys_offsets.size(); i++)
