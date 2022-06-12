@@ -957,23 +957,18 @@ namespace boomphf
 
 		void load(std::istream &is)
 		{
-
-			std::cout << "1" << std::endl;
-
 			is.read(reinterpret_cast<char *>(&_gamma), sizeof(_gamma));
 			is.read(reinterpret_cast<char *>(&_nb_levels), sizeof(_nb_levels));
 			is.read(reinterpret_cast<char *>(&_lastbitsetrank), sizeof(_lastbitsetrank));
 			is.read(reinterpret_cast<char *>(&_nelem), sizeof(_nelem));
 
 			_levels.resize(_nb_levels);
-			std::cout << "2" << std::endl;
 
 			for (int ii = 0; ii < _nb_levels; ii++)
 			{
 				//_levels[ii].bitset = new bitVector();
 				_levels[ii].bitset.load(is);
 			}
-			std::cout << "3" << std::endl;
 
 			// mini setup, recompute size of each level
 			_proba_collision = 1.0 - pow(((_gamma * (double)_nelem - 1) / (_gamma * (double)_nelem)), _nelem - 1);
@@ -989,7 +984,6 @@ namespace boomphf
 				previous_idx += _levels[ii].hash_domain;
 			}
 
-			std::cout << "4" << std::endl;
 			// restore final hash
 
 			_final_hash.clear();
@@ -1010,7 +1004,6 @@ namespace boomphf
 				_final_hash[key] = value;
 			}*/
 			_built = true;
-			std::cout << "5" << std::endl;
 		}
 
 	private:

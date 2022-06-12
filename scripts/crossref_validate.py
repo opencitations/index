@@ -89,11 +89,12 @@ def main():
             query_result = query_result[1:].replace("'", "")
             i = 0
             for result in query_result.split(","):
-                result_map[query[i]] = result
+                result_map[query[i]] = int(result) == 1
                 i += 1
 
             # Remove the processed citations
             logger.info("3/4 Remove duplicates and existiting citations")
+            duplicated = 0
             items = []
             for row in tqdm(json_content["items"]):
                 citing = doi_manager.normalise(row.get("DOI"))
@@ -110,10 +111,13 @@ def main():
                                 # Set result map true for the oci to avoid duplicates
                                 result_map[oci] = True
                                 reference.append(ref)
+                            else:
+                                duplicated += 1
                     row["reference"] = reference
                     items.append(row)
 
             # Save validated citations
+            logger.info(duplicated + " citations deleted")
             logger.info("4/4 Saving validated citations...")
             with open(os.path.join(args.output_dir, filename), "w") as fp:
                 json.dump({"items": items}, fp)
