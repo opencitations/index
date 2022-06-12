@@ -13,10 +13,11 @@ from oc.index.oci.citation import OCIManager
 from oc.index.utils.config import get_config
 from oc.index.utils.logging import get_logger
 
-_multiprocess = 0
+_multiprocess = False
 
 
 def worker_body(input_dir, input_files, oci_dir, moph_dir, queue):
+    global _multiprocess
     logger = get_logger()
     config = get_config()
     oci_manager = OCIManager(
@@ -30,7 +31,7 @@ def worker_body(input_dir, input_files, oci_dir, moph_dir, queue):
         json_content = {"items": []}
 
         # Build the OCI lookup query
-        logger.info("1/4 Reading citation data from " + filename)
+        logger.info("1/2 Reading citation data from " + filename)
         query = []
         with open(os.path.join(input_dir, filename), encoding="utf8") as fp:
             json_content = json.load(fp)
@@ -54,7 +55,7 @@ def worker_body(input_dir, input_files, oci_dir, moph_dir, queue):
                 f.write(oci + "\n")
 
         # Compute lookup result
-        logger.info("2/4 Checking the oci to verify existing ones")
+        logger.info("2/2 Checking the oci to verify existing ones")
         query_result = str(
             check_output(
                 [
@@ -74,7 +75,9 @@ def worker_body(input_dir, input_files, oci_dir, moph_dir, queue):
             result_map[query[i]] = int(result) == 1
             i += 1
 
-    queue.append(result_map)
+        logger.info("Result map updated")
+
+    queue.put(result_map)
 
 
 def main():
@@ -167,18 +170,16 @@ def main():
         args.moph_dir,
         queue,
     )
-    if _multiprocess:
-        for worker in workers_list:
-            worker.join()
-
     oci_manager = OCIManager(
         lookup_file=os.path.expanduser(config.get("cnc", "lookup"))
     )
     prefix = config.get("COCI", "prefix")
     doi_manager = DOIManager()
     result_map = {}
+    logger.info("Building global result map")
     for _ in range(workers):
         result_map.update(queue.get())
+    logger.info("Result map built")
 
     for filename in os.listdir(args.input_dir):
         if filename.endswith(".json"):
@@ -189,7 +190,7 @@ def main():
             query = []
             with open(os.path.join(args.input_dir, filename), encoding="utf8") as fp:
                 json_content = json.load(fp)
-            for row in tqdm(json_content["items"]):
+            for row in tqdm(json_content["items"], disable=_multiprocess):
                 citing = doi_manager.normalise(row.get("DOI"))
                 if citing is not None and "reference" in row:
                     for ref in row["reference"]:
@@ -212,7 +213,7 @@ def main():
             logger.info("Remove duplicates and existiting citations")
             duplicated = 0
             items = []
-            for row in tqdm(json_content["items"]):
+            for row in tqdm(json_content["items"], disable=_multiprocess):
                 citing = doi_manager.normalise(row.get("DOI"))
                 if citing is not None and "reference" in row:
                     reference = []
