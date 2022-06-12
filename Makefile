@@ -1,5 +1,5 @@
-CXX = g++ -std=c++17 -lstdc++fs
-CXXFLAGS = -O3 -Wall -ftree-vectorize -lpthread
+CXX = g++ -std=c++17
+CXXFLAGS = -O3 -Wall -ftree-vectorize -lpthread -lstdc++fs
 INCLUDE = -I ./index/cpp/include/ -I ./index/cpp/lib/
 
 all:

@@ -1,5 +1,13 @@
 #include <iostream>
+#if __has_include(<filesystem>)
+#include <filesystem>
+namespace filesystem = std::filesystem;
+#elif __has_include(<experimental/filesystem>)
 #include <experimental/filesystem>
+namespace filesystem = std::experimental::filesystem;
+#else
+error "Missing the <filesystem> header."
+#endif
 #include <sstream>
 #include <fstream>
 #include <cstring>
