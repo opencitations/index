@@ -1,4 +1,4 @@
-CXX = g++ -std=c++17 
+CXX = g++ -std=c++17 -lstdc++fs
 CXXFLAGS = -O3 -Wall -ftree-vectorize -lpthread
 INCLUDE = -I ./index/cpp/include/ -I ./index/cpp/lib/
 
