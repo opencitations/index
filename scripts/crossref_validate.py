@@ -16,7 +16,7 @@ from oc.index.utils.logging import get_logger
 _multiprocess = False
 
 
-def worker_body(input_dir, input_files, oci_dir, moph_dir, queue):
+def worker_body(input_dir, input_files, oci_dir, moph_dir, queue, pid):
     global _multiprocess
     logger = get_logger()
     config = get_config()
@@ -50,7 +50,7 @@ def worker_body(input_dir, input_files, oci_dir, moph_dir, queue):
                             query.append(oci)
 
         # Create input file
-        with open("input.csv", "w") as f:
+        with open("input" + str(pid) + ".csv", "w") as f:
             for oci in query:
                 f.write(oci + "\n")
 
@@ -65,7 +65,7 @@ def worker_body(input_dir, input_files, oci_dir, moph_dir, queue):
                     "-m",
                     moph_dir,
                     "-i",
-                    "./input.csv",
+                    "input" + str(pid) + ".csv",
                 ],
             ).split()[0]
         )
@@ -154,6 +154,7 @@ def main():
                     args.oci_dir,
                     args.moph_dir,
                     queue,
+                    tid + 1,
                 ),
             )
             last_index += chunk_size
@@ -169,6 +170,7 @@ def main():
         args.oci_dir,
         args.moph_dir,
         queue,
+        0,
     )
     oci_manager = OCIManager(
         lookup_file=os.path.expanduser(config.get("cnc", "lookup"))
