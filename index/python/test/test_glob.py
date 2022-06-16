@@ -33,9 +33,9 @@ class GlobTest(unittest.TestCase):
         self.id_issn_coci = CSVManager(join(self.out_coci, "id_issn.csv"))
         self.id_orcid_coci = CSVManager(join(self.out_coci, "id_orcid.csv"))
         self.dir_get_all_files_coci = join(self.test_dir, "crossref_glob_dump_input")
-        self.sample_doi_coci = "10.7717/peerj.4375"
-        self.sample_reference_coci = "10.1016/j.joi.2016.08.002"
-        self.sample_doi_coci_2 = self.doi_manager.normalise("10.1016/j.websem.2017.06.001")
+        self.sample_doi_coci = self.doi_manager.normalise("10.7717/peerj.4375", True)
+        self.sample_reference_coci = self.doi_manager.normalise("10.1016/j.joi.2016.08.002", True)
+        self.sample_doi_coci_2 = self.doi_manager.normalise("10.1016/j.websem.2017.06.001", True)
         self.obj_for_date = {"issued": {"date-parts": [[2017, 5]]}}
         self.obj_for_date_2 = {"issued": {"date-parts": [[2018, 2, 13]]}}
         self.obj_for_date_3 = {"issued": {"date-parts": [[2015, 3, 9]]}}
@@ -101,8 +101,8 @@ class GlobTest(unittest.TestCase):
         citing_doi = self.doi_manager.normalise(self.sample_doi_coci, True)
         citing_doi_2 = self.doi_manager.normalise(self.sample_doi_coci_2, True)
         self.assertEqual(self.id_orcid_coci.get_value(citing_doi_2), {'0000-0003-0530-4305', '0000-0002-7562-5203'})
-        #self.assertEqual(self.valid_doi_coci.get_value(citing_doi), {'v'})
-        #self.assertEqual(self.valid_doi_coci.get_value(self.sample_reference_coci), {'v'})
+        self.assertEqual(self.valid_doi_coci.get_value(citing_doi), {'v'})
+        self.assertEqual(self.valid_doi_coci.get_value(self.sample_reference_coci), {'v'})
         self.assertEqual(self.id_date_coci.get_value(citing_doi), {'2018-02-13'})
         self.assertEqual(self.id_issn_coci.get_value(citing_doi), {'2167-8359'})
 
