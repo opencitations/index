@@ -91,14 +91,19 @@ class IdentifierManagerTest(unittest.TestCase):
         self.assertFalse(dm_nofile_noapi.is_valid(self.valid_doi_1))
         self.assertFalse(dm_nofile_noapi.is_valid(self.invalid_doi_1))
 
-
     def test_pmid_normalise(self):
         pm = PMIDManager()
-        self.assertEqual(self.valid_pmid_1, pm.normalise(self.valid_pmid_1.replace("", "pmid:")))
-        self.assertEqual(self.valid_pmid_1, pm.normalise(self.valid_pmid_1.replace("", " ")))
-        self.assertEqual(self.valid_pmid_1, pm.normalise("https://pubmed.ncbi.nlm.nih.gov/"+self.valid_pmid_1))
-        self.assertEqual(self.valid_pmid_2, pm.normalise("000"+self.valid_pmid_2))
-
+        self.assertEqual(
+            self.valid_pmid_1, pm.normalise(self.valid_pmid_1.replace("", "pmid:"))
+        )
+        self.assertEqual(
+            self.valid_pmid_1, pm.normalise(self.valid_pmid_1.replace("", " "))
+        )
+        self.assertEqual(
+            self.valid_pmid_1,
+            pm.normalise("https://pubmed.ncbi.nlm.nih.gov/" + self.valid_pmid_1),
+        )
+        self.assertEqual(self.valid_pmid_2, pm.normalise("000" + self.valid_pmid_2))
 
     def test_pmid_is_valid(self):
         pm_nofile = PMIDManager()
@@ -114,7 +119,6 @@ class IdentifierManagerTest(unittest.TestCase):
         pm_nofile_noapi = PMIDManager(use_api_service=False)
         self.assertFalse(pm_nofile_noapi.is_valid(self.valid_pmid_1))
         self.assertFalse(pm_nofile_noapi.is_valid(self.invalid_pmid_1))
-
 
     def test_issn_normalise(self):
         im = ISSNManager()

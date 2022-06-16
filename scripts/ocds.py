@@ -26,10 +26,12 @@ from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
 from oc.index.glob.redis import RedisDataSource
 
+_config = get_config()
 
-def process_glob_file(ds, filename, column, append=False):
+
+def process_glob_file(ds, filename, column, identifier, append=False):
     logger = get_logger()
-    config = get_config()
+    global _config
     logger.info("Processing " + filename)
     tqdm_disabled = False
     lines = 0
@@ -47,7 +49,7 @@ def process_glob_file(ds, filename, column, append=False):
     fp.readline()
     pbar = tqdm(total=lines, disable=tqdm_disabled)
 
-    batch_size = config.getint("redis", "batch_size")
+    batch_size = _config.getint("redis", "batch_size")
     buffer_keys = []
     buffer_values = []
     while True:
@@ -85,8 +87,8 @@ def process_glob_file(ds, filename, column, append=False):
             splits = line.replace("\n", "").split('",')
             if len(splits) >= 2:
                 key = splits[0].replace('"', "")
-                if "doi" not in key:
-                    key = "doi:" + key
+                if identifier not in key:
+                    key = identifier + ":" + key
                 value = splits[1].replace('"', "")
                 if len(key) > 0 and len(value) > 0:
                     buffer_keys.append(key)
@@ -101,18 +103,26 @@ def process_glob_file(ds, filename, column, append=False):
 
 
 def main():
+    global _config
     arg_parser = ArgumentParser(description="OCDS - OpenCitations Data Source Manager")
     arg_parser.add_argument(
         "-o",
         "--operation",
         required=True,
-        choices=["populate"],
+        choices=["csv2redis"],
     )
     arg_parser.add_argument(
         "-i",
         "--input",
-        required=False,
+        required=True,
         help="Input to parse and use for the operation",
+    )
+    arg_parser.add_argument(
+        "-id",
+        "--identifier",
+        required=True,
+        choices=_config.get("cnc", "identifiers").split(","),
+        help="The identifier used for citing and cited in the input documents",
     )
     args = arg_parser.parse_args()
 
@@ -120,6 +130,7 @@ def main():
 
     # Arguments
     input = args.input
+    identifier = args.identifier
 
     id_orcid = os.path.join(input, "id_orcid.csv")
     if not os.path.exists(id_orcid):
@@ -135,19 +146,19 @@ def main():
     if not os.path.exists(id_date):
         logger.error("id_date.csv not found in the input directory")
 
-    valid_doi = os.path.join(input, "valid_doi.csv")
-    if not os.path.exists(valid_doi):
-        logger.error("valid_doi.csv not found in the input directory")
-        raise FileNotFoundError(ENOENT, os.strerror(ENOENT), valid_doi)
+    valid_id = os.path.join(input, "valid_" + identifier + ".csv")
+    if not os.path.exists(valid_id):
+        logger.error("valid_" + identifier + ".csv not found in the input directory")
+        raise FileNotFoundError(ENOENT, os.strerror(ENOENT), valid_id)
 
     ds = RedisDataSource()
 
     logger.info("Populating the datasource with glob files...")
     start = time.time()
-    process_glob_file(ds, id_orcid, "orcid", True)
-    process_glob_file(ds, id_date, "date")
-    process_glob_file(ds, valid_doi, "valid")
-    process_glob_file(ds, id_issn, "issn", True)
+    process_glob_file(ds, id_orcid, "orcid", identifier, True)
+    process_glob_file(ds, id_date, "date", identifier)
+    process_glob_file(ds, valid_id, "valid", identifier)
+    process_glob_file(ds, id_issn, "issn", identifier, True)
     logger.info(
         f"All the files have been processed in {(time.time() - start)/ 60} minutes"
     )

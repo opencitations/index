@@ -16,7 +16,7 @@ from oc.index.utils.logging import get_logger
 _multiprocess = False
 
 
-def worker_body(input_dir, input_files, oci_dir, moph_dir, queue, pid):
+def worker_body(input, input_files, oci_dir, moph_dir, queue, pid):
     global _multiprocess
     logger = get_logger()
     config = get_config()
@@ -33,7 +33,7 @@ def worker_body(input_dir, input_files, oci_dir, moph_dir, queue, pid):
         # Build the OCI lookup query
         logger.info("1/2 Reading citation data from " + filename)
         query = []
-        with open(os.path.join(input_dir, filename), encoding="utf8") as fp:
+        with open(os.path.join(input, filename), encoding="utf8") as fp:
             json_content = json.load(fp)
         for row in tqdm(json_content["items"], disable=_multiprocess):
             citing = doi_manager.normalise(row.get("DOI"))
@@ -75,7 +75,7 @@ def worker_body(input_dir, input_files, oci_dir, moph_dir, queue, pid):
             result_map[query[i]] = int(result) == 1
             i += 1
 
-        logger.info("Result map updated")
+        logger.info("2/2 Result map updated")
 
     queue.put(result_map)
 
@@ -87,8 +87,8 @@ def main():
     )
     arg_parser.add_argument(
         "-i",
-        "--input_dir",
-        dest="input_dir",
+        "--input",
+        dest="input",
         required=True,
         help="The directory contains the Crossref data dump of JSON files.",
     )
@@ -115,8 +115,8 @@ def main():
     )
     arg_parser.add_argument(
         "-o",
-        "--output_dir",
-        dest="output_dir",
+        "--output",
+        dest="output",
         required=True,
         help="The directory where the Crossref citations are stored.",
     )
@@ -126,12 +126,12 @@ def main():
     workers = args.workers
     result_map = {}
     start = time.time()
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
+    if not os.path.exists(args.output):
+        os.makedirs(args.output)
 
     # Get all the input files
     input_files = []
-    for filename in os.listdir(args.input_dir):
+    for filename in os.listdir(args.input):
         if filename.endswith(".json"):
             input_files.append(filename)
 
@@ -149,7 +149,7 @@ def main():
             process = multiprocessing.Process(
                 target=worker_body,
                 args=(
-                    args.input_dir,
+                    args.input,
                     input_files[last_index : (last_index + chunk_size)],
                     args.oci_dir,
                     args.moph_dir,
@@ -165,7 +165,7 @@ def main():
 
     # No active wait also the main thread work on processing file
     worker_body(
-        args.input_dir,
+        args.input,
         input_files[last_index : len(input_files)],
         args.oci_dir,
         args.moph_dir,
@@ -183,14 +183,14 @@ def main():
         result_map.update(queue.get())
     logger.info("Result map built")
 
-    for filename in os.listdir(args.input_dir):
+    for filename in os.listdir(args.input):
         if filename.endswith(".json"):
             json_content = {"items": []}
 
             # Build the OCI lookup query
             logger.info("Reading citation data from " + filename)
             query = []
-            with open(os.path.join(args.input_dir, filename), encoding="utf8") as fp:
+            with open(os.path.join(args.input, filename), encoding="utf8") as fp:
                 json_content = json.load(fp)
             for row in tqdm(json_content["items"], disable=_multiprocess):
                 citing = doi_manager.normalise(row.get("DOI"))
@@ -238,7 +238,7 @@ def main():
             # Save validated citations
             logger.info(str(duplicated) + " citations deleted")
             logger.info("Saving validated citations...")
-            with open(os.path.join(args.output_dir, filename), "w") as fp:
+            with open(os.path.join(args.output, filename), "w") as fp:
                 json.dump({"items": items}, fp)
 
     logger.info(

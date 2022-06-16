@@ -39,23 +39,25 @@ from oc.index.finder.crossref import CrossrefResourceFinder
 
 def issn_data_recover_noci(directory):
     journal_issn_dict = dict()
-    filename = join(directory, 'journal_issn.json')
+    filename = join(directory, "journal_issn.json")
     if not os.path.exists(filename):
         return journal_issn_dict
     else:
-        with open(filename, 'r', encoding='utf8') as fd:
+        with open(filename, "r", encoding="utf8") as fd:
             journal_issn_dict = json.load(fd)
             return journal_issn_dict
 
+
 def issn_data_to_cache_noci(name_issn_dict, directory):
-    filename = directory + sep + 'journal_issn.json'
-    with open(filename, 'w', encoding='utf-8' ) as fd:
-            json.dump(name_issn_dict, fd, ensure_ascii=False, indent=4)
+    filename = directory + sep + "journal_issn.json"
+    with open(filename, "w", encoding="utf-8") as fd:
+        json.dump(name_issn_dict, fd, ensure_ascii=False, indent=4)
+
 
 # takes in input a data structure representing a bibliographic entity
 def build_pubdate_noci(row):
     year = str(row["year"])
-    str_year = sub( "[^\d]", "", year)[:4]
+    str_year = sub("[^\d]", "", year)[:4]
     if str_year:
         return str_year
     else:
@@ -86,6 +88,7 @@ def get_all_files_noci(i_dir):
         opener = open
     return result, opener
 
+
 def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
     start = timer()
     if not exists(output_dir):
@@ -112,23 +115,23 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
     pmid_doi_map = dict()
 
     # Read all the CSV file in the NIH dump to create the main information of all the indexes
-    #print("\n\n# Add valid PMIDs from NIH metadata")
+    # print("\n\n# Add valid PMIDs from NIH metadata")
     for file_idx, file in enumerate(all_files, 1):
         df = pd.DataFrame()
 
-        for chunk in pd.read_csv(file, chunksize=1000 ):
-            f = pd.concat( [df, chunk], ignore_index=True )
+        for chunk in pd.read_csv(file, chunksize=1000):
+            f = pd.concat([df, chunk], ignore_index=True)
             f.fillna("", inplace=True)
 
-            #print("Open file %s of %s" % (file_idx, len_all_files))
+            # print("Open file %s of %s" % (file_idx, len_all_files))
             for index, row in f.iterrows():
-                if int(index) !=0 and int(index) % int(n) == 0:
-                    #print( "Group nr.", int(index)//int(n), "processed. Data from", int(index), "rows saved to journal_issn.json mapping file")
+                if int(index) != 0 and int(index) % int(n) == 0:
+                    # print( "Group nr.", int(index)//int(n), "processed. Data from", int(index), "rows saved to journal_issn.json mapping file")
                     issn_data_to_cache_noci(journal_issn_dict, output_dir)
 
-                citing_pmid = pmid_manager.normalise(row['pmid'], True)
-                valid_pmid.add_value(citing_pmid,"v")
-                citing_doi = doi_manager.normalise(row['doi'], False)
+                citing_pmid = pmid_manager.normalise(row["pmid"], True)
+                valid_pmid.add_value(citing_pmid, "v")
+                citing_doi = doi_manager.normalise(row["doi"], False)
                 if citing_doi and id_orcid.get_value(citing_pmid) is None:
                     pmid_doi_map[citing_pmid] = {"doi": citing_doi, "has_orcid": False}
 
@@ -139,9 +142,9 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                         if citing_pmid in citing_pmid_with_no_date:
                             citing_pmid_with_no_date.remove(citing_pmid)
                     else:
-                        citing_pmid_with_no_date.add( citing_pmid )
+                        citing_pmid_with_no_date.add(citing_pmid)
 
-                if id_issn.get_value( citing_pmid ) is None:
+                if id_issn.get_value(citing_pmid) is None:
                     journal_name = row["journal"]
                     if journal_name:
                         if journal_name in journal_issn_dict.keys():
@@ -149,30 +152,51 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                                 id_issn.add_value(citing_pmid, issn)
                         else:
                             if citing_doi is not None:
-                                json_res = crossref_resource_finder._call_api(citing_doi)
+                                json_res = crossref_resource_finder._call_api(
+                                    citing_doi
+                                )
                                 if json_res is not None:
-                                    issn_set = crossref_resource_finder._get_issn(json_res)
-                                    if len(issn_set)>0:
+                                    issn_set = crossref_resource_finder._get_issn(
+                                        json_res
+                                    )
+                                    if len(issn_set) > 0:
                                         journal_issn_dict[journal_name] = []
                                     for issn in issn_set:
                                         issn_norm = issn_manager.normalise(str(issn))
-                                        id_issn.add_value( citing_pmid, issn_norm )
-                                        journal_issn_dict[journal_name].append(issn_norm)
+                                        id_issn.add_value(citing_pmid, issn_norm)
+                                        journal_issn_dict[journal_name].append(
+                                            issn_norm
+                                        )
 
-
-            if len(pmid_doi_map)> 0:
+            if len(pmid_doi_map) > 0:
                 if id_orcid_dir and exists(id_orcid_dir):
                     orcid_id_files, op = get_all_files_noci(id_orcid_dir)
                     len_orcid_id_files = len(orcid_id_files)
                     if len_orcid_id_files > 0:
                         for f_idx, f in enumerate(orcid_id_files, 1):
                             unzip_file = op(f, mode="r")
-                            unzip_file = csv.DictReader(codecs.iterdecode(unzip_file, 'utf-8'))
+                            unzip_file = csv.DictReader(
+                                codecs.iterdecode(unzip_file, "utf-8")
+                            )
                             for row in unzip_file:
-                                if [k for k, v in pmid_doi_map.items() if v["doi"] == row["id"]]:
-                                    c_pmid = [k for k, v in pmid_doi_map.items() if v["doi"] == row["id"]][0] #To do: exact match
+                                if [
+                                    k
+                                    for k, v in pmid_doi_map.items()
+                                    if v["doi"] == row["id"]
+                                ]:
+                                    c_pmid = [
+                                        k
+                                        for k, v in pmid_doi_map.items()
+                                        if v["doi"] == row["id"]
+                                    ][
+                                        0
+                                    ]  # To do: exact match
                                     c_doi = doi_manager.normalise(row["id"], False)
-                                    orcid = re.search("\[(([X0-9]\-?){4}){4}]", row["value"], re.IGNORECASE).group(0)
+                                    orcid = re.search(
+                                        "\[(([X0-9]\-?){4}){4}]",
+                                        row["value"],
+                                        re.IGNORECASE,
+                                    ).group(0)
                                     if orcid:
                                         nor_orcid = orcid_manager.normalise(orcid)
                                         id_orcid.add_value(c_pmid, nor_orcid)
@@ -195,15 +219,15 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
 
     middle = timer()
 
-    #print("first process duration: :", (middle - start))
-    #print("\n\n# Checking the referenced pmids validity")
+    # print("first process duration: :", (middle - start))
+    # print("\n\n# Checking the referenced pmids validity")
     for file_idx, file in enumerate(all_files, 1):
         df = pd.DataFrame()
 
         for chunk in pd.read_csv(file, chunksize=1000):
             f = pd.concat([df, chunk], ignore_index=True)
             f.fillna("", inplace=True)
-            #print("Open file %s of %s" % (file_idx, len_all_files))
+            # print("Open file %s of %s" % (file_idx, len_all_files))
             for index, row in f.iterrows():
                 if row["references"] != "":
                     ref_string = row["references"].strip()
@@ -212,7 +236,10 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                     for cited_pmid in cited_pmids:
                         cited_pmid = pmid_manager.normalise(cited_pmid, True)
                         if valid_pmid.get_value(cited_pmid) is None:
-                            valid_pmid.add_value(cited_pmid, "v" if pmid_manager.is_valid(cited_pmid) else "i")
+                            valid_pmid.add_value(
+                                cited_pmid,
+                                "v" if pmid_manager.is_valid(cited_pmid) else "i",
+                            )
                 if row["cited_by"] != "":
                     citing_string = row["cited_by"].strip()
                     citing_string_norm = re.sub("\s+", " ", citing_string)
@@ -220,14 +247,18 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                     for citing_p in citing_pmids:
                         citing_p = pmid_manager.normalise(citing_p, True)
                         if valid_pmid.get_value(citing_p) is None:
-                            valid_pmid.add_value(citing_p, "v" if pmid_manager.is_valid(citing_p) else "i")
+                            valid_pmid.add_value(
+                                citing_p,
+                                "v" if pmid_manager.is_valid(citing_p) else "i",
+                            )
 
     for pmid in citing_pmid_with_no_date:
         id_date.add_value(pmid, "")
 
     end = timer()
-    #print("second process duration: ", end-middle)
-    #print("full process duration: ", end-start)
+    # print("second process duration: ", end-middle)
+    # print("full process duration: ", end-start)
+
 
 def main():
     arg_parser = ArgumentParser(
@@ -236,40 +267,41 @@ def main():
     )
     arg_parser.add_argument(
         "-i",
-        "--input_dir",
-        dest="input_dir",
+        "--input",
+        dest="input",
         required=True,
         help="Either the directory or the zip file that contains the iCiteMetadata data dump of CSV files.",
     )
     arg_parser.add_argument(
         "-o",
-        "--output_dir",
-        dest="output_dir",
+        "--output",
+        dest="output",
         required=True,
         help="The directory where the indexes are stored.",
     )
 
     arg_parser.add_argument(
         "-n",
-        "--num_entities",
-        dest="num_entities",
+        "--entities",
+        dest="entities",
         required=True,
         help="Interval of processed entities after which the issn data are saved to the cache file.",
     )
 
     arg_parser.add_argument(
         "-iod",
-        "--id_orcid_dir",
-        dest="id_orcid_dir",
+        "--orcid",
+        dest="orcid",
         required=False,
         help="Either the directory or the zip file that contains the id-orcid mapping data.",
     )
 
     args = arg_parser.parse_args()
-    process_noci(args.input_dir, args.output_dir, args.num_entities, args.id_orcid_dir)
+    process_noci(args.input, args.output, args.entities, args.orcid)
+
 
 # For testing purposes
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
 
 # python "scripts/noci_glob.py" -i ./index/python/test/data/noci_glob_dump_input -o ./index/python/test/data/noci_glob_dump_output -n 7 -iod ./index/python/test/data/noci_id_orcid_mapping/doi_orcid_index.zip

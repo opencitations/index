@@ -100,21 +100,21 @@ def main():
     )
     arg_parser.add_argument(
         "-i",
-        "--input_dir",
-        dest="input_dir",
+        "--input",
+        dest="input",
         required=True,
         help="The directory that contains the Crossref data dump of JSON files.",
     )
     arg_parser.add_argument(
         "-m",
-        "--metadata_field",
-        dest="metadata_field",
+        "--metadata",
+        dest="metadata",
         required=True,
         help="The name of the metadata to look for.",
     )
 
     args = arg_parser.parse_args()
-    print("\nFinal result:", process(args.input_dir, args.metadata_field.split("=>")))
+    print("\nFinal result:", process(args.input, args.metadata.split("=>")))
 
 
 # Example of call

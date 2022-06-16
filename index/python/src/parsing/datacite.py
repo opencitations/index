@@ -56,11 +56,18 @@ class DataciteParser(CitationParser):
                         if relationType == "references" or relationType == "cites":
                             if rel_id is not None:
                                 cited = rel_id
-                                citations.append((citing, cited, None, None, None, None))
-                        elif relationType == "isreferencedby" or relationType == "iscitedby":
+                                citations.append(
+                                    (citing, cited, None, None, None, None)
+                                )
+                        elif (
+                            relationType == "isreferencedby"
+                            or relationType == "iscitedby"
+                        ):
                             if rel_id is not None:
                                 cited = citing
-                                citations.append((rel_id, cited, None, None, None, None))
+                                citations.append(
+                                    (rel_id, cited, None, None, None, None)
+                                )
 
             return citations
         return self.get_next_citation_data()

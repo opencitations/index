@@ -145,15 +145,15 @@ def main():
     )
     arg_parser.add_argument(
         "-i",
-        "--input_dir",
+        "--input",
         dest="input_dir",
         required=True,
         help="The directory that contains the Crossref data dump of JSON files.",
     )
     arg_parser.add_argument(
         "-o",
-        "--output_dir",
-        dest="output_dir",
+        "--output",
+        dest="output",
         required=True,
         help="The directory that will contain the selected JSON files.",
     )
@@ -180,7 +180,7 @@ def main():
         metadata_fields = [item.split("=>") for item in metadata_fields]
         metadata_values = [item.split(":", 1) for item in metadata_values]
 
-        process(args.input_dir, args.output_dir, metadata_fields, metadata_values)
+        process(args.input, args.output, metadata_fields, metadata_values)
     else:
         print("Error: different number of metadata fields and values specified.")
 

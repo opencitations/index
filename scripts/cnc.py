@@ -57,10 +57,16 @@ def cnc(service, file, parser, ds):
         if isinstance(citation_data, list):
             citation_data_list = citation_data_list + citation_data
             for c_citation_data in citation_data:
-                ids = ids + ["doi:" + c_citation_data[0], "doi:" + c_citation_data[1]]
+                ids = ids + [
+                    identifier + ":" + c_citation_data[0],
+                    identifier + ":" + c_citation_data[1],
+                ]
         else:
             citation_data_list.append(citation_data)
-            ids = ids + ["doi:" + citation_data[0], "doi:" + citation_data[1]]
+            ids = ids + [
+                identifier + ":" + citation_data[0],
+                identifier + ":" + citation_data[1],
+            ]
         pbar.update(parser.current_item - pbar.n)
         citation_data = parser.get_next_citation_data()
     pbar.close()
@@ -76,7 +82,7 @@ def cnc(service, file, parser, ds):
         batch = ids[:current_size]
         batch_result = ds.mget(batch)
         for key in batch_result.keys():
-            resources[key.replace("doi:", "")] = batch_result[key]
+            resources[key.replace(identifier + ":", "")] = batch_result[key]
         ids = ids[batch_size:] if batch_size < len(ids) else []
         pbar.update(current_size)
     pbar.close()
@@ -100,6 +106,7 @@ def cnc(service, file, parser, ds):
     agent = _config.get(service, "agent")
     source = _config.get(service, "source")
     service_name = _config.get(service, "service")
+    identifier = _config.get(service, "identifier")
     citations = []
     for citation_data in tqdm(citation_data_list, disable=_multiprocess):
         (
@@ -162,7 +169,7 @@ def cnc(service, file, parser, ds):
                     source,
                     datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                     service_name,
-                    "doi",
+                    identifier,
                     idbase_url + "([[XXX__decode]])",
                     "reference",
                     journal_sc,
@@ -191,8 +198,6 @@ def cnc(service, file, parser, ds):
 
 def worker_body(input_files, output, service, tid):
     global _multiprocess
-    global _citations_created_lock
-    global _citations_created
     global _config
 
     service_ds = _config.get(service, "datasource")
@@ -320,5 +325,3 @@ def main():
     logger.info(
         f"All the files have been processed in {(time.time() - start)/ 60} minutes"
     )
-    global _citations_created
-    logger.info(f"{_citations_created} citations have been stored")

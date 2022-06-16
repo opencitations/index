@@ -42,31 +42,47 @@ class NIHResourceFinder(ApiDOIResourceFinder):
         return result
 
     def _get_date(self, txt_obj):
-        date = re.search("DP\s+-\s+(\d{4}(\s?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))?(\s?((3[0-1])|([1-2][0-9])|([0]?[1-9])))?)", txt_obj, re.IGNORECASE).group(1)
-        re_search = re.search("(\d{4})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+((3[0-1])|([1-2][0-9])|([0]?[1-9]))", date, re.IGNORECASE)
+        date = re.search(
+            "DP\s+-\s+(\d{4}(\s?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))?(\s?((3[0-1])|([1-2][0-9])|([0]?[1-9])))?)",
+            txt_obj,
+            re.IGNORECASE,
+        ).group(1)
+        re_search = re.search(
+            "(\d{4})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+((3[0-1])|([1-2][0-9])|([0]?[1-9]))",
+            date,
+            re.IGNORECASE,
+        )
         if re_search is not None:
             result = re_search.group(0)
-            datetime_object = datetime.strptime(result, '%Y %b %d')
-            return datetime.strftime(datetime_object, '%Y-%m-%d')
+            datetime_object = datetime.strptime(result, "%Y %b %d")
+            return datetime.strftime(datetime_object, "%Y-%m-%d")
         else:
-            re_search = re.search("(\d{4})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)", date, re.IGNORECASE)
+            re_search = re.search(
+                "(\d{4})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
+                date,
+                re.IGNORECASE,
+            )
             if re_search is not None:
                 result = re_search.group(0)
-                datetime_object = datetime.strptime(result, '%Y %b')
-                return datetime.strftime(datetime_object, '%Y-%m')
+                datetime_object = datetime.strptime(result, "%Y %b")
+                return datetime.strftime(datetime_object, "%Y-%m")
             else:
                 re_search = re.search("(\d{4})", date)
                 if re_search is not None:
                     result = re.search("(\d{4})", date).group(0)
-                    datetime_object = datetime.strptime(result, '%Y')
-                    return datetime.strftime(datetime_object, '%Y')
+                    datetime_object = datetime.strptime(result, "%Y")
+                    return datetime.strftime(datetime_object, "%Y")
                 else:
                     return None
 
     def _call_api(self, pmid_full):
         if self._use_api_service:
             pmid = self._dm.normalise(pmid_full)
-            r = get(self._api + quote(pmid) + "/?format=pubmed", headers=self._headers, timeout=30)
+            r = get(
+                self._api + quote(pmid) + "/?format=pubmed",
+                headers=self._headers,
+                timeout=30,
+            )
             if r.status_code == 200:
                 r.encoding = "utf-8"
                 soup = BeautifulSoup(r.text, features="lxml")

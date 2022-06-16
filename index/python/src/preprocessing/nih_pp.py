@@ -61,18 +61,22 @@ class NIHPreProcessing:
                         count += 1
                         lines.append(line)
                         if int(count) != 0 and int(count) % int(num) == 0:
-                            lines = self.chunk_to_file(count, num, output_dir, headers, lines)
+                            lines = self.chunk_to_file(
+                                count, num, output_dir, headers, lines
+                            )
         else:
             for file_idx, file in enumerate(all_files):
                 df = pd.read_csv(file, usecols=filter_col, low_memory=True)
-                df.fillna('', inplace=True)
+                df.fillna("", inplace=True)
                 f = df.values.tolist()
                 headers = filter_col
                 for line in f:
                     count += 1
                     lines.append(line)
                     if int(count) != 0 and int(count) % int(num) == 0:
-                        lines = self.chunk_to_file(count, num, output_dir, headers, lines)
+                        lines = self.chunk_to_file(
+                            count, num, output_dir, headers, lines
+                        )
 
         if len(lines) > 0:
             self.chunk_to_file(count, num, output_dir, headers, lines)

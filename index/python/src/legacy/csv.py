@@ -75,12 +75,12 @@ class CSVManager(object):
         header = None
 
         for csv_path in list_of_csv_files:
-            #NOTA: manca nella libreria
+            # NOTA: manca nella libreria
             if not exists(csv_path):
-                #open(csv_path, "w").close() sostituito con:
+                # open(csv_path, "w").close() sostituito con:
                 with open(csv_path, "w", encoding="utf8") as f:
                     f.write('"id","value"\n')
-                    f.close() #necessario? in add_value non c'è
+                    f.close()  # necessario? in add_value non c'è
             with open(csv_path, encoding="utf-8") as f:
                 csv_content = ""
                 for idx, line in enumerate(f.readlines()):

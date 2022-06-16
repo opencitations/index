@@ -20,8 +20,10 @@ from oc.index.preprocessing.datacite_pp import DatacitePreProcessing
 import shutil
 import json
 
+
 class DOCIPPTest(unittest.TestCase):
     """This class aims at testing the methods of the class DatacitePreProcessing."""
+
     def setUp(self):
         test_dir = join("index", "python", "test", "data")
         self.input_dir = join(test_dir, "doci_pp_dump_input")
@@ -34,12 +36,10 @@ class DOCIPPTest(unittest.TestCase):
         self.num = 77
         self.DatacitePP = DatacitePreProcessing()
 
-        #note: data concerning the dois listed below were modified for testing purposes.
+        # note: data concerning the dois listed below were modified for testing purposes.
         self.ent_glob_only = "10.1001/jama.289.8.989"
         self.ent_parser_only = "10.1002/2015jc010802"
         self.ent_no_data = "10.1016/j.gene.2017.10.006"
-
-
 
     def test_dump_filter_and_split(self):
         self.DatacitePP.dump_filter_and_split(self.input_dir, self.output_dir, self.num)
@@ -60,11 +60,6 @@ class DOCIPPTest(unittest.TestCase):
         self.assertTrue(for_parser_only)
         self.assertTrue(for_glob_only)
 
-
-
-
-
-
     def test_counter_check(self):
         self.DatacitePP.dump_filter_and_split(self.input_dir, self.output_dir, self.num)
         # check that all the output files contain the number of entities specified in input, except for the last one
@@ -75,12 +70,6 @@ class DOCIPPTest(unittest.TestCase):
                     dict_from_json = json.load(f)
                     self.assertEqual(len(dict_from_json["data"]), self.num)
             else:
-                with open( file, "r", encoding="utf-8" ) as f:
+                with open(file, "r", encoding="utf-8") as f:
                     dict_from_json = json.load(f)
                     self.assertLessEqual(len(dict_from_json["data"]), self.num)
-
-
-
-
-
-

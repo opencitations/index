@@ -216,7 +216,7 @@ class ResourceFinderTest(unittest.TestCase):
         self.assertIsNone(cf_3.get_pub_date("10.1007/s11192-018-2988-z"))
 
     def test_nationalinstititeofhealth_get_orcid(self):
-        #Do not use support files, only APIs
+        # Do not use support files, only APIs
         nf_1 = NIHResourceFinder()
         self.assertNotIn("0000-0002-1825-0097", nf_1.get_orcid("29998776"))
         self.assertNotIn("0000-0002-1825-0097", nf_1.get_orcid("7189714"))

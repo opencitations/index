@@ -24,6 +24,7 @@ from bs4 import BeautifulSoup
 
 from oc.index.identifier.base import IdentifierManager
 
+
 class PMIDManager(IdentifierManager):
     """This class implements an identifier manager for pmid identifier"""
 
@@ -65,12 +66,11 @@ class PMIDManager(IdentifierManager):
         """
         id_string = str(id_string)
         try:
-            pmid_string = sub("^0+", "", sub("\0+", "", (sub( "[^\d+]", "", id_string))))
+            pmid_string = sub("^0+", "", sub("\0+", "", (sub("[^\d+]", "", id_string))))
             return "%s%s" % (self._p if include_prefix else "", pmid_string)
         except:
             # Any error in processing the PMID will return None
             return None
-
 
     def __pmid_exists(self, pmid_full):
         if self._use_api_service:
@@ -79,7 +79,11 @@ class PMIDManager(IdentifierManager):
             while tentative:
                 tentative -= 1
                 try:
-                    r = get(self._api + quote(pmid) + "/?format=pmid", headers=self._headers, timeout=30)
+                    r = get(
+                        self._api + quote(pmid) + "/?format=pmid",
+                        headers=self._headers,
+                        timeout=30,
+                    )
                     if r.status_code == 200:
                         r.encoding = "utf-8"
                         soup = BeautifulSoup(r.content, features="lxml")
