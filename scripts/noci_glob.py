@@ -21,7 +21,7 @@ import json
 from zipfile import ZipFile
 from tarfile import TarFile
 import re
-from os.path import exists, basename, isdir
+from os.path import exists, basename, isdir, join
 from timeit import default_timer as timer
 from re import sub
 import pandas as pd
@@ -37,24 +37,23 @@ from oc.index.finder.orcid import ORCIDResourceFinder
 from oc.index.finder.crossref import CrossrefResourceFinder
 
 
-def issn_data_recover(directory):
+def issn_data_recover_noci(directory):
     journal_issn_dict = dict()
-    filename = directory + sep + 'journal_issn.json'
+    filename = join(directory, 'journal_issn.json')
     if not os.path.exists(filename):
         return journal_issn_dict
     else:
         with open(filename, 'r', encoding='utf8') as fd:
             journal_issn_dict = json.load(fd)
-            types = type(journal_issn_dict)
             return journal_issn_dict
 
-def issn_data_to_cache(name_issn_dict, directory):
+def issn_data_to_cache_noci(name_issn_dict, directory):
     filename = directory + sep + 'journal_issn.json'
     with open(filename, 'w', encoding='utf-8' ) as fd:
             json.dump(name_issn_dict, fd, ensure_ascii=False, indent=4)
 
-#PUB DATE EXTRACTION : takes in input a data structure representing a bibliographic entity
-def build_pubdate(row):
+# takes in input a data structure representing a bibliographic entity
+def build_pubdate_noci(row):
     year = str(row["year"])
     str_year = sub( "[^\d]", "", year)[:4]
     if str_year:
@@ -64,7 +63,7 @@ def build_pubdate(row):
 
 
 # get_all_files extracts all the needed files from the input directory
-def get_all_files(i_dir):
+def get_all_files_noci(i_dir):
     result = []
     opener = None
     if i_dir.endswith(".zip"):
@@ -87,18 +86,18 @@ def get_all_files(i_dir):
         opener = open
     return result, opener
 
-def process(input_dir, output_dir, n, id_orcid_dir):
+def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
     start = timer()
     if not exists(output_dir):
         makedirs(output_dir)
 
     citing_pmid_with_no_date = set()
     valid_pmid = CSVManager(output_dir + sep + "valid_pmid.csv")
-    id_date = CSVManager(output_dir + sep + "id_date_pmid.csv")
-    id_issn = CSVManager(output_dir + sep + "id_issn_pmid.csv")
-    id_orcid = CSVManager(output_dir + sep + "id_orcid_pmid.csv")
+    id_date = CSVManager(output_dir + sep + "id_date.csv")
+    id_issn = CSVManager(output_dir + sep + "id_issn.csv")
+    id_orcid = CSVManager(output_dir + sep + "id_orcid.csv")
 
-    journal_issn_dict = issn_data_recover(output_dir)
+    journal_issn_dict = issn_data_recover_noci(output_dir)
 
     crossref_resource_finder = CrossrefResourceFinder()
     orcid_resource_finder = ORCIDResourceFinder()
@@ -108,13 +107,12 @@ def process(input_dir, output_dir, n, id_orcid_dir):
     orcid_manager = ORCIDManager()
     pmid_manager = PMIDManager()
 
-
-    all_files, opener = get_all_files(input_dir)
+    all_files, opener = get_all_files_noci(input_dir)
     len_all_files = len(all_files)
     pmid_doi_map = dict()
 
     # Read all the CSV file in the NIH dump to create the main information of all the indexes
-    print("\n\n# Add valid PMIDs from NIH metadata")
+    #print("\n\n# Add valid PMIDs from NIH metadata")
     for file_idx, file in enumerate(all_files, 1):
         df = pd.DataFrame()
 
@@ -122,11 +120,11 @@ def process(input_dir, output_dir, n, id_orcid_dir):
             f = pd.concat( [df, chunk], ignore_index=True )
             f.fillna("", inplace=True)
 
-            print("Open file %s of %s" % (file_idx, len_all_files))
+            #print("Open file %s of %s" % (file_idx, len_all_files))
             for index, row in f.iterrows():
                 if int(index) !=0 and int(index) % int(n) == 0:
-                    print( "Group nr.", int(index)//int(n), "processed. Data from", int(index), "rows saved to journal_issn.json mapping file")
-                    issn_data_to_cache(journal_issn_dict, output_dir)
+                    #print( "Group nr.", int(index)//int(n), "processed. Data from", int(index), "rows saved to journal_issn.json mapping file")
+                    issn_data_to_cache_noci(journal_issn_dict, output_dir)
 
                 citing_pmid = pmid_manager.normalise(row['pmid'], True)
                 valid_pmid.add_value(citing_pmid,"v")
@@ -135,7 +133,7 @@ def process(input_dir, output_dir, n, id_orcid_dir):
                     pmid_doi_map[citing_pmid] = {"doi": citing_doi, "has_orcid": False}
 
                 if id_date.get_value(citing_pmid) is None:
-                    citing_date = Citation.check_date(build_pubdate(row))
+                    citing_date = Citation.check_date(build_pubdate_noci(row))
                     if citing_date is not None:
                         id_date.add_value(citing_pmid, citing_date)
                         if citing_pmid in citing_pmid_with_no_date:
@@ -145,7 +143,7 @@ def process(input_dir, output_dir, n, id_orcid_dir):
 
                 if id_issn.get_value( citing_pmid ) is None:
                     journal_name = row["journal"]
-                    if journal_name: #check that the string is not empty
+                    if journal_name:
                         if journal_name in journal_issn_dict.keys():
                             for issn in journal_issn_dict[journal_name]:
                                 id_issn.add_value(citing_pmid, issn)
@@ -164,7 +162,7 @@ def process(input_dir, output_dir, n, id_orcid_dir):
 
             if len(pmid_doi_map)> 0:
                 if id_orcid_dir and exists(id_orcid_dir):
-                    orcid_id_files, op = get_all_files(id_orcid_dir)
+                    orcid_id_files, op = get_all_files_noci(id_orcid_dir)
                     len_orcid_id_files = len(orcid_id_files)
                     if len_orcid_id_files > 0:
                         for f_idx, f in enumerate(orcid_id_files, 1):
@@ -183,7 +181,6 @@ def process(input_dir, output_dir, n, id_orcid_dir):
 
                 for citing_pmid, d in pmid_doi_map.items():
                     if d["has_orcid"] == False:
-                        print("non ha ancora orcid:", citing_pmid, d)
                         json_res = orcid_resource_finder._call_api(d["doi"])
                         if json_res is not None:
                             orcid_set = orcid_resource_finder._get_orcid(json_res)
@@ -194,19 +191,19 @@ def process(input_dir, output_dir, n, id_orcid_dir):
                                     id_orcid.add_value(citing_pmid, orcid_norm)
 
             pmid_doi_map = dict()
-            issn_data_to_cache(journal_issn_dict, output_dir)
+            issn_data_to_cache_noci(journal_issn_dict, output_dir)
 
     middle = timer()
 
-    print("first process duration: :", (middle - start))
-    print("\n\n# Checking the referenced pmids validity")
+    #print("first process duration: :", (middle - start))
+    #print("\n\n# Checking the referenced pmids validity")
     for file_idx, file in enumerate(all_files, 1):
         df = pd.DataFrame()
 
         for chunk in pd.read_csv(file, chunksize=1000):
             f = pd.concat([df, chunk], ignore_index=True)
             f.fillna("", inplace=True)
-            print("Open file %s of %s" % (file_idx, len_all_files))
+            #print("Open file %s of %s" % (file_idx, len_all_files))
             for index, row in f.iterrows():
                 if row["references"] != "":
                     ref_string = row["references"].strip()
@@ -229,8 +226,8 @@ def process(input_dir, output_dir, n, id_orcid_dir):
         id_date.add_value(pmid, "")
 
     end = timer()
-    print("second process duration: ", end-middle)
-    print("full process duration: ", end-start)
+    #print("second process duration: ", end-middle)
+    #print("full process duration: ", end-start)
 
 def main():
     arg_parser = ArgumentParser(
@@ -269,7 +266,7 @@ def main():
     )
 
     args = arg_parser.parse_args()
-    process(args.input_dir, args.output_dir, args.num_entities, args.id_orcid_dir)
+    process_noci(args.input_dir, args.output_dir, args.num_entities, args.id_orcid_dir)
 
 # For testing purposes
 if __name__ == '__main__':

@@ -31,7 +31,7 @@ from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 
 
-def build_pubdate(obj):
+def build_pubdate_coci(obj):
     if "issued" in obj:  # Main citing object
         if "date-parts" in obj["issued"]:
             # is an array of parts of dates
@@ -78,7 +78,7 @@ def build_pubdate(obj):
     return None
 
 
-def get_all_files(i_dir_or_targz_file):
+def get_all_files_coci(i_dir_or_targz_file):
     result = []
     targz_fd = None
 
@@ -101,15 +101,15 @@ def get_all_files(i_dir_or_targz_file):
     return result, targz_fd
 
 
-def load_json(file, targz_fd, file_idx, len_all_files):
+def load_json_coci(file, targz_fd, file_idx, len_all_files):
     result = None
 
     if targz_fd is None:
-        print("Open file %s of %s" % (file_idx, len_all_files))
+        #print("Open file %s of %s" % (file_idx, len_all_files))
         with open(file, encoding="utf8") as f:
             result = load(f)
     else:
-        print("Open file %s of %s (in tar.gz archive)" % (file_idx, len_all_files))
+        #print("Open file %s of %s (in tar.gz archive)" % (file_idx, len_all_files))
         cur_tar_file = targz_fd.extractfile(file)
         json_str = cur_tar_file.read()
 
@@ -123,11 +123,10 @@ def load_json(file, targz_fd, file_idx, len_all_files):
             json_str = json_str.decode("utf-8")
 
         result = loads(json_str)
-
     return result
 
 
-def process(input_dir, output_dir):
+def process_coci(input_dir, output_dir):
     start = timer()
     if not exists(output_dir):
         makedirs(output_dir)
@@ -142,13 +141,13 @@ def process(input_dir, output_dir):
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
 
-    all_files, targz_fd = get_all_files(input_dir)
+    all_files, targz_fd = get_all_files_coci(input_dir)
     len_all_files = len(all_files)
 
     # Read all the JSON file in the Crossref dump to create the main information of all the indexes
-    print("\n\n# Add valid DOIs from Crossref metadata")
+    #print("\n\n# Add valid DOIs from Crossref metadata")
     for file_idx, file in enumerate(all_files, 1):
-        data = load_json(file, targz_fd, file_idx, len_all_files)
+        data = load_json_coci(file, targz_fd, file_idx, len_all_files)
 
         if "items" in data:
             for obj in data["items"]:
@@ -158,7 +157,7 @@ def process(input_dir, output_dir):
                     valid_doi.add_value(citing_doi, "v") # NB:  add value aggiunge l'id se non c'era e aggiunge il valore al set di valori. Cosa succede se il valore c'è giù ed è invalid?
 
                     if id_date.get_value(citing_doi) is None:
-                        citing_date = Citation.check_date(build_pubdate(obj))
+                        citing_date = Citation.check_date(build_pubdate_coci(obj))
                         if citing_date is not None:
                             id_date.add_value(citing_doi, citing_date)
                             if citing_doi in citing_doi_with_no_date:
@@ -195,25 +194,25 @@ def process(input_dir, output_dir):
 
 
     middle =timer()
-    print("first process duration: :", (middle - start))
+    #print("first process duration: :", (middle - start))
     # Do it again for updating the dates of the cited DOIs, if these are valid
-    print("\n\n# Check cited DOIs from Crossref reference field")
+    #print("\n\n# Check cited DOIs from Crossref reference field")
     doi_date = {}
     for file_idx, file in enumerate(all_files, 1):
-        data = load_json(file, targz_fd, file_idx, len_all_files)
+        data = load_json_coci(file, targz_fd, file_idx, len_all_files)
 
         if "items" in data:
             for obj in data["items"]:
                 if "DOI" in obj and "reference" in obj:
                     for ref in obj["reference"]:
                         if "DOI" in ref:
-                            cited_doi = doi_manager.normalise(ref["DOI"], True)
+                            cited_doi = str(doi_manager.normalise(ref["DOI"], True))
                             if valid_doi.get_value(cited_doi) is None:
                                 valid_doi.add_value(cited_doi, "v" if doi_manager.is_valid(cited_doi) else "i")
                                 if valid_doi.get_value(cited_doi) == "v" and id_date.get_value(cited_doi) is None:
                                     if cited_doi not in doi_date:
                                         doi_date[cited_doi] = []
-                                    cited_date = Citation.check_date(build_pubdate(ref))
+                                    cited_date = Citation.check_date(build_pubdate_coci(ref))
                                     if cited_date is not None:
                                         doi_date[cited_doi].append(cited_date)
                                         if cited_doi in citing_doi_with_no_date:
@@ -243,8 +242,8 @@ def process(input_dir, output_dir):
         targz_fd.close()
 
     end = timer()
-    print("second process duration: ", end-middle)
-    print("full process duration: ", end-start)
+    #print("second process duration: ", end-middle)
+    #print("full process duration: ", end-start)
 
 def main():
     arg_parser = ArgumentParser(
@@ -269,10 +268,10 @@ def main():
     )
 
     args = arg_parser.parse_args()
-    process(args.input_dir, args.output_dir)
+    process_coci(args.input_dir, args.output_dir)
 
 # Added for testing purposes, in the official version it should be removed
 if __name__ == '__main__':
     main()
 
-# GitHub\index>python "scripts/crossref_glob.py" -i ./index/python/test/data/crossref_glob_dump_input -o ./index/python/test/data/crossref_glob_dump_output
+#python "scripts/crossref_glob.py" -i ./index/python/test/data/crossref_glob_dump_input -o ./index/python/test/data/crossref_glob_dump_output
