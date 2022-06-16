@@ -21,6 +21,7 @@ from os.path import join, exists
 
 from oc.index.finder.crossref import CrossrefResourceFinder
 from oc.index.finder.datacite import DataCiteResourceFinder
+from oc.index.finder.nih import NIHResourceFinder
 from oc.index.finder.orcid import ORCIDResourceFinder
 from oc.index.finder.base import ResourceFinderHandler
 
@@ -213,3 +214,74 @@ class ResourceFinderTest(unittest.TestCase):
         # Do not use support files neither APIs
         cf_3 = CrossrefResourceFinder(use_api_service=False)
         self.assertIsNone(cf_3.get_pub_date("10.1007/s11192-018-2988-z"))
+
+    def test_nationalinstititeofhealth_get_orcid(self):
+        #Do not use support files, only APIs
+        nf_1 = NIHResourceFinder()
+        self.assertNotIn("0000-0002-1825-0097", nf_1.get_orcid("29998776"))
+        self.assertNotIn("0000-0002-1825-0097", nf_1.get_orcid("7189714"))
+        self.assertEqual([], nf_1.get_orcid("29998776"))
+        self.assertEqual([], nf_1.get_orcid("1509982"))
+
+        # Do use support files, but avoid using APIs
+        nf_2 = NIHResourceFinder(
+            self.data,
+            use_api_service=False,
+        )
+        self.assertIn("0000-0001-8403-9735", nf_2.get_orcid("29998776"))
+        self.assertNotIn("0000-0002-1825-0097", nf_2.get_orcid("1509982"))
+
+        # Do not use support files neither APIs
+        nf_3 = NIHResourceFinder(use_api_service=False)
+        self.assertIsNone(nf_3.get_orcid("7189714"))
+
+    def test_nationalinstititeofhealth_get_issn(self):
+        # Do not use support files, only APIs
+        nf_1 = NIHResourceFinder()
+        self.assertIn("0003-4819", nf_1.get_container_issn("2942070"))
+        self.assertNotIn("0003-0000", nf_1.get_container_issn("2942070"))
+
+        # Do use support files, but avoid using APIs
+        nf_2 = NIHResourceFinder(
+            self.data,
+            use_api_service=False,
+        )
+        container_issn = nf_2.get_container_issn("1509982")
+        self.assertIn("0065-4299", container_issn)
+        self.assertNotIn("0065-4444", container_issn)
+
+        # Do not use support files neither APIs
+        nf_3 = NIHResourceFinder(use_api_service=False)
+        self.assertIsNone(nf_3.get_container_issn("7189714"))
+
+    def test_nationalinstititeofhealth_get_pub_date(self):
+        # Do not use support files, only APIs
+        nf_1 = NIHResourceFinder()
+        self.assertIn("1998-05-25", nf_1.get_pub_date("9689714"))
+        self.assertIn("1975-03", nf_1.get_pub_date("846"))
+        # 846 --> DP  - 1975 MAR-APR, expected "1975-03"
+        self.assertIn("1975-12", nf_1.get_pub_date("1296"))
+        # 1296 --> DP  - 1975 Dec-1976 Jan, expected "1975-12"
+        self.assertIn("1975-07", nf_1.get_pub_date("1552"))
+        # 1552 --> DP  - 1975 Jul-Aug, expected "1975-07"
+        self.assertIn("1975", nf_1.get_pub_date("1851"))
+        # 1851 --> DP  - 1975 Summer, expected "1975"
+        self.assertIn("1976-07-03", nf_1.get_pub_date("8768"))
+        # 8768 --> DP  - 1976 Jul 3-10, expected "1976-07-03"
+        self.assertIn("1976-08-28", nf_1.get_pub_date("8769"))
+        # 8769 --> DP  - 1976 Aug 28-Sep 4, expected "1976-08-28"
+        self.assertIn("1976-07", nf_1.get_pub_date("9428"))
+        # 9428 --> DP  - 1976 Jul-AUG, expected "1976-07"
+        self.assertNotEqual("1998", nf_1.get_pub_date("9689714"))
+
+        # Do use support files, but avoid using APIs
+        nf_2 = NIHResourceFinder(
+            self.data,
+            use_api_service=False,
+        )
+        self.assertIn("1980-06", nf_2.get_pub_date("7189714"))
+        self.assertNotEqual("1980-06-22", nf_2.get_pub_date("7189714"))
+
+        # Do not use support files neither APIs
+        nf_3 = NIHResourceFinder(use_api_service=False)
+        self.assertIsNone(nf_3.get_pub_date("2942070"))

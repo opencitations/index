@@ -2,12 +2,14 @@ from os import sep, makedirs, walk
 import os.path
 from os.path import exists
 import csv
+import pandas as pd
 
 
 class NIHPreProcessing:
     """This class aims at pre-processing iCite Database Snapshots (NIH Open
-    Citation Collection), available at: https://nih.figshare.com/search?q=iCite+Database+Snapshot.
-    In particular, NIHPreProcessing splits the original CSV file in many lighter CSV files,
+    Citation Collection + ICite Metadata), available at:
+    https://nih.figshare.com/search?q=iCite+Database+Snapshot. In particular,
+    NIHPreProcessing splits the original CSV file in many lighter CSV files,
     each one containing the number of entities specified in input by the user"""
 
     def __init__(self):
@@ -46,21 +48,31 @@ class NIHPreProcessing:
                 writer.writerows(lines)
             return
 
-    def dump_split(self, input_dir, output_dir, num):
+    def dump_split(self, input_dir, output_dir, num, filter_col=None):
         all_files = self.get_all_files(input_dir)
         count = 0
         lines = []
-        for file_idx, file in enumerate(all_files):
-            with open(file, "r") as f:
-                f = csv.reader(f)
-                headers = next(f)
+        if filter_col is None:
+            for file_idx, file in enumerate(all_files):
+                with open(file, "r") as f:
+                    f = csv.reader(f)
+                    headers = next(f)
+                    for line in f:
+                        count += 1
+                        lines.append(line)
+                        if int(count) != 0 and int(count) % int(num) == 0:
+                            lines = self.chunk_to_file(count, num, output_dir, headers, lines)
+        else:
+            for file_idx, file in enumerate(all_files):
+                df = pd.read_csv(file, usecols=filter_col, low_memory=True)
+                df.fillna('', inplace=True)
+                f = df.values.tolist()
+                headers = filter_col
                 for line in f:
                     count += 1
                     lines.append(line)
                     if int(count) != 0 and int(count) % int(num) == 0:
-                        lines = self.chunk_to_file(
-                            count, num, output_dir, headers, lines
-                        )
+                        lines = self.chunk_to_file(count, num, output_dir, headers, lines)
 
         if len(lines) > 0:
             self.chunk_to_file(count, num, output_dir, headers, lines)
