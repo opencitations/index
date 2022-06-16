@@ -22,8 +22,8 @@ build-experimental:
 
 install:
 	@echo "Installing oci_moph"
-	cp ./bin/oci_moph /usr/local/bin/oci_moph
-	cp ./bin/oci_lookup /usr/local/bin/oci_lookup
+	cp ./bin/oci_moph /usr/local/bin/oc.index.moph
+	cp ./bin/oci_lookup /usr/local/bin/oc.index.lookup
 
 .PHONY: clean
 clean: 

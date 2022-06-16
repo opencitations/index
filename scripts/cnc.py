@@ -15,7 +15,6 @@
 
 import multiprocessing
 import os
-import importlib
 import time
 import math
 
@@ -24,6 +23,7 @@ from argparse import ArgumentParser
 from urllib.parse import quote
 from datetime import datetime
 
+from oc.index.parsing.base import CitationParser
 from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
 from oc.index.finder.base import ResourceFinderHandler
@@ -36,23 +36,25 @@ from oc.index.glob.redis import RedisDataSource
 from oc.index.glob.csv import CSVDataSource
 
 _config = get_config()
-_oci_manager = OCIManager(lookup_file=os.path.expanduser(_config.get("cnc", "lookup")))
-_multiprocess = False
 
 
-def cnc(service, file, parser, ds):
-    global _oci_manager
-    global _multiprocess
+def cnc(service, file, parser, ds, multiprocess):
+    global _config
+
+    oci_manager = OCIManager(
+        lookup_file=os.path.expanduser(_config.get("cnc", "lookup"))
+    )
     logger = get_logger()
 
     logger.info("Reading citation data from " + file)
     parser.parse(file)
-    pbar = tqdm(total=parser.items, disable=_multiprocess)
+    pbar = tqdm(total=parser.items, disable=multiprocess)
     citation_data = 1
     citation_data_list = []
     ids = []
 
     citation_data = parser.get_next_citation_data()
+    identifier = _config.get(service, "identifier")
     while citation_data is not None:
         if isinstance(citation_data, list):
             citation_data_list = citation_data_list + citation_data
@@ -76,7 +78,7 @@ def cnc(service, file, parser, ds):
     logger.info("Retrieving citation data informations from data source")
     resources = {}
     batch_size = _config.getint("redis", "batch_size")
-    pbar = tqdm(total=len(ids), disable=_multiprocess)
+    pbar = tqdm(total=len(ids), disable=multiprocess)
     while len(ids) > 0:
         current_size = min(len(ids), batch_size)
         batch = ids[:current_size]
@@ -106,9 +108,8 @@ def cnc(service, file, parser, ds):
     agent = _config.get(service, "agent")
     source = _config.get(service, "source")
     service_name = _config.get(service, "service")
-    identifier = _config.get(service, "identifier")
     citations = []
-    for citation_data in tqdm(citation_data_list, disable=_multiprocess):
+    for citation_data in tqdm(citation_data_list, disable=multiprocess):
         (
             citing,
             cited,
@@ -157,7 +158,7 @@ def cnc(service, file, parser, ds):
 
             citations.append(
                 Citation(
-                    _oci_manager.get_oci(citing, cited, prefix),
+                    oci_manager.get_oci(citing, cited, prefix),
                     idbase_url + quote(citing),
                     citing_date,
                     idbase_url + quote(cited),
@@ -196,8 +197,7 @@ def cnc(service, file, parser, ds):
     return citations
 
 
-def worker_body(input_files, output, service, tid):
-    global _multiprocess
+def worker_body(input_files, output, service, tid, multiprocess):
     global _config
 
     service_ds = _config.get(service, "datasource")
@@ -210,7 +210,7 @@ def worker_body(input_files, output, service, tid):
         raise Exception(service_ds + " is not a valid data source")
 
     logger = get_logger()
-    parser = get_parser(service)
+    parser = CitationParser.get_parser(service)
     baseurl = baseurl = _config.get(service, "baseurl")
     storer = CitationStorer(
         output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
@@ -219,22 +219,18 @@ def worker_body(input_files, output, service, tid):
     logger.info("Working on " + str(len(input_files)) + " files")
 
     for file in input_files:
-        citations = cnc(service, file, parser, ds)
+        citations = cnc(service, file, parser, ds, multiprocess)
 
         logger.info("Saving citations...")
-        for citation in tqdm(citations, disable=_multiprocess):
+        for citation in tqdm(citations, disable=multiprocess):
             storer.store_citation(citation)
 
         logger.info(f"{len(citations)} citations saved")
 
 
-def get_parser(service):
-    # Initialize the parser
-    module, classname = _config.get(service, "parser").split(":")
-    return getattr(importlib.import_module(module), classname)()
-
-
 def main():
+    global _config
+
     arg_parser = ArgumentParser(description="CNC - create new citations")
     arg_parser.add_argument(
         "-i",
@@ -253,7 +249,7 @@ def main():
         "--service",
         required=True,
         choices=_config.get("cnc", "services").split(","),
-        help="Parser to use to read the input",
+        help="Service config to use, e.g. for parser, identifier type, etc..",
     )
     arg_parser.add_argument(
         "-w",
@@ -272,9 +268,6 @@ def main():
     service = args.service
     workers = args.workers
 
-    global _multiprocess
-    _multiprocess = workers > 1
-
     if not os.path.exists(input):
         logger.error(
             "The path specified as input value is not present in the file system."
@@ -282,7 +275,7 @@ def main():
 
     logger.info("Browse input to find files to parse")
     input_files = []
-    parser = get_parser(service)
+    parser = CitationParser.get_parser(service)
     if os.path.isdir(input):
         for current_dir, _, current_files in os.walk(input):
             for current_file in current_files:
@@ -296,7 +289,8 @@ def main():
     start = time.time()
     workers_list = []
     last_index = 0
-    if _multiprocess:
+    multiprocess = workers > 1
+    if multiprocess:
         # Disable tqdm for multithreading
         logger.info(f"Multitprocessing ON, starting {workers} workers")
         chunk_size = math.ceil(len(input_files) / workers)
@@ -308,6 +302,7 @@ def main():
                     output,
                     service,
                     tid + 1,
+                    multiprocess,
                 ),
             )
             last_index += chunk_size
@@ -317,8 +312,10 @@ def main():
         logger.info("All workers have been started")
 
     # No active wait also the main thread work on processing file
-    worker_body(input_files[last_index : len(input_files)], output, service, 0)
-    if _multiprocess:
+    worker_body(
+        input_files[last_index : len(input_files)], output, service, 0, multiprocess
+    )
+    if multiprocess:
         for worker in workers_list:
             worker.join()
 

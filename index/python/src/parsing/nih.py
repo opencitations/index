@@ -20,6 +20,7 @@ import pandas as pd
 
 class NIHParser(CitationParser):
     def __init__(self):
+        super().__init__()
         self._rows = []
         self._pmid_manager = PMIDManager()
 

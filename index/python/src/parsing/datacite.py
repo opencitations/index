@@ -20,6 +20,7 @@ from oc.index.parsing.base import CitationParser
 
 class DataciteParser(CitationParser):
     def __init__(self):
+        super().__init__()
         self._rows = []
         self._doi_manager = DOIManager()
 

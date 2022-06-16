@@ -13,10 +13,14 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+import importlib
+
 from abc import ABCMeta, abstractmethod
 from os import strerror
 from os.path import exists, isfile
 from errno import ENOENT
+
+from oc.index.utils.config import get_config
 
 
 class CitationParser(metaclass=ABCMeta):
@@ -27,6 +31,13 @@ class CitationParser(metaclass=ABCMeta):
     def __init__(self):
         self._current_item = 0
         self._items = 0
+
+    @staticmethod
+    def get_parser(service):
+        # Initialize the parser
+        config = get_config()
+        module, classname = config.get(service, "parser").split(":")
+        return getattr(importlib.import_module(module), classname)()
 
     @abstractmethod
     def is_valid(self, filename: str):
