@@ -12,7 +12,7 @@ from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.pmid import PMIDManager
-from oc.index.scripts.doci_glob import (
+from oc.index.scripts.glob_doci import (
     issn_data_recover_doci,
     issn_data_to_cache_doci,
     get_all_files_doci,
@@ -20,14 +20,14 @@ from oc.index.scripts.doci_glob import (
     load_json_doci,
     process_doci,
 )
-from oc.index.scripts.noci_glob import (
+from oc.index.scripts.glob_noci import (
     issn_data_recover_noci,
     issn_data_to_cache_noci,
     build_pubdate_noci,
     get_all_files_noci,
     process_noci,
 )
-from oc.index.scripts.crossref_glob import (
+from oc.index.scripts.glob_crossref import (
     build_pubdate_coci,
     get_all_files_coci,
     load_json_coci,
