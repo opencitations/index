@@ -156,7 +156,7 @@ def process_coci(input_dir, output_dir):
                     # valid_doi.add_value(citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i")
                     valid_doi.add_value(
                         citing_doi, "v"
-                    )  # NB:  add value aggiunge l'id se non c'era e aggiunge il valore al set di valori. Cosa succede se il valore c'è giù ed è invalid?
+                    )
 
                     if id_date.get_value(citing_doi) is None:
                         citing_date = Citation.check_date(build_pubdate_coci(obj))
@@ -213,19 +213,19 @@ def process_coci(input_dir, output_dir):
                                     cited_doi,
                                     "v" if doi_manager.is_valid(cited_doi) else "i",
                                 )
-                                if (
-                                    valid_doi.get_value(cited_doi) == "v"
-                                    and id_date.get_value(cited_doi) is None
-                                ):
-                                    if cited_doi not in doi_date:
-                                        doi_date[cited_doi] = []
-                                    cited_date = Citation.check_date(
-                                        build_pubdate_coci(ref)
-                                    )
-                                    if cited_date is not None:
-                                        doi_date[cited_doi].append(cited_date)
-                                        if cited_doi in citing_doi_with_no_date:
-                                            citing_doi_with_no_date.remove(cited_doi)
+                            if (
+                                valid_doi.get_value(cited_doi) == {"v"}
+                                and id_date.get_value(cited_doi) is None
+                            ):
+                                if cited_doi not in doi_date:
+                                    doi_date[cited_doi] = []
+                                cited_date = Citation.check_date(
+                                    build_pubdate_coci(ref)
+                                )
+                                if cited_date is not None:
+                                    doi_date[cited_doi].append(cited_date)
+                                    if cited_doi in citing_doi_with_no_date:
+                                        citing_doi_with_no_date.remove(cited_doi)
 
     # Add the date to the DOI if such date is the most adopted one in the various references.
     # In case two distinct dates are used the most, select the older one.
@@ -285,4 +285,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-# python "scripts/crossref_glob.py" -i ./index/python/test/data/crossref_glob_dump_input -o ./index/python/test/data/crossref_glob_dump_output
+# python "scripts/glob_crossref.py" -i ./index/python/test/data/crossref_glob_dump_input -o ./index/python/test/data/crossref_glob_dump_output

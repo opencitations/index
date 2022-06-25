@@ -5,6 +5,7 @@ build
 .idea
 oc_index.egg-info
 .DS_Store
+venv
 
 # Reference: 
 # https://github.com/github/gitignore
