@@ -281,7 +281,6 @@ def main():
     process_coci(args.input, args.output)
 
 
-# Added for testing purposes, in the official version it should be removed
 if __name__ == "__main__":
     main()
 

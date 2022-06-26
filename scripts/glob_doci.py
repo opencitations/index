@@ -353,11 +353,7 @@ def process_doci(input_dir, output_dir, n):
                                             relatedDOI = doi_manager.normalise(
                                                 related["relatedIdentifier"], True
                                             )
-                                            if (
-                                                valid_doi.get_value(relatedDOI) is None
-                                                or valid_doi.get_value(relatedDOI)
-                                                == "i"
-                                            ):
+                                            if valid_doi.get_value(relatedDOI) is None:
                                                 # condizione aggiunta per evitare di validare di nuovo tramite API doi già validati
                                                 valid_doi.add_value(
                                                     relatedDOI,
@@ -366,6 +362,8 @@ def process_doci(input_dir, output_dir, n):
                                                     else "i",
                                                 )
                                                 cited_dois += 1
+                                            if valid_doi.get_value(relatedDOI) == {"v"} and id_date.get_value(relatedDOI) is None:
+                                                citing_doi_with_no_date.add(relatedDOI)
 
     for doi in citing_doi_with_no_date:
         id_date.add_value(doi, "")
@@ -409,8 +407,7 @@ def main():
     process_doci(args.input, args.output, args.num_entities)
 
 
-# Added for testing purposes, in the official version it should be removed
 if __name__ == "__main__":
     main()
 
-# python "scripts/doci_glob.py" -i ./index/python/test/data/doci_glob_dump_input -o ./index/python/test/data/doci_glob_dump_output -n 3
+# python "scripts/glob_doci.py" -i ./index/python/test/data/doci_glob_dump_input -o ./index/python/test/data/doci_glob_dump_output -n 3

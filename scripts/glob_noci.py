@@ -240,6 +240,8 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                                 cited_pmid,
                                 "v" if pmid_manager.is_valid(cited_pmid) else "i",
                             )
+                        if valid_pmid.get_value(cited_pmid) == {"v"} and id_date.get_value(cited_pmid) is None:
+                            citing_pmid_with_no_date.add(cited_pmid)
                 if row["cited_by"] != "":
                     citing_string = row["cited_by"].strip()
                     citing_string_norm = re.sub("\s+", " ", citing_string)
@@ -251,6 +253,8 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                                 citing_p,
                                 "v" if pmid_manager.is_valid(citing_p) else "i",
                             )
+                        if (valid_pmid.get_value(citing_p) == {"v"} and id_date.get_value(citing_p) is None):
+                            citing_pmid_with_no_date.add(citing_p)
 
     for pmid in citing_pmid_with_no_date:
         id_date.add_value(pmid, "")
@@ -300,8 +304,7 @@ def main():
     process_noci(args.input, args.output, args.entities, args.orcid)
 
 
-# For testing purposes
 if __name__ == "__main__":
     main()
 
-# python "scripts/noci_glob.py" -i ./index/python/test/data/noci_glob_dump_input -o ./index/python/test/data/noci_glob_dump_output -n 7 -iod ./index/python/test/data/noci_id_orcid_mapping/doi_orcid_index.zip
+# python "scripts/glob_noci.py" -i ./index/python/test/data/noci_glob_dump_input -o ./index/python/test/data/noci_glob_dump_output -n 7 -iod ./index/python/test/data/noci_id_orcid_mapping/doi_orcid_index.zip
