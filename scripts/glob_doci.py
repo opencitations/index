@@ -354,7 +354,6 @@ def process_doci(input_dir, output_dir, n):
                                                 related["relatedIdentifier"], True
                                             )
                                             if valid_doi.get_value(relatedDOI) is None:
-                                                # condizione aggiunta per evitare di validare di nuovo tramite API doi già validati
                                                 valid_doi.add_value(
                                                     relatedDOI,
                                                     "v"

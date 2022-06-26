@@ -253,7 +253,7 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                                 citing_p,
                                 "v" if pmid_manager.is_valid(citing_p) else "i",
                             )
-                        if (valid_pmid.get_value(citing_p) == {"v"} and id_date.get_value(citing_p) is None):
+                        if valid_pmid.get_value(citing_p) == {"v"} and id_date.get_value(citing_p) is None:
                             citing_pmid_with_no_date.add(citing_p)
 
     for pmid in citing_pmid_with_no_date:
