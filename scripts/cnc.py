@@ -203,9 +203,9 @@ def worker_body(input_files, output, service, tid, multiprocess):
     service_ds = _config.get(service, "datasource")
     ds = None
     if service_ds == "redis":
-        ds = RedisDataSource()
+        ds = RedisDataSource(service)
     elif service_ds == "csv":
-        ds = CSVDataSource()
+        ds = CSVDataSource(service)
     else:
         raise Exception(service_ds + " is not a valid data source")
 

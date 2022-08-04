@@ -21,11 +21,12 @@ from oc.index.glob.datasource import DataSource
 
 
 class RedisDataSource(DataSource):
-    def __init__(self):
+    def __init__(self, service):
+        super().__init__(service)
         self._r = redis.Redis(
             host=get_config().get("redis", "host"),
             port=get_config().get("redis", "port"),
-            db=get_config().get("redis", "db"),
+            db=get_config().get(service, "db"),
         )
 
     def get(self, resource_id):

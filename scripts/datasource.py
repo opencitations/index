@@ -112,6 +112,13 @@ def main():
         choices=["csv2redis"],
     )
     arg_parser.add_argument(
+        "-s",
+        "--service",
+        required=True,
+        choices=_config.get("cnc", "services").split(","),
+        help="Service config to use, e.g. for parser, identifier type, etc..",
+    )
+    arg_parser.add_argument(
         "-i",
         "--input",
         required=True,
@@ -130,6 +137,7 @@ def main():
 
     # Arguments
     input = args.input
+    service = args.service
     identifier = args.identifier
 
     id_orcid = os.path.join(input, "id_orcid.csv")
@@ -151,7 +159,7 @@ def main():
         logger.error("valid_" + identifier + ".csv not found in the input directory")
         raise FileNotFoundError(ENOENT, os.strerror(ENOENT), valid_id)
 
-    ds = RedisDataSource()
+    ds = RedisDataSource(service)
 
     logger.info("Populating the datasource with glob files...")
     start = time.time()

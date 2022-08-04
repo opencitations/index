@@ -23,7 +23,7 @@ class CrowdsourcedParser(CitationParser):
     def __init__(self):
         super().__init__()
         self._rows = []
-        self._doi_manager = DOIManager()
+        self._doi_manager = DOIManager() # MIDManager()
 
     def is_valid(self, filename: str):
         super().is_valid(filename)

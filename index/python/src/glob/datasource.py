@@ -22,6 +22,9 @@ from abc import ABCMeta, abstractmethod
 
 
 class DataSource(metaclass=ABCMeta):
+    def __init__(self, service):
+        self._service = service
+
     def new(self):
         return {"date": None, "valid": False, "issn": [], "orcid": []}
 

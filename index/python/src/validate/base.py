@@ -21,6 +21,9 @@ from abc import ABCMeta, abstractmethod
 from oc.index.oci.citation import OCIManager
 from oc.index.utils.config import get_config
 
+from os.path import join
+from csv import DictReader
+
 
 class CitationValidator(metaclass=ABCMeta):
     def __init__(self, service):
@@ -36,7 +39,7 @@ class CitationValidator(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def validate_citations(self, input_files, result_map, output_directory):
+    def validate_citations(self, input_directory, result_map, output_directory):
         pass
 
     @staticmethod
