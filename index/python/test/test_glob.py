@@ -7,11 +7,12 @@ from shutil import rmtree
 import pandas as pd
 import json
 
-from oc.index.legacy.csv import CSVManager
+from oc.index.glob.csv import CSVDataSource
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.pmid import PMIDManager
+
 from oc.index.scripts.glob_doci import (
     issn_data_recover_doci,
     issn_data_to_cache_doci,
@@ -20,6 +21,7 @@ from oc.index.scripts.glob_doci import (
     load_json_doci,
     process_doci,
 )
+
 from oc.index.scripts.glob_noci import (
     issn_data_recover_noci,
     issn_data_to_cache_noci,
@@ -27,12 +29,15 @@ from oc.index.scripts.glob_noci import (
     get_all_files_noci,
     process_noci,
 )
+
+
 from oc.index.scripts.glob_crossref import (
     build_pubdate_coci,
     get_all_files_coci,
     load_json_coci,
     process_coci,
 )
+
 
 
 class GlobTest(unittest.TestCase):
@@ -46,10 +51,7 @@ class GlobTest(unittest.TestCase):
         # COCI
         self.inp_coci = join(self.test_dir, "crossref_glob_dump_input")
         self.out_coci = join(self.test_dir, "crossref_glob_dump_output")
-        self.valid_doi_coci = CSVManager(join(self.out_coci, "valid_doi.csv"))
-        self.id_date_coci = CSVManager(join(self.out_coci, "id_date.csv"))
-        self.id_issn_coci = CSVManager(join(self.out_coci, "id_issn.csv"))
-        self.id_orcid_coci = CSVManager(join(self.out_coci, "id_orcid.csv"))
+        self.coci_datasource = CSVDataSource("COCI")
         self.dir_get_all_files_coci = join(self.test_dir, "crossref_glob_dump_input")
         self.sample_doi_coci = self.doi_manager.normalise("10.7717/peerj.4375", True)
         self.sample_reference_coci = self.doi_manager.normalise(
@@ -66,10 +68,7 @@ class GlobTest(unittest.TestCase):
         # DOCI
         self.inp_doci = join(self.test_dir, "doci_glob_dump_input")
         self.out_doci = join(self.test_dir, "doci_glob_dump_output")
-        self.valid_doi_doci = CSVManager(join(self.out_doci, "valid_doi.csv"))
-        self.id_date_doci = CSVManager(join(self.out_doci, "id_date.csv"))
-        self.id_issn_doci = CSVManager(join(self.out_doci, "id_issn.csv"))
-        self.id_orcid_doci = CSVManager(join(self.out_doci, "id_orcid.csv"))
+        self.doci_datasource = CSVDataSource("DOCI")
         self.issn_journal_doci = {
             "european journal of organic chemistry": ["1434193X"],
             "drug delivery and translational research": ["2190-3948"],
@@ -92,10 +91,7 @@ class GlobTest(unittest.TestCase):
             self.test_dir, "noci_id_orcid_mapping", "doi_orcid_index.zip"
         )
         self.n_noci = 3
-        self.valid_pmid = CSVManager(join(self.out_noci, "valid_pmid.csv"))
-        self.id_date_noci = CSVManager(join(self.out_noci, "id_date.csv"))
-        self.id_issn_noci = CSVManager(join(self.out_noci, "id_issn.csv"))
-        self.id_orcid_noci = CSVManager(join(self.out_noci, "id_orcid.csv"))
+        self.noci_datasource = CSVDataSource("NOCI")
         self.issn_journal_noci = {
             "N Biotechnol": ["1871-6784"],
             "Biochem Med": ["0006-2944"],
@@ -137,15 +133,13 @@ class GlobTest(unittest.TestCase):
         citing_doi = self.doi_manager.normalise(self.sample_doi_coci, True)
         citing_doi_2 = self.doi_manager.normalise(self.sample_doi_coci_2, True)
         self.assertEqual(
-            self.id_orcid_coci.get_value(citing_doi_2),
+            self.coci_datasource.get(citing_doi_2)["orcid"],
             {"0000-0003-0530-4305", "0000-0002-7562-5203"},
         )
-        self.assertEqual(self.valid_doi_coci.get_value(citing_doi), {"v"})
-        self.assertEqual(
-            self.valid_doi_coci.get_value(self.sample_reference_coci), {"v"}
-        )
-        self.assertEqual(self.id_date_coci.get_value(citing_doi), {"2018-02-13"})
-        self.assertEqual(self.id_issn_coci.get_value(citing_doi), {"2167-8359"})
+        self.assertEqual(self.coci_datasource.get(citing_doi)["valid"], {"v"})
+        self.assertEqual(self.coci_datasource.get(self.sample_reference_coci)["valid"], {"v"})
+        self.assertEqual(self.coci_datasource.get(citing_doi)["date"], {"2018-02-13"})
+        self.assertEqual(self.coci_datasource.get(citing_doi)["issn"], {"2167-8359"})
 
     # TEST DOCI GLOB
     def test_issn_data_recover_doci(self):
@@ -211,15 +205,11 @@ class GlobTest(unittest.TestCase):
         self.assertEqual(len(os.listdir(self.out_doci)), 5)
 
         citing_doi = "doi:10.1002/ejoc.201800947"
-        self.assertEqual(
-            self.id_orcid_doci.get_value(citing_doi), {"0000-0002-2397-9093"}
-        )
-        self.assertEqual(self.valid_doi_doci.get_value(citing_doi), {"v"})
-        self.assertEqual(
-            self.valid_doi_doci.get_value(self.sample_reference_doci), {"v"}
-        )
-        self.assertEqual(self.id_date_doci.get_value(citing_doi), {"2018-11-25"})
-        self.assertEqual(self.id_issn_doci.get_value(citing_doi), {"1434-193X"})
+        self.assertEqual(self.doci_datasource.get(citing_doi)["orcid"], {"0000-0002-2397-9093"})
+        self.assertEqual(self.doci_datasource.get(citing_doi)["valid"], {"v"})
+        self.assertEqual(self.doci_datasource.get(self.sample_reference_doci)["valid"], {"v"})
+        self.assertEqual(self.doci_datasource.get(citing_doi)["date"], {"2018-11-25"})
+        self.assertEqual(self.doci_datasource.get(citing_doi)["issn"], {"1434-193X"})
 
     # TEST NOCI GLOB
     def test_issn_data_recover_noci(self):
@@ -286,13 +276,14 @@ class GlobTest(unittest.TestCase):
         self.assertEqual(len(os.listdir(self.out_noci)), 5)
 
         citing_pmid = "pmid:2"
-        self.assertEqual(
-            self.id_orcid_noci.get_value(citing_pmid), {"0000-0003-0014-4963"}
-        )
-        self.assertEqual(self.valid_pmid.get_value(citing_pmid), {"v"})
-        self.assertEqual(self.valid_pmid.get_value(self.sample_reference_noci), {"v"})
-        self.assertEqual(self.id_date_noci.get_value(citing_pmid), {"1975"})
-        self.assertEqual(self.id_issn_noci.get_value(citing_pmid), {"0006-291X"})
+        citing_pmid5 = "pmid:5"
+        self.assertEqual(self.noci_datasource.get(citing_pmid)["orcid"], None)
+        # self.assertEqual(self.noci_datasource.get(citing_pmid5)["orcid"], {"0000-0002-4762-5345"})
+        # run the glob process with credetials to make this test assertion pass
+        self.assertEqual(self.noci_datasource.get(citing_pmid)["valid"], {"v"})
+        self.assertEqual(self.noci_datasource.get(self.sample_reference_noci)["valid"], {"v"})
+        self.assertEqual(self.noci_datasource.get(citing_pmid)["date"], {"1975"})
+        self.assertEqual(self.noci_datasource.get(citing_pmid)["issn"], {"0006-291X"})
 
         # try again with doi_orcid mapping folder
         # for files in os.listdir(self.out_noci):

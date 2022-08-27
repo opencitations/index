@@ -24,8 +24,8 @@ from oc.index.utils.logging import get_logger
 
 
 class DataciteValidator(CitationValidator):
-    def __init__(self, service):
-        super().__init__(service)
+    def __init__(self):
+        super().__init__("DOCI")
         self._doi_manager = DOIManager()
         self._logger = get_logger()
 
@@ -58,18 +58,31 @@ class DataciteValidator(CitationValidator):
                                     # in the case this is a duplicate.
                                     if oci not in result_map:
                                         query.append(oci)
+                            elif relationType == "isreferencedby" or relationType == "iscitedby":
+                                cited = citing
+                                if rel_id is not None:
+                                    oci = self._oci_manager.get_oci(
+                                        rel_id, cited, prefix=self._prefix
+                                    ).replace("oci:", "")
+                                    # Add oci only if has not been processed in the past
+                                    # in the case this is a duplicate.
+                                    if oci not in result_map:
+                                        query.append(oci)
+
         return query
 
-    def validate_citations(self, input_files, result_map, output_directory):
+    def validate_citations(self, input_directory, result_map, output_directory):
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
         needed_info = ["relationType", "relatedIdentifierType", "relatedIdentifier"]
-        for filename in os.listdir(input_files):
+        for filename in os.listdir(input_directory):
             if filename.endswith(".json"):
                 json_content = {"data": []}
 
                 # Build the OCI lookup query
                 self._logger.info("Reading citation data from " + filename)
                 query = []
-                with open(filename, encoding="utf8") as fp:
+                with open(os.path.join(input_directory, filename), encoding="utf8") as fp:
                     json_content = json.load(fp)
                 for row in tqdm(json_content["data"]):
                     attr = row.get("attributes")
@@ -86,6 +99,16 @@ class DataciteValidator(CitationValidator):
                                         if cited is not None:
                                             oci = self._oci_manager.get_oci(
                                                 citing, cited, prefix=self._prefix
+                                            ).replace("oci:", "")
+                                            # Add oci only if has not been processed in the past
+                                            # in the case this is a duplicate.
+                                            if oci not in result_map:
+                                                query.append(oci)
+                                    elif relationType == "isreferencedby" or relationType == "iscitedby":
+                                        cited = citing
+                                        if rel_id is not None:
+                                            oci = self._oci_manager.get_oci(
+                                                rel_id, cited, prefix=self._prefix
                                             ).replace("oci:", "")
                                             # Add oci only if has not been processed in the past
                                             # in the case this is a duplicate.
@@ -117,6 +140,19 @@ class DataciteValidator(CitationValidator):
                                         if cited is not None:
                                             oci = self._oci_manager.get_oci(
                                                 citing, cited, prefix=self._prefix
+                                            ).replace("oci:", "")
+                                            # Add oci only if has not been preprocessed and it is not a duplicate
+                                            if oci in result_map and not result_map[oci]:
+                                                # Set result map true for the oci to avoid duplicates
+                                                result_map[oci] = True
+                                                reference.append(ref)
+                                            else:
+                                                duplicated += 1
+                                    elif relationType == "isreferencedby" or relationType == "iscitedby":
+                                        cited = citing
+                                        if rel_id is not None:
+                                            oci = self._oci_manager.get_oci(
+                                                rel_id, cited, prefix=self._prefix
                                             ).replace("oci:", "")
                                             # Add oci only if has not been preprocessed and it is not a duplicate
                                             if oci in result_map and not result_map[oci]:

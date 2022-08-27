@@ -26,15 +26,43 @@ from timeit import default_timer as timer
 from re import sub
 import pandas as pd
 import codecs
+import requests
 
 from oc.index.oci.citation import Citation
-from oc.index.legacy.csv import CSVManager
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.pmid import PMIDManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 from oc.index.finder.orcid import ORCIDResourceFinder
 from oc.index.finder.crossref import CrossrefResourceFinder
+from oc.index.glob.csv import CSVDataSource
+
+
+def check_author_identity_api(uri, authors_dicts_list, orcid_client_id, orcid_client_secret):
+    data = {"client_id": orcid_client_id, "client_secret": orcid_client_secret,"grant_type": "client_credentials", "scope": "/read-public" }
+    response = requests.post(uri, headers = {"Accept": "application/json"}, data = data)
+    identity_verified = False
+    if response.status_code == 200:
+        json_response = response.json()
+        person = json_response["person"]
+        g_names = person["name"]["given-names"]["value"]
+        f_name = person["name"]["family-name"]["value"]
+        orcid_author_surnames_list = re.findall(
+                        "[a-zA-Z\'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}",
+                        f_name)
+        orcid_author_surnames_list_l = [x.lower() for x in orcid_author_surnames_list]
+        orcid_author_names_list = re.findall(
+                        "[a-zA-Z\'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}",
+                        g_names)
+        orcid_author_names_list_l = [x.lower() for x in orcid_author_names_list]
+
+        matches = [dict for dict in authors_dicts_list if
+                   [sn for sn in dict["surnames"] if sn in orcid_author_surnames_list_l] and [l for l in dict["names"] if any(
+                       element.startswith(l) and element not in dict["surnames"] for element in orcid_author_names_list_l)]]
+
+        if matches:
+            identity_verified = True
+    return identity_verified
 
 
 def issn_data_recover_noci(directory):
@@ -89,19 +117,13 @@ def get_all_files_noci(i_dir):
     return result, opener
 
 
-def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
+def process_noci(input_dir, output_dir, n, id_orcid_dir=None, orcid_client_id=None, orcid_client_secret=None):
+
     start = timer()
     if not exists(output_dir):
         makedirs(output_dir)
 
-    citing_pmid_with_no_date = set()
-    valid_pmid = CSVManager(output_dir + sep + "valid_pmid.csv")
-    id_date = CSVManager(output_dir + sep + "id_date.csv")
-    id_issn = CSVManager(output_dir + sep + "id_issn.csv")
-    id_orcid = CSVManager(output_dir + sep + "id_orcid.csv")
-
     journal_issn_dict = issn_data_recover_noci(output_dir)
-
     crossref_resource_finder = CrossrefResourceFinder()
     orcid_resource_finder = ORCIDResourceFinder()
 
@@ -109,6 +131,7 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
     pmid_manager = PMIDManager()
+    csv_datasource = CSVDataSource("NOCI")
 
     all_files, opener = get_all_files_noci(input_dir)
     len_all_files = len(all_files)
@@ -130,43 +153,62 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                     issn_data_to_cache_noci(journal_issn_dict, output_dir)
 
                 citing_pmid = pmid_manager.normalise(row["pmid"], True)
-                valid_pmid.add_value(citing_pmid, "v")
-                citing_doi = doi_manager.normalise(row["doi"], False)
-                if citing_doi and id_orcid.get_value(citing_pmid) is None:
-                    pmid_doi_map[citing_pmid] = {"doi": citing_doi, "has_orcid": False}
+                if citing_pmid is not None:
+                    authors_dicts_list = []
+                    authors_split_list = row["authors"].split(",")
+                    for author in authors_split_list:
+                        names = re.findall("([A-Z]|[ÄŐŰÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽÑ]){1}\s", author)
+                        strp_names = [(x.strip()).lower() for x in names]
+                        surnames = re.findall(
+                        "[a-zA-Z\'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}",
+                        author)
+                        surnames_l = [s.lower() for s in surnames]
+                        author_dict = {"names":strp_names, "surnames":surnames_l}
+                        authors_dicts_list.append(author_dict)
 
-                if id_date.get_value(citing_pmid) is None:
-                    citing_date = Citation.check_date(build_pubdate_noci(row))
-                    if citing_date is not None:
-                        id_date.add_value(citing_pmid, citing_date)
-                        if citing_pmid in citing_pmid_with_no_date:
-                            citing_pmid_with_no_date.remove(citing_pmid)
-                    else:
-                        citing_pmid_with_no_date.add(citing_pmid)
+                    if csv_datasource.get(citing_pmid) is None:
+                        entity = dict()
 
-                if id_issn.get_value(citing_pmid) is None:
-                    journal_name = row["journal"]
-                    if journal_name:
-                        if journal_name in journal_issn_dict.keys():
-                            for issn in journal_issn_dict[journal_name]:
-                                id_issn.add_value(citing_pmid, issn)
+                        entity["valid"] = True
+
+                        citing_doi = doi_manager.normalise(row["doi"], False)
+                        if citing_doi:
+                            pmid_doi_map[citing_pmid] = {"doi": citing_doi, "has_orcid": False, "all_authors_names": authors_dicts_list}
+
+                        citing_date = Citation.check_date(build_pubdate_noci(row))
+                        if citing_date is not None:
+                            entity["date"] = [citing_date]
+
+                        issn_list = []
+                        journal_name = row["journal"]
+                        if journal_name:
+                            if journal_name in journal_issn_dict.keys():
+                                for issn in journal_issn_dict[journal_name]:
+                                    issn_list.append(issn)
+
+                            else:
+                                if citing_doi is not None:
+                                    json_res = crossref_resource_finder._call_api(citing_doi)
+                                    if json_res is not None:
+                                        issn_set = crossref_resource_finder._get_issn(json_res)
+                                        if len(issn_set) > 0:
+                                            journal_issn_dict[journal_name] = []
+                                        for issn in issn_set:
+                                            issn_norm = issn_manager.normalise(str(issn))
+                                            issn_list.append(issn_norm)
+                                            journal_issn_dict[journal_name].append(issn_norm)
                         else:
                             if citing_doi is not None:
-                                json_res = crossref_resource_finder._call_api(
-                                    citing_doi
-                                )
+                                json_res = crossref_resource_finder._call_api(citing_doi)
                                 if json_res is not None:
-                                    issn_set = crossref_resource_finder._get_issn(
-                                        json_res
-                                    )
-                                    if len(issn_set) > 0:
-                                        journal_issn_dict[journal_name] = []
+                                    issn_set = crossref_resource_finder._get_issn(json_res)
                                     for issn in issn_set:
                                         issn_norm = issn_manager.normalise(str(issn))
-                                        id_issn.add_value(citing_pmid, issn_norm)
-                                        journal_issn_dict[journal_name].append(
-                                            issn_norm
-                                        )
+                                        issn_list.append(issn_norm)
+                        if issn_list != []:
+                            entity["issn"] = issn_list
+
+                        csv_datasource.set(citing_pmid, entity)
 
             if len(pmid_doi_map) > 0:
                 if id_orcid_dir and exists(id_orcid_dir):
@@ -190,29 +232,58 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                                         if v["doi"] == row["id"]
                                     ][
                                         0
-                                    ]  # To do: exact match
+                                    ]
                                     c_doi = doi_manager.normalise(row["id"], False)
+                                    #DA TESTARE
                                     orcid = re.search(
                                         "\[(([X0-9]\-?){4}){4}]",
                                         row["value"],
                                         re.IGNORECASE,
                                     ).group(0)
-                                    if orcid:
+                                    author_name_parts = re.findall("[a-zA-Z\'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}", row["value"])
+                                    author_name_parts_l = [np.lower() for np in author_name_parts]
+                                    authors_dicts_list = pmid_doi_map[c_pmid]["all_authors_names"]
+                                    matches = [dict for dict in authors_dicts_list if [sn for sn in dict["surnames"] if sn in author_name_parts_l] and [l for l in dict["names"] if any(element.startswith(l) and element not in dict["surnames"] for element in author_name_parts_l)]]
+                                    if matches and orcid:
                                         nor_orcid = orcid_manager.normalise(orcid)
-                                        id_orcid.add_value(c_pmid, nor_orcid)
-                                        if pmid_doi_map[c_pmid]["has_orcid"] == False:
-                                            pmid_doi_map[c_pmid]["has_orcid"] = True
+                                        if nor_orcid:
+                                            c_pmid_entity = csv_datasource.get(c_pmid)
+                                            if c_pmid_entity["orcid"] is None:
+                                                c_pmid_entity["orcid"] = []
+                                                c_pmid_entity["orcid"].append(nor_orcid)
+                                            else:
+                                                c_pmid_entity["orcid"] = list(c_pmid_entity["orcid"])
+                                                c_pmid_entity["orcid"].append(nor_orcid)
 
-                for citing_pmid, d in pmid_doi_map.items():
-                    if d["has_orcid"] == False:
-                        json_res = orcid_resource_finder._call_api(d["doi"])
-                        if json_res is not None:
-                            orcid_set = orcid_resource_finder._get_orcid(json_res)
-                            if len(orcid_set) > 0:
-                                d["has_orcid"] = True
-                                for orcid in orcid_set:
-                                    orcid_norm = orcid_manager.normalise(orcid)
-                                    id_orcid.add_value(citing_pmid, orcid_norm)
+                                            csv_datasource.set(c_pmid, c_pmid_entity)
+                                            if pmid_doi_map[c_pmid]["has_orcid"] == False:
+                                                pmid_doi_map[c_pmid]["has_orcid"] = True
+
+                if orcid_client_id and orcid_client_secret:
+                    for citing_pmid, d in pmid_doi_map.items():
+                        if d["has_orcid"] == False:
+                            json_res = orcid_resource_finder._call_api(d["doi"])
+                            if json_res is not None and len(json_res)> 0:
+                                # To do: check if absence of result with orcid resource finder
+                                # implies absence of result also with access token
+                                certified_orcid = []
+                                for orcid_dict in json_res:
+                                    json_uri = orcid_dict["orcid-identifier"]["uri"]
+                                    chek_passed = check_author_identity_api(json_uri, d["all_authors_names"], orcid_client_id, orcid_client_secret)
+                                    norm_orc = orcid_manager.normalise(json_uri)
+                                    if chek_passed and norm_orc:
+                                        certified_orcid.append(norm_orc)
+
+                                citing_pmid_dict = csv_datasource.get(citing_pmid)
+
+                                if len(certified_orcid) > 0:
+                                    d["has_orcid"] = True
+                                    if citing_pmid_dict["orcid"] is None:
+                                        citing_pmid_dict["orcid"] = certified_orcid
+                                    else:
+                                        citing_pmid_dict["orcid"].extend(certified_orcid)
+                                    csv_datasource.set(citing_pmid,citing_pmid_dict)
+
 
             pmid_doi_map = dict()
             issn_data_to_cache_noci(journal_issn_dict, output_dir)
@@ -235,29 +306,26 @@ def process_noci(input_dir, output_dir, n, id_orcid_dir=None):
                     cited_pmids = set(ref_string_norm.split(" "))
                     for cited_pmid in cited_pmids:
                         cited_pmid = pmid_manager.normalise(cited_pmid, True)
-                        if valid_pmid.get_value(cited_pmid) is None:
-                            valid_pmid.add_value(
-                                cited_pmid,
-                                "v" if pmid_manager.is_valid(cited_pmid) else "i",
-                            )
-                        if valid_pmid.get_value(cited_pmid) == {"v"} and id_date.get_value(cited_pmid) is None:
-                            citing_pmid_with_no_date.add(cited_pmid)
+
+                        if cited_pmid is not None:
+                            cited_pmid_entity = csv_datasource.get(cited_pmid)
+                            if cited_pmid_entity is None:
+                                cited_pmid_entity = dict()
+                                cited_pmid_entity["valid"] = (True if pmid_manager.is_valid(cited_pmid) else False)
+                                csv_datasource.set(cited_pmid, cited_pmid_entity)
+
                 if row["cited_by"] != "":
                     citing_string = row["cited_by"].strip()
                     citing_string_norm = re.sub("\s+", " ", citing_string)
                     citing_pmids = set(citing_string_norm.split(" "))
                     for citing_p in citing_pmids:
                         citing_p = pmid_manager.normalise(citing_p, True)
-                        if valid_pmid.get_value(citing_p) is None:
-                            valid_pmid.add_value(
-                                citing_p,
-                                "v" if pmid_manager.is_valid(citing_p) else "i",
-                            )
-                        if valid_pmid.get_value(citing_p) == {"v"} and id_date.get_value(citing_p) is None:
-                            citing_pmid_with_no_date.add(citing_p)
-
-    for pmid in citing_pmid_with_no_date:
-        id_date.add_value(pmid, "")
+                        if citing_p is not None:
+                            citing_p_entity = csv_datasource.get(citing_p)
+                            if citing_p_entity is None:
+                                citing_p_entity = dict()
+                                citing_p_entity["valid"] = (True if pmid_manager.is_valid(citing_p) else False)
+                                csv_datasource.set(citing_p, citing_p_entity)
 
     end = timer()
     # print("second process duration: ", end-middle)
@@ -300,8 +368,30 @@ def main():
         help="Either the directory or the zip file that contains the id-orcid mapping data.",
     )
 
+    arg_parser.add_argument(
+        "-oci",
+        "--orcid_client_id",
+        dest="orcid_client_id",
+        required=False,
+        help="ORCID credentials: orcid client ID, to double check that the identity of the authors declared in NIH "
+             "dump corresponds to the ORCID registry data. The credentials are required to obtain the token, which is"
+             "required in order to access ORCID public API. Client ID and Client secret can be required in the "
+             "Developer tools section of the ORCID platform.",
+    )
+
+    arg_parser.add_argument(
+        "-ocs",
+        "--orcid_client_secret",
+        dest="orcid_client_secret",
+        required=False,
+        help="ORCID credentials: orcid password, to double check that the identity of the authors declared in NIH "
+             "dump corresponds to the ORCID registry data. The credentials are required to obtain the token, which is"
+             "required in order to access ORCID public API. Client ID and Client secret can be required in the "
+             "Developer tools section of the ORCID platform.",
+    )
+
     args = arg_parser.parse_args()
-    process_noci(args.input, args.output, args.entities, args.orcid)
+    process_noci(args.input, args.output, args.entities, args.orcid, args.orcid_client_id, args.orcid_client_secret)
 
 
 if __name__ == "__main__":
