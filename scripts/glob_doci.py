@@ -24,10 +24,11 @@ from tqdm import tqdm
 import json
 import tarfile
 
-from oc.index.legacy.csv import CSVManager
+#from oc.index.legacy.csv import CSVManager
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
+from oc.index.glob.csv import CSVDataSource
 
 
 def issn_data_recover_doci(directory):
@@ -136,17 +137,17 @@ def process_doci(input_dir, output_dir, n):
     if not exists(output_dir):
         makedirs(output_dir)
 
-    citing_doi_with_no_date = set()
-    valid_doi = CSVManager(output_dir + sep + "valid_doi.csv")
-    id_date = CSVManager(output_dir + sep + "id_date.csv")
-    id_issn = CSVManager(output_dir + sep + "id_issn.csv")
-    id_orcid = CSVManager(output_dir + sep + "id_orcid.csv")
+    # valid_doi = CSVManager(output_dir + sep + "valid_doi.csv")
+    # id_date = CSVManager(output_dir + sep + "id_date.csv")
+    # id_issn = CSVManager(output_dir + sep + "id_issn.csv")
+    # id_orcid = CSVManager(output_dir + sep + "id_orcid.csv")
 
     journal_issn_dict = issn_data_recover_doci(output_dir)
 
     doi_manager = DOIManager()
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
+    csv_datasource = CSVDataSource("DOCI")
 
     all_files, targz_fd = get_all_files_doci(input_dir)
     len_all_files = len(all_files)
@@ -167,12 +168,14 @@ def process_doci(input_dir, output_dir, n):
                 relatedIdentifiers = attributes["relatedIdentifiers"]
                 citing_doi = doi_manager.normalise(citing_doi, True)
                 # valid_doi.add_value(citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i")
-                valid_doi.add_value(
-                    citing_doi, "v"
-                )  # NB:  add value aggiunge l'id se non c'era e aggiunge il valore al set di valori. Cosa succede se il valore c'è giù ed è invalid?
+                if citing_doi is not None:
+                    entity = csv_datasource.get(citing_doi)
+                    if entity is None:
+                        entity = dict()
+                        entity["valid"] = True
 
-                # collect the date of issue if there is, otherwise the year of publciation
-                if id_date.get_value(citing_doi) is None:
+                    # collect the date of issue if there is, otherwise the year of publcation
+                    citing_date = []
                     listDates = attributes["dates"]
                     publicationYear = attributes["publicationYear"]
 
@@ -198,56 +201,38 @@ def process_doci(input_dir, output_dir, n):
                                     if valid_date_doci(str(iss_date["date"]))
                                 ]
                                 for flt_iss_date in flt_issue_dates:
-                                    id_date.add_value(
-                                        citing_doi,
+                                    citing_date.append(
                                         valid_date_doci(str(flt_iss_date["date"])),
                                     )
-                                    if citing_doi in citing_doi_with_no_date:
-                                        citing_doi_with_no_date.remove(citing_doi)
                                     break
 
-                            # c'è listDates, almeno uno degli elementi ha "issued" come valore del campo "dateType"
-                            # ma nessuna delle date in listDates ha una data valida nel campo "date"
+                            # listDates exists and at least one of its element has "issued" in "dateType"
+                            # but none of the dates in listDates has a valid date in "date"
                             elif publicationYear:
                                 publicationYear = valid_date_doci(str(publicationYear))
                                 if publicationYear:
-                                    id_date.add_value(citing_doi, publicationYear)
-                                    if citing_doi in citing_doi_with_no_date:
-                                        citing_doi_with_no_date.remove(citing_doi)
-                                else:
-                                    citing_doi_with_no_date.add(citing_doi)
-                            else:
-                                citing_doi_with_no_date.add(citing_doi)
+                                    citing_date.append(publicationYear)
 
-                        # c'è listDates ma nessuno degli elementi ha come dateType "issued"
+                        # listDates exists but none of its elements has "issued" in "dateType"
                         elif publicationYear:
                             publicationYear = valid_date_doci(str(publicationYear))
                             if publicationYear:
-                                id_date.add_value(citing_doi, publicationYear)
-                                if citing_doi in citing_doi_with_no_date:
-                                    citing_doi_with_no_date.remove(citing_doi)
-                            else:
-                                citing_doi_with_no_date.add(citing_doi)
-                        else:
-                            citing_doi_with_no_date.add(citing_doi)
+                                citing_date.append(publicationYear)
 
-                    # Non c'è listDates, non ci sono elementi in listDates
+                    # listDates is an empty list: no dates in listDates
                     elif publicationYear:
                         publicationYear = valid_date_doci(str(publicationYear))
                         if publicationYear:
-                            id_date.add_value(citing_doi, publicationYear)
-                            if citing_doi in citing_doi_with_no_date:
-                                citing_doi_with_no_date.remove(citing_doi)
-                        else:
-                            citing_doi_with_no_date.add(citing_doi)
-                    else:
-                        citing_doi_with_no_date.add(citing_doi)
+                            citing_date.append(publicationYear)
 
-                # collect the orcid of the contributors
-                if id_orcid.get_value(citing_doi) is None:
+                    if len(citing_date) > 0:
+                        entity["date"] = citing_date
+
+                    # collect the orcid of the contributors
+                    orcid_list = []
                     contributorList = attributes["creators"]
                     if contributorList != []:
-                        for author in contributorList:  # da qui!!
+                        for author in contributorList:
                             if "nameIdentifiers" in author.keys():
                                 infoAuthor = author["nameIdentifiers"]
                                 for element in infoAuthor:
@@ -262,13 +247,12 @@ def process_doci(input_dir, output_dir, n):
                                             if orcid is not None and orcid != "":
                                                 orcid = orcid_manager.normalise(orcid)
                                                 if orcid_manager.is_valid(orcid):
-                                                    id_orcid.add_value(
-                                                        citing_doi, orcid
-                                                    )
+                                                    orcid_list.append(orcid)
+                    if len(orcid_list)>0:
+                        entity["orcid"] = orcid_list
 
-                if id_issn.get_value(citing_doi) is None:
                     issn_set = set()
-
+                    valid_issn_list = []
                     if relatedIdentifiers != []:
                         for related in relatedIdentifiers:
                             if "relationType" in related.keys():
@@ -318,11 +302,15 @@ def process_doci(input_dir, output_dir, n):
                         normalised_issn_set.add(norm_issn)
                     for issn in normalised_issn_set:
                         if issn_manager.is_valid(issn):
-                            id_issn.add_value(citing_doi, issn)
+                            valid_issn_list.append(issn)
 
-                if int(count) != 0 and int(count) % int(n) == 0:
-                    # print("data to cache. processed entities:", count, ". transcription to cache n.", (int(count)//int(n)))
-                    issn_data_to_cache_doci(issnDict, output_dir)
+                    if len(valid_issn_list) >0:
+                        entity["issn"] = valid_issn_list
+
+                    csv_datasource.set(citing_doi, entity)
+
+                    if int(count) != 0 and int(count) % int(n) == 0:
+                        issn_data_to_cache_doci(issnDict, output_dir)
 
     issn_data_to_cache_doci(issnDict, output_dir)
     middle = timer()
@@ -353,22 +341,14 @@ def process_doci(input_dir, output_dir, n):
                                             relatedDOI = doi_manager.normalise(
                                                 related["relatedIdentifier"], True
                                             )
-                                            if (
-                                                valid_doi.get_value(relatedDOI) is None
-                                                or valid_doi.get_value(relatedDOI)
-                                                == "i"
-                                            ):
-                                                # condizione aggiunta per evitare di validare di nuovo tramite API doi già validati
-                                                valid_doi.add_value(
-                                                    relatedDOI,
-                                                    "v"
-                                                    if doi_manager.is_valid(relatedDOI)
-                                                    else "i",
-                                                )
-                                                cited_dois += 1
+                                            if relatedDOI is not None:
+                                                relatedDOI_entity = csv_datasource.get(relatedDOI)
+                                                if relatedDOI_entity is None:
+                                                    relatedDOI_entity = dict()
+                                                    relatedDOI_entity["valid"] = (True if doi_manager.is_valid(relatedDOI) else False)
+                                                    cited_dois += 1
+                                                    csv_datasource.set(relatedDOI, relatedDOI_entity)
 
-    for doi in citing_doi_with_no_date:
-        id_date.add_value(doi, "")
 
     end = timer()
     # print("second process duration: ", end-middle)
@@ -409,8 +389,7 @@ def main():
     process_doci(args.input, args.output, args.num_entities)
 
 
-# Added for testing purposes, in the official version it should be removed
 if __name__ == "__main__":
     main()
 
-# python "scripts/doci_glob.py" -i ./index/python/test/data/doci_glob_dump_input -o ./index/python/test/data/doci_glob_dump_output -n 3
+# python "scripts/glob_doci.py" -i ./index/python/test/data/doci_glob_dump_input -o ./index/python/test/data/doci_glob_dump_output -n 3

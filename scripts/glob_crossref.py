@@ -25,10 +25,11 @@ import tarfile
 
 
 from oc.index.oci.citation import Citation
-from oc.index.legacy.csv import CSVManager
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
+from oc.index.glob.csv import CSVDataSource
+
 
 
 def build_pubdate_coci(obj):
@@ -49,7 +50,7 @@ def build_pubdate_coci(obj):
                     except:
                         pass
 
-                # I have a date, so generate it
+                # there is a date, so generate it
                 if (
                     (1 < listdate[0] < 3000)
                     and (0 < listdate[1] <= 12)
@@ -131,15 +132,10 @@ def process_coci(input_dir, output_dir):
     if not exists(output_dir):
         makedirs(output_dir)
 
-    citing_doi_with_no_date = set()
-    valid_doi = CSVManager(output_dir + sep + "valid_doi.csv")
-    id_date = CSVManager(output_dir + sep + "id_date.csv")
-    id_issn = CSVManager(output_dir + sep + "id_issn.csv")
-    id_orcid = CSVManager(output_dir + sep + "id_orcid.csv")
-
     doi_manager = DOIManager()
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
+    csv_datasource = CSVDataSource("COCI")
 
     all_files, targz_fd = get_all_files_coci(input_dir)
     len_all_files = len(all_files)
@@ -153,52 +149,55 @@ def process_coci(input_dir, output_dir):
             for obj in data["items"]:
                 if "DOI" in obj:
                     citing_doi = doi_manager.normalise(obj["DOI"], True)
-                    # valid_doi.add_value(citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i")
-                    valid_doi.add_value(
-                        citing_doi, "v"
-                    )  # NB:  add value aggiunge l'id se non c'era e aggiunge il valore al set di valori. Cosa succede se il valore c'è giù ed è invalid?
+                    if citing_doi is not None:
+                        entity = csv_datasource.get(citing_doi)
+                        if entity is None:
+                            entity = dict()
+                            entity["valid"] = True
 
-                    if id_date.get_value(citing_doi) is None:
-                        citing_date = Citation.check_date(build_pubdate_coci(obj))
-                        if citing_date is not None:
-                            id_date.add_value(citing_doi, citing_date)
-                            if citing_doi in citing_doi_with_no_date:
-                                citing_doi_with_no_date.remove(citing_doi)
-                        else:
-                            citing_doi_with_no_date.add(citing_doi)
+                            citing_date = Citation.check_date(build_pubdate_coci(obj))
+                            if citing_date is not None:
+                                entity["date"] = [citing_date]
 
-                    if id_issn.get_value(citing_doi) is None:
-                        if "type" in obj:
-                            cur_type = obj["type"]
-                            if (
-                                cur_type is not None
-                                and "journal" in cur_type
-                                and "ISSN" in obj
-                            ):
-                                cur_issn = obj["ISSN"]
-                                if cur_issn is not None:
-                                    for issn in [
-                                        issn_manager.normalise(issn)
-                                        for issn in cur_issn
-                                    ]:
-                                        if issn is not None:
-                                            id_issn.add_value(citing_doi, issn)
+                            valid_issn_list = []
+                            if "type" in obj:
+                                cur_type = obj["type"]
+                                if (
+                                    cur_type is not None
+                                    and "journal" in cur_type
+                                    and "ISSN" in obj
+                                ):
+                                    cur_issn = obj["ISSN"]
+                                    if cur_issn is not None:
+                                        for issn in [
+                                            issn_manager.normalise(issn)
+                                            for issn in cur_issn
+                                        ]:
+                                            if issn is not None:
+                                                valid_issn_list.append(issn)
 
-                    if id_orcid.get_value(citing_doi) is None:
-                        if "author" in obj:
-                            cur_author = obj["author"]
-                            if cur_author is not None:
-                                for author in cur_author:
-                                    if "ORCID" in author:
-                                        orcid = orcid_manager.normalise(author["ORCID"])
-                                        if orcid is not None:
-                                            id_orcid.add_value(citing_doi, orcid)
+                            if len(valid_issn_list) > 0:
+                                entity["issn"] = valid_issn_list
+
+                            orcid_list = []
+                            if "author" in obj:
+                                cur_author = obj["author"]
+                                if cur_author is not None:
+                                    for author in cur_author:
+                                        if "ORCID" in author:
+                                            orcid = orcid_manager.normalise(author["ORCID"])
+                                            if orcid is not None:
+                                                orcid_list.append(orcid)
+                            if len(orcid_list) > 0 :
+                                entity["orcid"] = orcid_list
+                            csv_datasource.set(citing_doi, entity)
 
     middle = timer()
     # print("first process duration: :", (middle - start))
     # Do it again for updating the dates of the cited DOIs, if these are valid
     # print("\n\n# Check cited DOIs from Crossref reference field")
     doi_date = {}
+    entity_with_date_to_updete = {}
     for file_idx, file in enumerate(all_files, 1):
         data = load_json_coci(file, targz_fd, file_idx, len_all_files)
 
@@ -208,43 +207,47 @@ def process_coci(input_dir, output_dir):
                     for ref in obj["reference"]:
                         if "DOI" in ref:
                             cited_doi = str(doi_manager.normalise(ref["DOI"], True))
-                            if valid_doi.get_value(cited_doi) is None:
-                                valid_doi.add_value(
-                                    cited_doi,
-                                    "v" if doi_manager.is_valid(cited_doi) else "i",
-                                )
-                                if (
-                                    valid_doi.get_value(cited_doi) == "v"
-                                    and id_date.get_value(cited_doi) is None
-                                ):
+                            if cited_doi is not None:
+                                cited_doi_entity = csv_datasource.get(cited_doi)
+                                if cited_doi_entity is None:
+                                    cited_doi_entity = dict()
+                                    cited_doi_entity["valid"] = (True if doi_manager.is_valid(cited_doi) else False)
+
+                                if cited_doi_entity["valid"] is True and "date" not in cited_doi_entity.keys():
                                     if cited_doi not in doi_date:
                                         doi_date[cited_doi] = []
-                                    cited_date = Citation.check_date(
-                                        build_pubdate_coci(ref)
-                                    )
+                                    cited_date = Citation.check_date(build_pubdate_coci(ref))
                                     if cited_date is not None:
                                         doi_date[cited_doi].append(cited_date)
-                                        if cited_doi in citing_doi_with_no_date:
-                                            citing_doi_with_no_date.remove(cited_doi)
+
+                                if cited_doi in doi_date:
+                                    if len(doi_date[cited_doi]) > 0:
+                                        entity_with_date_to_updete[cited_doi] = cited_doi_entity
+                                    else:
+                                        csv_datasource.set(cited_doi, cited_doi_entity)
+                                else:
+                                    csv_datasource.set(cited_doi, cited_doi_entity)
 
     # Add the date to the DOI if such date is the most adopted one in the various references.
     # In case two distinct dates are used the most, select the older one.
     for doi in doi_date:
-        count = Counter(doi_date[doi])
-        if len(count):
-            top_value = count.most_common(1)[0][1]
-            selected_dates = []
-            for date in count:
-                if count[date] == top_value:
-                    selected_dates.append(date)
-            best_date = sorted(selected_dates)[0]
-            id_date.add_value(doi, best_date)
-        else:
-            id_date.add_value(doi, "")
+        if doi in entity_with_date_to_updete.keys():
+            count = Counter(doi_date[doi])
+            if len(count):
+                top_value = count.most_common(1)[0][1]
+                selected_dates = []
+                for date in count:
+                    if count[date] == top_value:
+                        selected_dates.append(date)
+                best_date = sorted(selected_dates)[0]
+                doi_entity_for_date_update = entity_with_date_to_updete[doi]
+                doi_entity_for_date_update["date"] = [best_date]
+                csv_datasource.set(doi, doi_entity_for_date_update)
+            else:
+                doi_entity_for_date_update = entity_with_date_to_updete[doi]
+                csv_datasource.set(doi, doi_entity_for_date_update)
 
-    # Add emtpy dates for the remaining DOIs
-    for doi in citing_doi_with_no_date:
-        id_date.add_value(doi, "")
+
 
     # Close the file descriptor of the tar.gz archive if it was used
     if targz_fd is not None:
@@ -281,8 +284,7 @@ def main():
     process_coci(args.input, args.output)
 
 
-# Added for testing purposes, in the official version it should be removed
 if __name__ == "__main__":
     main()
 
-# python "scripts/crossref_glob.py" -i ./index/python/test/data/crossref_glob_dump_input -o ./index/python/test/data/crossref_glob_dump_output
+# python "scripts/glob_crossref.py" -i ./index/python/test/data/crossref_glob_dump_input -o ./index/python/test/data/crossref_glob_dump_output

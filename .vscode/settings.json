@@ -72,5 +72,6 @@
         "functional": "cpp",
         "iterator": "cpp",
         "utility": "cpp"
-    }
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools"
 }
