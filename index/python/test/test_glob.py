@@ -16,7 +16,6 @@ from oc.index.identifier.pmid import PMIDManager
 from oc.index.scripts.glob_doci import (
     issn_data_recover_doci,
     issn_data_to_cache_doci,
-    get_all_files_doci,
     valid_date_doci,
     load_json_doci,
     process_doci,
@@ -26,7 +25,6 @@ from oc.index.scripts.glob_noci import (
     issn_data_recover_noci,
     issn_data_to_cache_noci,
     build_pubdate_noci,
-    get_all_files_noci,
     process_noci,
 )
 
@@ -47,10 +45,14 @@ class GlobTest(unittest.TestCase):
         self.issn_manager = ISSNManager()
         self.orcid_manager = ORCIDManager()
 
+        # Initialize datasource
+        self.noci_datasource = None
+        self.doci_datasource = None
+        self.coci_datasource = None
+
         # COCI
         self.inp_coci = join(self.test_dir, "crossref_glob_dump_input")
         self.out_coci = self.__get_output_directory("crossref_glob_dump_output")
-        self.coci_datasource = CSVDataSource("COCI")
         self.dir_get_all_files_coci = join(self.test_dir, "crossref_glob_dump_input")
         self.sample_doi_coci = self.doi_manager.normalise("10.7717/peerj.4375", True)
         self.sample_reference_coci = self.doi_manager.normalise(
@@ -67,7 +69,6 @@ class GlobTest(unittest.TestCase):
         # DOCI
         self.inp_doci = join(self.test_dir, "doci_glob_dump_input")
         self.out_doci = self.__get_output_directory("doci_glob_dump_output")
-        self.doci_datasource = CSVDataSource("DOCI")
         self.issn_journal_doci = {
             "european journal of organic chemistry": ["1434193X"],
             "drug delivery and translational research": ["2190-3948"],
@@ -90,7 +91,6 @@ class GlobTest(unittest.TestCase):
             self.test_dir, "noci_id_orcid_mapping", "doi_orcid_index.zip"
         )
         self.n_noci = 3
-        self.noci_datasource = CSVDataSource("NOCI")
         self.issn_journal_noci = {
             "N Biotechnol": ["1871-6784"],
             "Biochem Med": ["0006-2944"],
@@ -122,14 +122,8 @@ class GlobTest(unittest.TestCase):
         )
 
     def test_process_coci(self):
-        for files in os.listdir(self.out_coci):
-            path = os.path.join(self.out_coci, files)
-            try:
-                shutil.rmtree(path)
-            except OSError:
-                os.remove(path)
-        self.assertEqual(len(os.listdir(self.out_coci)), 0)
         process_coci(self.inp_coci, self.out_coci)
+        self.coci_datasource = CSVDataSource("COCI")
 
         citing_doi = self.doi_manager.normalise(self.sample_doi_coci, True)
         citing_doi_2 = self.doi_manager.normalise(self.sample_doi_coci_2, True)
@@ -192,14 +186,8 @@ class GlobTest(unittest.TestCase):
         )
 
     def test_process_doci(self):
-        for files in os.listdir(self.out_doci):
-            path = os.path.join(self.out_doci, files)
-            try:
-                shutil.rmtree(path)
-            except OSError:
-                os.remove(path)
-        self.assertEqual(len(os.listdir(self.out_doci)), 0)
         process_doci(self.inp_doci, self.out_doci, self.n_doci)
+        self.doci_datasource = CSVDataSource("DOCI")
 
         citing_doi = "doi:10.1002/ejoc.201800947"
         self.assertEqual(
@@ -260,13 +248,8 @@ class GlobTest(unittest.TestCase):
                 self.assertEqual(len(pub_date), 4)
 
     def test_process_noci(self):
-        for files in os.listdir(self.out_noci):
-            path = os.path.join(self.out_noci, files)
-            try:
-                shutil.rmtree(path)
-            except OSError:
-                os.remove(path)
         process_noci(self.inp_noci, self.out_noci, self.n_noci)
+        self.noci_datasource = CSVDataSource("NOCI")
 
         citing_pmid = "pmid:2"
         citing_pmid5 = "pmid:5"

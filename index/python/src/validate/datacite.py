@@ -44,7 +44,9 @@ class DataciteValidator(CitationValidator):
             if citing is not None and "relatedIdentifiers" in attr:
                 for ref in attr["relatedIdentifiers"]:
                     if [x for x in needed_info if x in ref]:
-                        relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower()
+                        relatedIdentifierType = (
+                            str(ref["relatedIdentifierType"])
+                        ).lower()
                         rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
                         relationType = str(ref["relationType"]).lower()
                         if relatedIdentifierType == "doi":
@@ -58,7 +60,10 @@ class DataciteValidator(CitationValidator):
                                     # in the case this is a duplicate.
                                     if oci not in result_map:
                                         query.append(oci)
-                            elif relationType == "isreferencedby" or relationType == "iscitedby":
+                            elif (
+                                relationType == "isreferencedby"
+                                or relationType == "iscitedby"
+                            ):
                                 cited = citing
                                 if rel_id is not None:
                                     oci = self._oci_manager.get_oci(
@@ -82,7 +87,9 @@ class DataciteValidator(CitationValidator):
                 # Build the OCI lookup query
                 self._logger.info("Reading citation data from " + filename)
                 query = []
-                with open(os.path.join(input_directory, filename), encoding="utf8") as fp:
+                with open(
+                    os.path.join(input_directory, filename), encoding="utf8"
+                ) as fp:
                     json_content = json.load(fp)
                 for row in tqdm(json_content["data"]):
                     attr = row.get("attributes")
@@ -90,11 +97,18 @@ class DataciteValidator(CitationValidator):
                     if citing is not None and "relatedIdentifiers" in attr:
                         for ref in attr["relatedIdentifiers"]:
                             if [x for x in needed_info if x in ref]:
-                                relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower()
-                                rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
+                                relatedIdentifierType = (
+                                    str(ref["relatedIdentifierType"])
+                                ).lower()
+                                rel_id = self._doi_manager.normalise(
+                                    ref["relatedIdentifier"]
+                                )
                                 relationType = str(ref["relationType"]).lower()
                                 if relatedIdentifierType == "doi":
-                                    if relationType == "references" or relationType == "cites":
+                                    if (
+                                        relationType == "references"
+                                        or relationType == "cites"
+                                    ):
                                         cited = rel_id
                                         if cited is not None:
                                             oci = self._oci_manager.get_oci(
@@ -104,7 +118,10 @@ class DataciteValidator(CitationValidator):
                                             # in the case this is a duplicate.
                                             if oci not in result_map:
                                                 query.append(oci)
-                                    elif relationType == "isreferencedby" or relationType == "iscitedby":
+                                    elif (
+                                        relationType == "isreferencedby"
+                                        or relationType == "iscitedby"
+                                    ):
                                         cited = citing
                                         if rel_id is not None:
                                             oci = self._oci_manager.get_oci(
@@ -131,31 +148,47 @@ class DataciteValidator(CitationValidator):
                         reference = []
                         for ref in attr["relatedIdentifiers"]:
                             if [x for x in needed_info if x in ref]:
-                                relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower()
-                                rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
+                                relatedIdentifierType = (
+                                    str(ref["relatedIdentifierType"])
+                                ).lower()
+                                rel_id = self._doi_manager.normalise(
+                                    ref["relatedIdentifier"]
+                                )
                                 relationType = str(ref["relationType"]).lower()
                                 if relatedIdentifierType == "doi":
-                                    if relationType == "references" or relationType == "cites":
+                                    if (
+                                        relationType == "references"
+                                        or relationType == "cites"
+                                    ):
                                         cited = rel_id
                                         if cited is not None:
                                             oci = self._oci_manager.get_oci(
                                                 citing, cited, prefix=self._prefix
                                             ).replace("oci:", "")
                                             # Add oci only if has not been preprocessed and it is not a duplicate
-                                            if oci in result_map and not result_map[oci]:
+                                            if (
+                                                oci in result_map
+                                                and not result_map[oci]
+                                            ):
                                                 # Set result map true for the oci to avoid duplicates
                                                 result_map[oci] = True
                                                 reference.append(ref)
                                             else:
                                                 duplicated += 1
-                                    elif relationType == "isreferencedby" or relationType == "iscitedby":
+                                    elif (
+                                        relationType == "isreferencedby"
+                                        or relationType == "iscitedby"
+                                    ):
                                         cited = citing
                                         if rel_id is not None:
                                             oci = self._oci_manager.get_oci(
                                                 rel_id, cited, prefix=self._prefix
                                             ).replace("oci:", "")
                                             # Add oci only if has not been preprocessed and it is not a duplicate
-                                            if oci in result_map and not result_map[oci]:
+                                            if (
+                                                oci in result_map
+                                                and not result_map[oci]
+                                            ):
                                                 # Set result map true for the oci to avoid duplicates
                                                 result_map[oci] = True
                                                 reference.append(ref)

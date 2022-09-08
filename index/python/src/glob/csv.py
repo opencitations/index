@@ -13,6 +13,8 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+import json
+from os.path import exists, basename, isdir, join, isfile
 from oc.index.utils.config import get_config
 from oc.index.glob.datasource import DataSource
 from oc.index.legacy.csv import CSVManager
@@ -48,6 +50,10 @@ class CSVDataSource(DataSource):
         return {key: self.get(key) for key in resources_id}
 
     def set(self, resource_id, value):
+        # if the value dict was compiled for the first time, the value will be True/False
+        # while if the value dict is being updated and the validity information was retrieved
+        # from csv files, the value retrieved for the validity will be a set with a unique
+        # value, either "i" or "v"
         if "valid" in value.keys():
             if value["valid"] is False or value["valid"] == {"i"}:
                 self._valid_id.add_value(resource_id, "i")

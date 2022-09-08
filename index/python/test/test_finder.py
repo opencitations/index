@@ -73,15 +73,13 @@ class ResourceFinderTest(unittest.TestCase):
         # Do not use support dict, only APIs
         of_1 = ORCIDResourceFinder()
         self.assertIn("0000-0003-0530-4305", of_1.get_orcid("10.1108/jd-12-2013-0166"))
-        #self.assertIn("0000-0002-4762-5345", of_1.get_orcid("5"))
+        # self.assertIn("0000-0002-4762-5345", of_1.get_orcid("5"))
         self.assertNotIn(
             "0000-0001-5506-523X", of_1.get_orcid("10.1108/jd-12-2013-0166")
         )
         of_1pmid = ORCIDResourceFinderPMID()
         self.assertIn("0000-0002-4762-5345", of_1pmid.get_orcid("5"))
-        self.assertNotIn(
-            "0000-0001-5506-523X", of_1pmid.get_orcid("5")
-        )
+        self.assertNotIn("0000-0001-5506-523X", of_1pmid.get_orcid("5"))
 
         # Do use support dict, but avoid using APIs
         of_2 = ORCIDResourceFinder(
@@ -95,9 +93,7 @@ class ResourceFinderTest(unittest.TestCase):
 
         of_2pmid = ORCIDResourceFinderPMID()
         self.assertIn("0000-0002-4762-5345", of_2pmid.get_orcid("5"))
-        self.assertNotIn(
-            "0000-0001-5506-523X", of_2pmid.get_orcid("5")
-        )
+        self.assertNotIn("0000-0001-5506-523X", of_2pmid.get_orcid("5"))
 
         # Do not use support files neither APIs
         of_3 = ORCIDResourceFinder(use_api_service=False)

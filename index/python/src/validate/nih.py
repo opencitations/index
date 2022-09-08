@@ -24,7 +24,6 @@ from oc.index.identifier.pmid import PMIDManager
 from oc.index.utils.logging import get_logger
 
 
-
 class NIHValidator(CitationValidator):
     def __init__(self):
         super().__init__("NOCI")
@@ -68,7 +67,9 @@ class NIHValidator(CitationValidator):
                 self._logger.info("Reading citation data from " + filename)
                 query = []
                 df = pd.DataFrame()
-                for chunk in pd.read_csv(os.path.join(input_directory, filename), chunksize=1000):
+                for chunk in pd.read_csv(
+                    os.path.join(input_directory, filename), chunksize=1000
+                ):
                     f = pd.concat([df, chunk], ignore_index=True)
                     f.fillna("", inplace=True)
                     csv_content = f.to_dict("records")
@@ -111,7 +112,9 @@ class NIHValidator(CitationValidator):
                 self._logger.info(str(duplicated) + " citations deleted")
                 self._logger.info("Saving validated citations...")
                 keys = items[0].keys()
-                with open(os.path.join(output_directory, filename), "w", newline='') as output_file:
+                with open(
+                    os.path.join(output_directory, filename), "w", newline=""
+                ) as output_file:
                     dict_writer = csv.DictWriter(output_file, keys)
                     dict_writer.writeheader()
                     dict_writer.writerows(items)

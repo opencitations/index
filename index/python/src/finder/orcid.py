@@ -70,6 +70,7 @@ class ORCIDResourceFinder(ApiDOIResourceFinder):
                 json_res = loads(r.text)
                 return json_res.get("result")
 
+
 class ORCIDResourceFinderPMID(ApiDOIResourceFinder):
     """This class implements an identifier manager for orcid identifier"""
 
@@ -109,8 +110,7 @@ class ORCIDResourceFinderPMID(ApiDOIResourceFinder):
 
             pmid = self._dm.normalise(pmid_full)
             r = get(
-                self._api
-                + quote('pmid-self:"%s"' % (pmid)),
+                self._api + quote('pmid-self:"%s"' % (pmid)),
                 headers=self._headers,
                 timeout=30,
             )

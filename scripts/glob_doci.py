@@ -24,7 +24,7 @@ from tqdm import tqdm
 import json
 import tarfile
 
-#from oc.index.legacy.csv import CSVManager
+# from oc.index.legacy.csv import CSVManager
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
@@ -248,7 +248,7 @@ def process_doci(input_dir, output_dir, n):
                                                 orcid = orcid_manager.normalise(orcid)
                                                 if orcid_manager.is_valid(orcid):
                                                     orcid_list.append(orcid)
-                    if len(orcid_list)>0:
+                    if len(orcid_list) > 0:
                         entity["orcid"] = orcid_list
 
                     issn_set = set()
@@ -304,7 +304,7 @@ def process_doci(input_dir, output_dir, n):
                         if issn_manager.is_valid(issn):
                             valid_issn_list.append(issn)
 
-                    if len(valid_issn_list) >0:
+                    if len(valid_issn_list) > 0:
                         entity["issn"] = valid_issn_list
 
                     csv_datasource.set(citing_doi, entity)
@@ -342,13 +342,22 @@ def process_doci(input_dir, output_dir, n):
                                                 related["relatedIdentifier"], True
                                             )
                                             if relatedDOI is not None:
-                                                relatedDOI_entity = csv_datasource.get(relatedDOI)
+                                                relatedDOI_entity = csv_datasource.get(
+                                                    relatedDOI
+                                                )
                                                 if relatedDOI_entity is None:
                                                     relatedDOI_entity = dict()
-                                                    relatedDOI_entity["valid"] = (True if doi_manager.is_valid(relatedDOI) else False)
+                                                    relatedDOI_entity["valid"] = (
+                                                        True
+                                                        if doi_manager.is_valid(
+                                                            relatedDOI
+                                                        )
+                                                        else False
+                                                    )
                                                     cited_dois += 1
-                                                    csv_datasource.set(relatedDOI, relatedDOI_entity)
-
+                                                    csv_datasource.set(
+                                                        relatedDOI, relatedDOI_entity
+                                                    )
 
     end = timer()
     # print("second process duration: ", end-middle)
@@ -387,9 +396,3 @@ def main():
 
     args = arg_parser.parse_args()
     process_doci(args.input, args.output, args.num_entities)
-
-
-if __name__ == "__main__":
-    main()
-
-# python "scripts/glob_doci.py" -i ./index/python/test/data/doci_glob_dump_input -o ./index/python/test/data/doci_glob_dump_output -n 3

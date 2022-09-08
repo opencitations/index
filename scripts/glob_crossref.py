@@ -31,7 +31,6 @@ from oc.index.identifier.orcid import ORCIDManager
 from oc.index.glob.csv import CSVDataSource
 
 
-
 def build_pubdate_coci(obj):
     if "issued" in obj:  # Main citing object
         if "date-parts" in obj["issued"]:
@@ -185,10 +184,12 @@ def process_coci(input_dir, output_dir):
                                 if cur_author is not None:
                                     for author in cur_author:
                                         if "ORCID" in author:
-                                            orcid = orcid_manager.normalise(author["ORCID"])
+                                            orcid = orcid_manager.normalise(
+                                                author["ORCID"]
+                                            )
                                             if orcid is not None:
                                                 orcid_list.append(orcid)
-                            if len(orcid_list) > 0 :
+                            if len(orcid_list) > 0:
                                 entity["orcid"] = orcid_list
                             csv_datasource.set(citing_doi, entity)
 
@@ -211,18 +212,29 @@ def process_coci(input_dir, output_dir):
                                 cited_doi_entity = csv_datasource.get(cited_doi)
                                 if cited_doi_entity is None:
                                     cited_doi_entity = dict()
-                                    cited_doi_entity["valid"] = (True if doi_manager.is_valid(cited_doi) else False)
+                                    cited_doi_entity["valid"] = (
+                                        True
+                                        if doi_manager.is_valid(cited_doi)
+                                        else False
+                                    )
 
-                                if cited_doi_entity["valid"] is True and "date" not in cited_doi_entity.keys():
+                                if (
+                                    cited_doi_entity["valid"] is True
+                                    and "date" not in cited_doi_entity.keys()
+                                ):
                                     if cited_doi not in doi_date:
                                         doi_date[cited_doi] = []
-                                    cited_date = Citation.check_date(build_pubdate_coci(ref))
+                                    cited_date = Citation.check_date(
+                                        build_pubdate_coci(ref)
+                                    )
                                     if cited_date is not None:
                                         doi_date[cited_doi].append(cited_date)
 
                                 if cited_doi in doi_date:
                                     if len(doi_date[cited_doi]) > 0:
-                                        entity_with_date_to_updete[cited_doi] = cited_doi_entity
+                                        entity_with_date_to_updete[
+                                            cited_doi
+                                        ] = cited_doi_entity
                                     else:
                                         csv_datasource.set(cited_doi, cited_doi_entity)
                                 else:
@@ -246,8 +258,6 @@ def process_coci(input_dir, output_dir):
             else:
                 doi_entity_for_date_update = entity_with_date_to_updete[doi]
                 csv_datasource.set(doi, doi_entity_for_date_update)
-
-
 
     # Close the file descriptor of the tar.gz archive if it was used
     if targz_fd is not None:
@@ -282,9 +292,3 @@ def main():
 
     args = arg_parser.parse_args()
     process_coci(args.input, args.output)
-
-
-if __name__ == "__main__":
-    main()
-
-# python "scripts/glob_crossref.py" -i ./index/python/test/data/crossref_glob_dump_input -o ./index/python/test/data/crossref_glob_dump_output

@@ -33,7 +33,6 @@ class ValidateTest(unittest.TestCase):
         test_dir = join("index", "python", "test", "data")
 
         self.coci_input = join(test_dir, "coci_validate")
-
         self.coci_validate = CrossrefValidator()
 
         self.doci_input = join(test_dir, "doci_validate")
@@ -95,6 +94,7 @@ class ValidateTest(unittest.TestCase):
             join(join("tmp", "coci_validate"), "0.json"), {}, disable_tqdm=True
         )
         self.assertEqual(len(query_old) - 1, len(query_new))
+        pass
 
     def test_datacite_query_build(self):
         query = self.doci_validate.build_oci_query(
@@ -117,6 +117,7 @@ class ValidateTest(unittest.TestCase):
             join(join("tmp", "doci_validate"), "0.json"), {}, disable_tqdm=True
         )
         self.assertEqual(len(query_old) - 1, len(query_new))
+        pass
 
     def test_nih_query_build(self):
         query = self.noci_validate.build_oci_query(
@@ -138,3 +139,4 @@ class ValidateTest(unittest.TestCase):
             join(join("tmp", "noci_validate"), "0.csv"), {}, disable_tqdm=True
         )
         self.assertEqual(len(query_old) - 1, len(query_new))
+        pass
