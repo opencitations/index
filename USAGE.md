@@ -14,7 +14,7 @@ The proposed case use crossref as an example.
     oc.index.trim_crossref -i ./input_dir -o ./output_dir -m METADATA_FIELD -v METADATA_VALUE
     ```
 
-    1.2 **Only uf migration from csv is needed:  Run datasource utility in order to import data from csv to redis
+    1.2 **Only if migration from csv is needed:  Run datasource utility in order to import data from csv to redis
 
     ```
     oc.index.datasource -o populate -i ./input_dir
