@@ -33,6 +33,10 @@ Done, enjoy :)
 
 ## Configuration
 By default when index is installed a configuration file is created in ~/.opencitations/index/, namely config.ini. For more information about the semantics of the settings see [config.ini](config.ini).
+
+## Usage
+See [Usage](USAGE.md).
+
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
