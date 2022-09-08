@@ -2,13 +2,11 @@ name: Python package
 
 on:
   push:
-    branches: [ farm_revision ]
     paths:
       - .github/workflows/python-package.yml
       - index/python/**
       - scripts/**
   pull_request:
-    branches: [ farm_revision ]
     paths:
       - .github/workflows/python-package.yml
       - index/python/**
