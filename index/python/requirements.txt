@@ -1,0 +1,10 @@
+redis
+SPARQLWrapper
+rdflib
+requests
+python-dateutil
+tqdm
+beautifulsoup4
+pandas
+lxml
+regex

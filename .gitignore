@@ -1,5 +1,29 @@
-__pycache__/
-coci_test/
-doci/
-launch.txt
-*.pyc
+bin
+tmp
+build
+.vscode
+.idea
+oc_index.egg-info
+.DS_Store
+venv
+input.csv
+
+# Reference: 
+# https://github.com/github/gitignore
+
+################################################
+#          VisualStudioCode.gitignore          #
+################################################
+
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
