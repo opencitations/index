@@ -18,6 +18,7 @@ from os.path import join, exists
 from oc.index.preprocessing.nih_pp import NIHPreProcessing
 import shutil
 import csv
+import os
 
 
 class NOCIPPTest(unittest.TestCase):
@@ -34,7 +35,7 @@ class NOCIPPTest(unittest.TestCase):
 
         # NIH-OCC data, for NOCI parser
         self.input_dir = join(self.test_dir, "noci_pp_dump_input")
-        self.output_dir = join(self.test_dir, "noci_pp_dump_output")
+        self.output_dir = self.__get_output_directory("noci_pp_dump_output")
         self.lines_sample = [
             [1, 14161139],
             [1, 14323813],
@@ -49,7 +50,7 @@ class NOCIPPTest(unittest.TestCase):
 
         # iCite Metadata, for NOCI glob
         self.input_md_dir = join(self.test_dir, "noci_md_pp_dump_input")
-        self.output_md_dir = join(self.test_dir, "noci_md_pp_dump_output")
+        self.output_md_dir = self.__get_output_directory("noci_md_pp_dump_output")
 
         self.headers_md = [
             "pmid",
@@ -144,6 +145,12 @@ class NOCIPPTest(unittest.TestCase):
                 "19701189 9014768 21102463 18587394 13249955 15480983 18618634 16747230 16228179 19903424 4429589 17968351 17504508 4610350 19462429 4346266 15537905 19805227 8780562 4284968 14907713 16863561 15157825 19453248 5066156 4650633 18145350 19898471 2925048 20445446 20197757 6053218 18719139 20483763 16610046 19817673 4741776 13734134 20256398 11385576 15812518 18849966 20839313 17068223 8587604 12851870 14292314 19966812 4972656 20024904 5150150 3396969 14042697 4239096",
             ],
         ]
+
+    def __get_output_directory(self, directory):
+        directory = join(".", "tmp", directory)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        return directory
 
     def test_dump_split(self):
         if exists(self.output_dir):

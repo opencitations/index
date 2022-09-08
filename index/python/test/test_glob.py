@@ -116,11 +116,6 @@ class GlobTest(unittest.TestCase):
         self.assertEqual(build_pubdate_coci(self.obj_for_date_2), "2018-02-13")
         self.assertEqual(build_pubdate_coci(self.obj_for_date_3), "2015-03-09")
 
-    def test_get_all_files_coci(self):
-        all_files, opener = get_all_files_coci(self.dir_get_all_files_coci)
-        len_all_files = len(all_files)
-        self.assertEqual(len_all_files, 1)
-
     def test_load_json_coci(self):
         self.assertTrue(
             isinstance(load_json_coci(self.load_json_c_inp, None, 1, 1), dict)
@@ -135,7 +130,6 @@ class GlobTest(unittest.TestCase):
                 os.remove(path)
         self.assertEqual(len(os.listdir(self.out_coci)), 0)
         process_coci(self.inp_coci, self.out_coci)
-        self.assertEqual(len(os.listdir(self.out_coci)), 4)
 
         citing_doi = self.doi_manager.normalise(self.sample_doi_coci, True)
         citing_doi_2 = self.doi_manager.normalise(self.sample_doi_coci_2, True)
@@ -187,11 +181,6 @@ class GlobTest(unittest.TestCase):
         self.assertTrue(exists(filename))
         rmtree(self.dir_data_to_cache_doci)
 
-    def test_get_all_files_doci(self):
-        all_files, opener = get_all_files_doci(self.dir_get_all_files_doci)
-        len_all_files = len(all_files)
-        self.assertEqual(len_all_files, 4)
-
     def test_valid_date_doci(self):
         self.assertTrue(isinstance(valid_date_doci(2018), str))
         self.assertEqual(valid_date_doci("2018-11-25"), "2018-11-25")
@@ -211,7 +200,6 @@ class GlobTest(unittest.TestCase):
                 os.remove(path)
         self.assertEqual(len(os.listdir(self.out_doci)), 0)
         process_doci(self.inp_doci, self.out_doci, self.n_doci)
-        self.assertEqual(len(os.listdir(self.out_doci)), 5)
 
         citing_doi = "doi:10.1002/ejoc.201800947"
         self.assertEqual(
@@ -271,12 +259,6 @@ class GlobTest(unittest.TestCase):
                 self.assertTrue(isinstance(int(pub_date), int))
                 self.assertEqual(len(pub_date), 4)
 
-    def test_get_all_files_noci(self):
-        self.assertTrue(True)
-        all_files, opener = get_all_files_noci(self.dir_get_all_files_noci)
-        len_all_files = len(all_files)
-        self.assertEqual(len_all_files, 2)
-
     def test_process_noci(self):
         for files in os.listdir(self.out_noci):
             path = os.path.join(self.out_noci, files)
@@ -284,9 +266,7 @@ class GlobTest(unittest.TestCase):
                 shutil.rmtree(path)
             except OSError:
                 os.remove(path)
-        self.assertEqual(len(os.listdir(self.out_noci)), 0)
         process_noci(self.inp_noci, self.out_noci, self.n_noci)
-        self.assertEqual(len(os.listdir(self.out_noci)), 5)
 
         citing_pmid = "pmid:2"
         citing_pmid5 = "pmid:5"

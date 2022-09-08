@@ -6,6 +6,7 @@ build
 oc_index.egg-info
 .DS_Store
 venv
+input.csv
 
 # Reference: 
 # https://github.com/github/gitignore

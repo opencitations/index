@@ -13,6 +13,7 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
+import os
 import unittest
 from os import makedirs
 from os.path import join, exists
@@ -27,7 +28,7 @@ class DOCIPPTest(unittest.TestCase):
     def setUp(self):
         test_dir = join("index", "python", "test", "data")
         self.input_dir = join(test_dir, "doci_pp_dump_input")
-        self.output_dir = join(test_dir, "doci_pp_dump_output")
+        self.output_dir = self.__get_output_directory("doci_pp_dump_output")
         if exists(self.output_dir):
             shutil.rmtree(self.output_dir)
         self.assertFalse(exists(self.output_dir))
@@ -40,6 +41,12 @@ class DOCIPPTest(unittest.TestCase):
         self.ent_glob_only = "10.1001/jama.289.8.989"
         self.ent_parser_only = "10.1002/2015jc010802"
         self.ent_no_data = "10.1016/j.gene.2017.10.006"
+
+    def __get_output_directory(self, directory):
+        directory = join(".", "tmp", directory)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        return directory
 
     def test_dump_filter_and_split(self):
         self.DatacitePP.dump_filter_and_split(self.input_dir, self.output_dir, self.num)
