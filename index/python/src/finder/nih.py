@@ -33,9 +33,9 @@ class NIHResourceFinder(ApiDOIResourceFinder):
 
     def _get_issn(self, txt_obj):
         result = set()
-        issns = re.findall("IS\s+-\s+\d{4}-\d{4}", txt_obj)
+        issns = re.findall("IS\s+-\s+[0-9]{4}-[0-9]{3}[0-9X]", txt_obj)
         for i in issns:
-            issn = re.search("\d{4}-\d{4}", i).group(0)
+            issn = re.search("[0-9]{4}-[0-9]{3}[0-9X]", i).group(0)
             norm_issn = self._im.normalise(issn)
             if norm_issn is not None:
                 result.add(norm_issn)
