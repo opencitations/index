@@ -24,11 +24,12 @@ from tqdm import tqdm
 import json
 import tarfile
 
-# from oc.index.legacy.csv import CSVManager
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 from oc.index.glob.csv import CSVDataSource
+from oc.index.glob.redis import RedisDataSource
+from oc.index.utils.config import get_config
 
 
 def issn_data_recover_doci(directory):
@@ -147,7 +148,16 @@ def process_doci(input_dir, output_dir, n):
     doi_manager = DOIManager()
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
-    csv_datasource = CSVDataSource("DOCI")
+
+    config = get_config()
+    service_ds = config.get("DOCI", "datasource")
+    svc_datasource = None
+    if service_ds == "redis":
+        svc_datasource = RedisDataSource("DOCI")
+    elif service_ds == "csv":
+        svc_datasource = CSVDataSource("DOCI")
+    else:
+        raise Exception(service_ds + " is not a valid data source")
 
     all_files, targz_fd = get_all_files_doci(input_dir)
     len_all_files = len(all_files)
@@ -169,7 +179,7 @@ def process_doci(input_dir, output_dir, n):
                 citing_doi = doi_manager.normalise(citing_doi, True)
                 # valid_doi.add_value(citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i")
                 if citing_doi is not None:
-                    entity = csv_datasource.get(citing_doi)
+                    entity = svc_datasource.get(citing_doi)
                     if entity is None:
                         entity = dict()
                         entity["valid"] = True
@@ -307,7 +317,7 @@ def process_doci(input_dir, output_dir, n):
                     if len(valid_issn_list) > 0:
                         entity["issn"] = valid_issn_list
 
-                    csv_datasource.set(citing_doi, entity)
+                    svc_datasource.set(citing_doi, entity)
 
                     if int(count) != 0 and int(count) % int(n) == 0:
                         issn_data_to_cache_doci(issnDict, output_dir)
@@ -342,7 +352,7 @@ def process_doci(input_dir, output_dir, n):
                                                 related["relatedIdentifier"], True
                                             )
                                             if relatedDOI is not None:
-                                                relatedDOI_entity = csv_datasource.get(
+                                                relatedDOI_entity = svc_datasource.get(
                                                     relatedDOI
                                                 )
                                                 if relatedDOI_entity is None:
@@ -355,7 +365,7 @@ def process_doci(input_dir, output_dir, n):
                                                         else False
                                                     )
                                                     cited_dois += 1
-                                                    csv_datasource.set(
+                                                    svc_datasource.set(
                                                         relatedDOI, relatedDOI_entity
                                                     )
 

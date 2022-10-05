@@ -29,6 +29,8 @@ from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 from oc.index.glob.csv import CSVDataSource
+from oc.index.glob.redis import RedisDataSource
+from oc.index.utils.config import get_config
 
 
 def build_pubdate_coci(obj):
@@ -134,7 +136,16 @@ def process_coci(input_dir, output_dir):
     doi_manager = DOIManager()
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
-    csv_datasource = CSVDataSource("COCI")
+
+    config = get_config()
+    service_ds = config.get("COCI", "datasource")
+    svc_datasource = None
+    if service_ds == "redis":
+        svc_datasource = RedisDataSource("COCI")
+    elif service_ds == "csv":
+        svc_datasource = CSVDataSource("COCI")
+    else:
+        raise Exception(service_ds + " is not a valid data source")
 
     all_files, targz_fd = get_all_files_coci(input_dir)
     len_all_files = len(all_files)
@@ -149,7 +160,7 @@ def process_coci(input_dir, output_dir):
                 if "DOI" in obj:
                     citing_doi = doi_manager.normalise(obj["DOI"], True)
                     if citing_doi is not None:
-                        entity = csv_datasource.get(citing_doi)
+                        entity = svc_datasource.get(citing_doi)
                         if entity is None:
                             entity = dict()
                             entity["valid"] = True
@@ -191,7 +202,7 @@ def process_coci(input_dir, output_dir):
                                                 orcid_list.append(orcid)
                             if len(orcid_list) > 0:
                                 entity["orcid"] = orcid_list
-                            csv_datasource.set(citing_doi, entity)
+                            svc_datasource.set(citing_doi, entity)
 
     middle = timer()
     # print("first process duration: :", (middle - start))
@@ -209,7 +220,7 @@ def process_coci(input_dir, output_dir):
                         if "DOI" in ref:
                             cited_doi = str(doi_manager.normalise(ref["DOI"], True))
                             if cited_doi is not None:
-                                cited_doi_entity = csv_datasource.get(cited_doi)
+                                cited_doi_entity = svc_datasource.get(cited_doi)
                                 if cited_doi_entity is None:
                                     cited_doi_entity = dict()
                                     cited_doi_entity["valid"] = (
@@ -236,9 +247,9 @@ def process_coci(input_dir, output_dir):
                                             cited_doi
                                         ] = cited_doi_entity
                                     else:
-                                        csv_datasource.set(cited_doi, cited_doi_entity)
+                                        svc_datasource.set(cited_doi, cited_doi_entity)
                                 else:
-                                    csv_datasource.set(cited_doi, cited_doi_entity)
+                                    svc_datasource.set(cited_doi, cited_doi_entity)
 
     # Add the date to the DOI if such date is the most adopted one in the various references.
     # In case two distinct dates are used the most, select the older one.
@@ -254,10 +265,10 @@ def process_coci(input_dir, output_dir):
                 best_date = sorted(selected_dates)[0]
                 doi_entity_for_date_update = entity_with_date_to_updete[doi]
                 doi_entity_for_date_update["date"] = [best_date]
-                csv_datasource.set(doi, doi_entity_for_date_update)
+                svc_datasource.set(doi, doi_entity_for_date_update)
             else:
                 doi_entity_for_date_update = entity_with_date_to_updete[doi]
-                csv_datasource.set(doi, doi_entity_for_date_update)
+                svc_datasource.set(doi, doi_entity_for_date_update)
 
     # Close the file descriptor of the tar.gz archive if it was used
     if targz_fd is not None:
