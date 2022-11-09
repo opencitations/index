@@ -146,7 +146,7 @@ def main():
     arg_parser.add_argument(
         "-i",
         "--input",
-        dest="input_dir",
+        dest="input",
         required=True,
         help="The directory that contains the Crossref data dump of JSON files.",
     )
