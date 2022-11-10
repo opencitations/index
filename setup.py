@@ -42,6 +42,7 @@ setup(
         "pandas",
         "lxml",
         "regex",
+        "zstandard"
     ],
     packages=[
         f"oc.index.{mod}"
