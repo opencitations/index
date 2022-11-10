@@ -33,13 +33,13 @@ class ValidateTest(unittest.TestCase):
         test_dir = join("index", "python", "test", "data")
 
         self.coci_input = join(test_dir, "coci_validate")
-        self.coci_validate = CrossrefValidator()
+        self.coci_validate = CrossrefValidator("COCI")
 
         self.doci_input = join(test_dir, "doci_validate")
-        self.doci_validate = DataciteValidator()
+        self.doci_validate = DataciteValidator("DOCI")
 
         self.noci_input = join(test_dir, "noci_validate")
-        self.noci_validate = NIHValidator()
+        self.noci_validate = NIHValidator("NOCI")
 
         oci_manager = OCIManager(
             lookup_file=os.path.expanduser(get_config().get("cnc", "lookup"))

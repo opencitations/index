@@ -24,7 +24,7 @@ from oc.index.utils.logging import get_logger
 
 
 class CrossrefValidator(CitationValidator):
-    def __init__(self,service):
+    def __init__(self, service):
         super().__init__(service)
         self._doi_manager = DOIManager()
         self._logger = get_logger()

@@ -24,8 +24,8 @@ from oc.index.utils.logging import get_logger
 
 
 class DataciteValidator(CitationValidator):
-    def __init__(self):
-        super().__init__("DOCI")
+    def __init__(self, service):
+        super().__init__(service)
         self._doi_manager = DOIManager()
         self._logger = get_logger()
 
