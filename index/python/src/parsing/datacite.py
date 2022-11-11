@@ -34,9 +34,8 @@ class DataciteParser(CitationParser):
         with open(filename, mode="r", encoding="utf-8") as fp:
             json_content = load(fp)
 
-        if "data" in json_content:
-            self._rows = json_content["data"]
-            self._items = len(self._rows)
+        self._rows = json_content.get("data")
+        self._items = len(self._rows)
 
     def get_next_citation_data(self):
         needed_info = ["relationType", "relatedIdentifierType", "relatedIdentifier"]
@@ -46,14 +45,14 @@ class DataciteParser(CitationParser):
         self._current_item += 1
         attr = row.get("attributes")
         citing = self._doi_manager.normalise(attr.get("doi"))
-        if citing is not None and "relatedIdentifiers" in attr:
+        if citing:
             citations = []
             for ref in attr["relatedIdentifiers"]:
-                if [x for x in needed_info if x in ref]:
-                    relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower()
-                    rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
-                    relationType = str(ref["relationType"]).lower()
+                if all(elem in ref for elem in needed_info):
+                    relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower().strip()
                     if relatedIdentifierType == "doi":
+                        rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
+                        relationType = str(ref["relationType"]).lower().strip()
                         if relationType == "references" or relationType == "cites":
                             if rel_id is not None:
                                 cited = rel_id
