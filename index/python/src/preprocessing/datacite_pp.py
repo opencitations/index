@@ -7,6 +7,8 @@ import os.path
 from os.path import exists, join
 from oc.index.preprocessing.base import Preprocessing
 from datetime import datetime
+from argparse import ArgumentParser
+
 
 
 class DatacitePreProcessing(Preprocessing):
@@ -132,3 +134,33 @@ class DatacitePreProcessing(Preprocessing):
             return empt_list
         else:
             return data
+
+if __name__ == '__main__':
+    arg_parser = ArgumentParser('datacite_pp.py', description='This script preprocesses a nldjson datacite dump by '
+                                                              'deleting the entities which are not involved in citations'
+                                                              'and storing the other ones in smaller json files')
+    arg_parser.add_argument('-in', '--input', dest='input', required=True,
+                            help='Either a directory containing the decompressed json input file or the zst compressed '
+                                 'json input file')
+    arg_parser.add_argument('-out', '--output', dest='output', required=True,
+                            help='Directory the preprocessed json files will be stored')
+    arg_parser.add_argument('-n', '--number', dest='number', required=True, type=int,
+                            help='Number of relevant entities which will be stored in each json file')
+    arg_parser.add_argument('-f', '--filter', dest='filter', required=False,
+                            help='Optional parameter, allows the user to specify a list of lowercase datacite relation'
+                                 'types which will be used as a filter to decide whether or not a an entity will be'
+                                 'processed. The elements of the list must be specified as a string of elements separated'
+                                 'by semicolon. By default, the "filter" parameter is set to ["references", '
+                                 '"isreferencedby", "cites", "iscitedby"], i.e.: the relations concerning citations.')
+    arg_parser.add_argument('-lm', '--low_memo', dest='low_memo', required=False, action='store_false',
+                            help='Optional parameter, True by default. Set it to False in order to load all the input'
+                                 'at once instead of loading in memory each entity individually')
+
+    args = arg_parser.parse_args()
+
+    filter = None
+    if args.filter:
+        filter = args.filter.split(";")
+
+    dcpp = DatacitePreProcessing(input_dir=args.input, output_dir=args.output, interval=args.number, filter=filter, low_memo=args.low_memo)
+    dcpp.split_input()

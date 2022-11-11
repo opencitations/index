@@ -16,7 +16,7 @@
 from json import loads
 from urllib.parse import quote
 from requests import get
-
+import datetime
 import oc.index.utils.dictionary as dict_utils
 from oc.index.finder.base import ApiDOIResourceFinder
 
@@ -175,6 +175,7 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
         return define_type
 
     def Date_Validator(self, date_str):
+        result = None
         date_text = date_str
         try:
             return datetime.datetime.strptime(date_text, "%Y-%m-%d").strftime(
@@ -209,8 +210,9 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
                                         ).strftime("%Y")
                                     except ValueError:
                                         pass
-        return date_text
+        return result
 
+    
     def _get_orcid(self, json_obj):
         result = set()
         if json_obj:
@@ -266,7 +268,7 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
             if dates:
                 for date in dates:
                     if date.get("dateType") == "Issued":
-                        cur_date = date.get("date")
+                        cur_date = self.Date_Validator(date.get("date"))
                         if cur_date:
                             return cur_date
 

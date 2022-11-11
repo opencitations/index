@@ -23,7 +23,6 @@ import pandas as pd
 import shutil
 import math
 
-
 class PreprocessingTest(unittest.TestCase):
         def setUp(self):
             self._input_dir_dc = "index/python/test/data/preprocess/data_datacite"

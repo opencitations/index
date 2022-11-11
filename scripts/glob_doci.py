@@ -29,82 +29,53 @@ from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 from oc.index.glob.csv import CSVDataSource
+from oc.index.finder.datacite import DataCiteResourceFinder
 
 
-def issn_data_recover_doci(directory):
-    journal_issn_dict = dict()
-    filename = directory + sep + "journal_issn.json"
-    if not os.path.exists(filename):
-        return journal_issn_dict
-    else:
-        with open(filename, "r", encoding="utf8") as fd:
-            journal_issn_dict = json.load(fd)
-            types = type(journal_issn_dict)
-            return journal_issn_dict
-
-
-def issn_data_to_cache_doci(name_issn_dict, directory):
-    filename = directory + sep + "journal_issn.json"
-    with open(filename, "w", encoding="utf-8") as fd:
-        json.dump(name_issn_dict, fd, ensure_ascii=False, indent=4)
-
-
-def get_all_files_doci(i_dir_or_targz_file):
+def get_all_files(i_dir_or_compr, req_type):
     result = []
     targz_fd = None
 
-    if isdir(i_dir_or_targz_file):
-        for cur_dir, cur_subdir, cur_files in walk(i_dir_or_targz_file):
+    if isdir(i_dir_or_compr):
+
+        for cur_dir, cur_subdir, cur_files in walk(i_dir_or_compr):
             for cur_file in cur_files:
-                if cur_file.endswith(".json") and not basename(cur_file).startswith(
-                    "."
-                ):
-                    result.append(cur_dir + sep + cur_file)
-    elif i_dir_or_targz_file.endswith("tar.gz"):
-        targz_fd = tarfile.open(i_dir_or_targz_file, "r:gz", encoding="utf-8")
+                if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
+                    result.append(os.path.join(cur_dir, cur_file))
+    elif i_dir_or_compr.endswith("tar.gz"):
+        targz_fd = tarfile.open(i_dir_or_compr, "r:gz", encoding="utf-8")
         for cur_file in targz_fd:
-            if cur_file.name.endswith(".json") and not basename(
-                cur_file.name
-            ).startswith("."):
+            if cur_file.name.endswith(req_type) and not basename(cur_file.name).startswith("."):
                 result.append(cur_file)
+    elif i_dir_or_compr.endswith("zip"):
+        with zipfile.ZipFile(i_dir_or_compr, 'r') as zip_ref:
+            dest_dir = i_dir_or_compr + "decompr_zip_dir"
+            if not exists(dest_dir):
+                makedirs(dest_dir)
+            zip_ref.extractall(dest_dir)
+        for cur_dir, cur_subdir, cur_files in walk(dest_dir):
+            for cur_file in cur_files:
+                if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
+                    result.append(cur_dir + sep + cur_file)
+
+    elif i_dir_or_compr.endswith("zst"):
+        input_file = pathlib.Path(i_dir_or_compr)
+        dest_dir = i_dir_or_compr.split(".")[0] + "decompr_zst_dir"
+        with open(input_file, 'rb') as compressed:
+            decomp = zstd.ZstdDecompressor()
+            if not exists(dest_dir):
+                makedirs(dest_dir)
+            output_path = pathlib.Path(dest_dir) / input_file.stem
+            if not exists(output_path):
+                with open(output_path, 'wb') as destination:
+                    decomp.copy_stream(compressed, destination)
+        for cur_dir, cur_subdir, cur_files in walk(dest_dir):
+            for cur_file in cur_files:
+                if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
+                    result.append(cur_dir + sep + cur_file)
     else:
-        print("It is not possible to process the input path.")
+        print("It is not possible to process the input path:", i_dir_or_compr)
     return result, targz_fd
-
-
-def valid_date_doci(date_text):
-    date_text = str(date_text)
-    try:
-        return datetime.datetime.strptime(date_text, "%Y-%m-%d").strftime("%Y-%m-%d")
-    except ValueError:
-        try:
-            return datetime.datetime.strptime(date_text, "%Y-%m").strftime("%Y-%m")
-        except ValueError:
-            try:
-                return datetime.datetime.strptime(date_text, "%Y").strftime("%Y")
-            except ValueError:
-                if "-" in date_text:
-                    possibiliDate = date_text.split("-")
-                    while possibiliDate:
-                        possibiliDate.pop()
-                        seperator = "-"
-                        data = seperator.join(possibiliDate)
-                        try:
-                            return datetime.datetime.strptime(
-                                data, "%Y-%m-%d"
-                            ).strftime("%Y-%m-%d")
-                        except ValueError:
-                            try:
-                                return datetime.datetime.strptime(
-                                    data, "%Y-%m"
-                                ).strftime("%Y-%m")
-                            except ValueError:
-                                try:
-                                    return datetime.datetime.strptime(
-                                        data, "%Y"
-                                    ).strftime("%Y")
-                                except ValueError:
-                                    pass
 
 
 def load_json_doci(file, targz_fd, file_idx, len_all_files):
@@ -115,7 +86,7 @@ def load_json_doci(file, targz_fd, file_idx, len_all_files):
         with open(file, encoding="utf8") as f:
             result = load(f)
     else:
-        # print("Open file %s of %s (in tar.gz archive)" % (file_idx, len_all_files))
+        print("Open file %s of %s (in tar.gz archive)" % (file_idx, len_all_files))
         cur_tar_file = targz_fd.extractfile(file)
         json_str = cur_tar_file.read()
         # In Python 3.5 it seems that, for some reason, the extractfile method returns an
@@ -137,238 +108,107 @@ def process_doci(input_dir, output_dir, n):
     if not exists(output_dir):
         makedirs(output_dir)
 
-    # valid_doi = CSVManager(output_dir + sep + "valid_doi.csv")
-    # id_date = CSVManager(output_dir + sep + "id_date.csv")
-    # id_issn = CSVManager(output_dir + sep + "id_issn.csv")
-    # id_orcid = CSVManager(output_dir + sep + "id_orcid.csv")
-
-    journal_issn_dict = issn_data_recover_doci(output_dir)
-
     doi_manager = DOIManager()
-    issn_manager = ISSNManager()
-    orcid_manager = ORCIDManager()
     csv_datasource = CSVDataSource("DOCI")
+    dcrf = DataCiteResourceFinder()
 
-    all_files, targz_fd = get_all_files_doci(input_dir)
+    all_files, targz_fd = get_all_files(input_dir, ".json")
     len_all_files = len(all_files)
-    issnDict = {}
     relevant_relations = ["references", "isreferencedby", "cites", "iscitedby"]
 
     count = 0
     # Read all the JSON files in the DataCite dump to create the main information of all the indexes
-    # print("\n\n# Add valid DOIs from DataCite metadata")
-    for file_idx, file in enumerate(all_files, 1):
+    print("\n\n# Add valid DOIs from DataCite metadata")
+    for file_idx, file in enumerate(tqdm(all_files), 1):
         data = load_json_doci(file, targz_fd, file_idx, len_all_files)
-        if "data" in data:
-            data_list = data["data"]
-            for item in tqdm(data_list):
-                count += 1
-                attributes = item["attributes"]
-                citing_doi = attributes["doi"]
-                relatedIdentifiers = attributes["relatedIdentifiers"]
-                citing_doi = doi_manager.normalise(citing_doi, True)
-                # valid_doi.add_value(citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i")
-                if citing_doi is not None:
-                    entity = csv_datasource.get(citing_doi)
-                    if entity is None:
-                        entity = dict()
-                        entity["valid"] = True
+        data_list = data["data"]
+        for item in data_list:
+            count += 1
+            attributes = item["attributes"]
+            citing_doi = attributes["doi"]
+            citing_doi = doi_manager.normalise(citing_doi, True)
+            # valid_doi.add_value(citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i")
+            if citing_doi is not None:
+                entity = csv_datasource.get(citing_doi)
+                if entity is None:
+                    entity = dict()
+                    entity["valid"] = True
 
-                    # collect the date of issue if there is, otherwise the year of publcation
-                    citing_date = []
-                    listDates = attributes["dates"]
-                    publicationYear = attributes["publicationYear"]
+                # collect the date of issue if it is possible,  the year of publcation otherwise
+                citing_date = []
 
-                    if listDates != []:
-                        if [
-                            data
-                            for data in listDates
-                            if str(data["dateType"]).lower() == "issued"
-                        ]:
-                            issue_dates = [
-                                data
-                                for data in listDates
-                                if str(data["dateType"]).lower() == "issued"
-                            ]
-                            if [
-                                iss_date
-                                for iss_date in issue_dates
-                                if valid_date_doci(str(iss_date["date"]))
-                            ]:
-                                flt_issue_dates = [
-                                    iss_date
-                                    for iss_date in issue_dates
-                                    if valid_date_doci(str(iss_date["date"]))
-                                ]
-                                for flt_iss_date in flt_issue_dates:
-                                    citing_date.append(
-                                        valid_date_doci(str(flt_iss_date["date"])),
-                                    )
-                                    break
+                dates = attributes.get("dates")
+                date_not_found = True
+                if dates:
+                    for date in dates:
+                        if date.get("dateType") == "Issued":
+                            cur_date = dcrf.Date_Validator(date.get("date"))
+                            if cur_date:
+                                citing_date.append(cur_date)
+                                date_not_found = False
+                                break
+                if date_not_found:
+                    cur_date = json_obj.get("publicationYear")
+                    if cur_date:
+                        cur_date = dcrf.Date_Validator(str(cur_date))
+                        if cur_date:
+                            citing_date.append(cur_date)
 
-                            # listDates exists and at least one of its element has "issued" in "dateType"
-                            # but none of the dates in listDates has a valid date in "date"
-                            elif publicationYear:
-                                publicationYear = valid_date_doci(str(publicationYear))
-                                if publicationYear:
-                                    citing_date.append(publicationYear)
+                if len(citing_date) > 0:
+                    entity["date"] = citing_date
 
-                        # listDates exists but none of its elements has "issued" in "dateType"
-                        elif publicationYear:
-                            publicationYear = valid_date_doci(str(publicationYear))
-                            if publicationYear:
-                                citing_date.append(publicationYear)
+                # collect the orcid of the contributors
+                orcid_list = list(dcrf._get_orcid(attributes))
+                if len(orcid_list) > 0:
+                    entity["orcid"] = orcid_list
 
-                    # listDates is an empty list: no dates in listDates
-                    elif publicationYear:
-                        publicationYear = valid_date_doci(str(publicationYear))
-                        if publicationYear:
-                            citing_date.append(publicationYear)
+                # collect the issn of the resource or its container
+                valid_issn_list = list(dcrf._get_issn(attributes))
+                if len(valid_issn_list) > 0:
+                    entity["issn"] = valid_issn_list
 
-                    if len(citing_date) > 0:
-                        entity["date"] = citing_date
+                csv_datasource.set(citing_doi, entity)
 
-                    # collect the orcid of the contributors
-                    orcid_list = []
-                    contributorList = attributes["creators"]
-                    if contributorList != []:
-                        for author in contributorList:
-                            if "nameIdentifiers" in author.keys():
-                                infoAuthor = author["nameIdentifiers"]
-                                for element in infoAuthor:
-                                    if (
-                                        "nameIdentifier" in element.keys()
-                                        and "nameIdentifierScheme" in element.keys()
-                                    ):
-                                        if (
-                                            element["nameIdentifierScheme"]
-                                        ).lower() == "orcid":
-                                            orcid = element["nameIdentifier"]
-                                            if orcid is not None and orcid != "":
-                                                orcid = orcid_manager.normalise(orcid)
-                                                if orcid_manager.is_valid(orcid):
-                                                    orcid_list.append(orcid)
-                    if len(orcid_list) > 0:
-                        entity["orcid"] = orcid_list
-
-                    issn_set = set()
-                    valid_issn_list = []
-                    if relatedIdentifiers != []:
-                        for related in relatedIdentifiers:
-                            if "relationType" in related.keys():
-                                relationType = related["relationType"]
-                                if relationType.lower() == "ispartof":
-                                    if "relatedIdentifierType" in related.keys():
-                                        relatedIdentifierType = (
-                                            str(related["relatedIdentifierType"])
-                                        ).lower()
-                                        if relatedIdentifierType == "issn":
-                                            if "relatedIdentifier" in related.keys():
-                                                relatedISSN = str(
-                                                    related["relatedIdentifier"]
-                                                )
-                                                if relatedISSN:
-                                                    issn_set.add(relatedISSN)
-
-                    container = attributes["container"]
-                    if (
-                        "identifier" in container.keys()
-                        and "identifierType" in container.keys()
-                    ):
-                        if (
-                            container["identifier"] != ""
-                            and (container["identifierType"]).lower() == "issn"
-                        ):
-                            cont_issn = container["identifier"]
-                            issn_set.add(cont_issn)
-                            if "title" in container.keys():
-                                journal_title = (container["title"]).lower()
-                                if journal_title in issnDict.keys():
-                                    issnList = issnDict[journal_title]
-                                    if issnList != []:
-                                        if [
-                                            el for el in issnList if el not in issn_set
-                                        ]:
-                                            issn_set.update(set(issnList))
-                                            issnDict[journal_title] = list(issn_set)
-                                    else:
-                                        issnDict[journal_title] = list(issn_set)
-                                else:
-                                    issnDict[journal_title] = list(issn_set)
-
-                    normalised_issn_set = set()
-                    for issn in issn_set:
-                        norm_issn = issn_manager.normalise(issn)
-                        normalised_issn_set.add(norm_issn)
-                    for issn in normalised_issn_set:
-                        if issn_manager.is_valid(issn):
-                            valid_issn_list.append(issn)
-
-                    if len(valid_issn_list) > 0:
-                        entity["issn"] = valid_issn_list
-
-                    csv_datasource.set(citing_doi, entity)
-
-                    if int(count) != 0 and int(count) % int(n) == 0:
-                        issn_data_to_cache_doci(issnDict, output_dir)
-
-    issn_data_to_cache_doci(issnDict, output_dir)
     middle = timer()
-    # print("first process duration: :", (middle - start))
+    print("citing entities process duration: :", (middle - start))
 
     cited_dois = 0
     count = 0
-    for file_idx, file in enumerate(all_files, 1):
+    needed_info = ["relationType", "relatedIdentifierType", "relatedIdentifier"]
+    relevant_relations = ["references", "cites", "isreferencedby", "iscitedby"]
+    for file_idx, file in enumerate(tqdm(all_files), 1):
         data = load_json_doci(file, targz_fd, file_idx, len_all_files)
-        if "data" in data:
-            data_list = data["data"]
-            for item in tqdm(data_list):
-                count += 1
-                # print("processing entity n.", count, "for cited dois")
-                attributes = item["attributes"]
-                relatedIdentifiers = attributes["relatedIdentifiers"]
-                if relatedIdentifiers != []:
-                    for related in relatedIdentifiers:
-                        relationType = related["relationType"]
-                        if relationType:
-                            if relationType.lower() in relevant_relations:
-                                if "relatedIdentifierType" in related.keys():
-                                    relatedIdentifierType = (
-                                        str(related["relatedIdentifierType"])
-                                    ).lower()
-                                    if relatedIdentifierType == "doi":
-                                        if "relatedIdentifier" in related.keys():
-                                            relatedDOI = doi_manager.normalise(
-                                                related["relatedIdentifier"], True
-                                            )
-                                            if relatedDOI is not None:
-                                                relatedDOI_entity = csv_datasource.get(
-                                                    relatedDOI
-                                                )
-                                                if relatedDOI_entity is None:
-                                                    relatedDOI_entity = dict()
-                                                    relatedDOI_entity["valid"] = (
-                                                        True
-                                                        if doi_manager.is_valid(
-                                                            relatedDOI
-                                                        )
-                                                        else False
-                                                    )
-                                                    cited_dois += 1
-                                                    csv_datasource.set(
-                                                        relatedDOI, relatedDOI_entity
-                                                    )
+        data_list = data["data"]
+        for item in data_list:
+            count += 1
+            # print("processing entity n.", count, "for cited dois")
+            attributes = item["attributes"]
+            for ref in attributes["relatedIdentifiers"]:
+                if all(elem in ref for elem in needed_info):
+                    relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower().strip()
+                    if relatedIdentifierType == "doi":
+                        rel_id = doi_manager.normalise(ref["relatedIdentifier"])
+                        relationType = str(ref["relationType"]).lower().strip()
+                        if relationType in relevant_relations:
+                            relatedDOI = doi_manager.normalise(rel_id, True)
+                            if relatedDOI:
+                                relatedDOI_entity = csv_datasource.get(relatedDOI)
+                                if not relatedDOI_entity:
+                                    relatedDOI_entity = dict()
+                                    relatedDOI_entity["valid"] = (True if doi_manager.is_valid(relatedDOI) else False)
+                                    cited_dois += 1
+                                    csv_datasource.set(relatedDOI, relatedDOI_entity)
 
     end = timer()
-    # print("second process duration: ", end-middle)
-    # print("full process duration: ", end-start)
+    print("cited entities process duration: ", end-middle)
+    print("full process duration: ", end-start)
 
 
 def main():
     arg_parser = ArgumentParser(
         "Global files creator for DOCI",
         description="Process DataCite JSON files and create global indexes to enable "
-        "the creation of DOCI.",
+                    "the creation of DOCI.",
     )
     arg_parser.add_argument(
         "-i",
@@ -376,7 +216,7 @@ def main():
         dest="input",
         required=True,
         help="Either the directory or the zip file that contains the DataCite data dump "
-        "of JSON files.",
+             "of JSON files.",
     )
     arg_parser.add_argument(
         "-o",
