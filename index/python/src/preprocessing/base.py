@@ -49,7 +49,7 @@ class Preprocessing(metaclass=ABCMeta):
 
         elif i_dir_or_compr.endswith("zst"):
             input_file = pathlib.Path(i_dir_or_compr)
-            dest_dir = i_dir_or_compr + "decompr_zst_dir"
+            dest_dir = i_dir_or_compr.split(".")[0] + "decompr_zst_dir"
             with open(input_file, 'rb') as compressed:
                 decomp = zstd.ZstdDecompressor()
                 if not exists(dest_dir):

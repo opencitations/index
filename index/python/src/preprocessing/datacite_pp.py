@@ -6,6 +6,7 @@ from tqdm import tqdm
 import os.path
 from os.path import exists, join
 from oc.index.preprocessing.base import Preprocessing
+from datetime import datetime
 
 
 class DatacitePreProcessing(Preprocessing):
@@ -35,7 +36,7 @@ class DatacitePreProcessing(Preprocessing):
         out_dir = listdir(self._output_dir)
         # Checking if the list is empty or not
         if len(out_dir) != 0:
-            list_of_files = glob.glob(join(self._output_dir, '*.json'))  # * means all if need specific format then *.csv
+            list_of_files = glob.glob(join(self._output_dir, '*.json'))
             latest_file = max(list_of_files, key=os.path.getctime)
             with open(latest_file, encoding="utf8") as f:
                 recover_dict = json.load(f)
@@ -49,7 +50,6 @@ class DatacitePreProcessing(Preprocessing):
         all_files, targz_fd = self.get_all_files(self._input_dir, self._req_type)
         len_all_files = len(all_files)
         data = []
-        #pre_count = 0
         count = 0
 
         for file_idx, file in enumerate(all_files, 1):
@@ -57,35 +57,26 @@ class DatacitePreProcessing(Preprocessing):
                 f = self.load_json(file, targz_fd, file_idx, len_all_files)
             else:
                 f = open(file, encoding="utf8")
-            #verificare corretto funzionamento con opzione LOW MEMO = False !!! OPZIONE LOW MEMO FALSE NON VA LETTA COME STRINGA
             for line in tqdm(f):
                 if self._low_memo:
                     if last_processed_dict is not None:
                         if not line.startswith('{"id":"' + last_dict_id+'",') :
-                            #pre_count += 1
                             continue
                         else:
                             last_processed_dict = None
-                            # pre_count += 1
-                            # count = pre_count
                             continue
                     else:
                         pass
                 else:
                     if last_processed_dict is not None:
                         if line.get("id") != last_dict_id:
-                            #pre_count += 1
                             continue
                         else:
                             last_processed_dict = None
-                            # pre_count += 1
-                            # count = pre_count
                             continue
                     else:
                         pass
-
-                # count += 1
-                # to be logged: print("Processing entity n.:", n_lines)
+                    
                 if self._low_memo:
                     try:
                         linedict = json.loads(line)
@@ -100,7 +91,6 @@ class DatacitePreProcessing(Preprocessing):
                     continue
                 attributes = linedict["attributes"]
                 rel_ids = attributes.get("relatedIdentifiers")
-
                 if rel_ids:
                     for ref in rel_ids:
                         if all(elem in ref for elem in self._needed_info):
@@ -123,13 +113,16 @@ class DatacitePreProcessing(Preprocessing):
             data = self.splitted_to_file(count, self._interval, self._output_dir, data)
 
 
-    def splitted_to_file(self, cur_n, target_n, out_dir, data, headers=None):
+    def splitted_to_file(self, cur_n, target_n, out_dir, data):
         if not exists(out_dir):
             makedirs(out_dir)
         dict_to_json = dict()
         if int(cur_n) != 0 and int(cur_n) % int(target_n) == 0:
-            # to be logged: print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // target_n)
             filename = "jSonFile_" + str(cur_n // target_n) + self._req_type
+            if exists(os.path.join(out_dir, filename)):
+                cur_datetime = datetime.now()
+                dt_string = cur_datetime.strftime("%d%m%Y_%H%M%S")
+                filename = filename[:-len(self._req_type)] + "_" + dt_string + self._req_type
             with (
                     open(os.path.join(out_dir, filename), "w", encoding="utf8")
             ) as json_file:
