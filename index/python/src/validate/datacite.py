@@ -41,15 +41,15 @@ class DataciteValidator(CitationValidator):
         for row in tqdm(json_content["data"], disable=disable_tqdm):
             attr = row.get("attributes")
             citing = self._doi_manager.normalise(attr.get("doi"))
-            if citing is not None and "relatedIdentifiers" in attr:
+            if citing:
                 for ref in attr["relatedIdentifiers"]:
-                    if [x for x in needed_info if x in ref]:
+                    if all(elem in ref for elem in needed_info):
                         relatedIdentifierType = (
                             str(ref["relatedIdentifierType"])
-                        ).lower()
-                        rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
-                        relationType = str(ref["relationType"]).lower()
+                        ).lower().strip()
                         if relatedIdentifierType == "doi":
+                            rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
+                            relationType = str(ref["relationType"]).lower().strip()
                             if relationType == "references" or relationType == "cites":
                                 cited = rel_id
                                 if cited is not None:
@@ -94,17 +94,17 @@ class DataciteValidator(CitationValidator):
                 for row in tqdm(json_content["data"]):
                     attr = row.get("attributes")
                     citing = self._doi_manager.normalise(attr.get("doi"))
-                    if citing is not None and "relatedIdentifiers" in attr:
+                    if citing:
                         for ref in attr["relatedIdentifiers"]:
-                            if [x for x in needed_info if x in ref]:
+                            if all(elem in ref for elem in needed_info):
                                 relatedIdentifierType = (
                                     str(ref["relatedIdentifierType"])
-                                ).lower()
-                                rel_id = self._doi_manager.normalise(
+                                ).lower().strip()
+                                if relatedIdentifierType == "doi":
+                                    rel_id = self._doi_manager.normalise(
                                     ref["relatedIdentifier"]
                                 )
-                                relationType = str(ref["relationType"]).lower()
-                                if relatedIdentifierType == "doi":
+                                    relationType = str(ref["relationType"]).lower().strip()
                                     if (
                                         relationType == "references"
                                         or relationType == "cites"
@@ -144,18 +144,17 @@ class DataciteValidator(CitationValidator):
                 for row in tqdm(json_content["data"]):
                     attr = row.get("attributes")
                     citing = self._doi_manager.normalise(attr.get("doi"))
-                    if citing is not None and "relatedIdentifiers" in attr:
+                    if citing:
                         reference = []
                         for ref in attr["relatedIdentifiers"]:
-                            if [x for x in needed_info if x in ref]:
+                            if all(elem in ref for elem in needed_info):
                                 relatedIdentifierType = (
                                     str(ref["relatedIdentifierType"])
-                                ).lower()
-                                rel_id = self._doi_manager.normalise(
-                                    ref["relatedIdentifier"]
-                                )
-                                relationType = str(ref["relationType"]).lower()
+                                ).lower().strip()
                                 if relatedIdentifierType == "doi":
+                                    rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
+                                    relationType = str(ref["relationType"]).lower().strip()
+                                
                                     if (
                                         relationType == "references"
                                         or relationType == "cites"
