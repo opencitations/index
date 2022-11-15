@@ -155,7 +155,7 @@ class GlobTest(unittest.TestCase):
         )
 
     def test_process_doci(self):
-        process_doci(self.inp_doci, self.out_doci, self.n_doci)
+        process_doci(self.inp_doci, self.out_doci)
         self.doci_datasource = CSVDataSource("DOCI")
 
         citing_doi = "doi:10.1002/ejoc.201800947"

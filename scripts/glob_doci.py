@@ -103,7 +103,7 @@ def load_json_doci(file, targz_fd, file_idx, len_all_files):
     return result
 
 
-def process_doci(input_dir, output_dir, n):
+def process_doci(input_dir, output_dir):
     start = timer()
     if not exists(output_dir):
         makedirs(output_dir)
@@ -226,13 +226,6 @@ def main():
         help="The directory where the indexes are stored.",
     )
 
-    arg_parser.add_argument(
-        "-n",
-        "--num_entities",
-        dest="num_entities",
-        required=True,
-        help="Interval of processed entities after which the issn data are saved to cache files.",
-    )
 
     args = arg_parser.parse_args()
-    process_doci(args.input, args.output, args.num_entities)
+    process_doci(args.input, args.output)
