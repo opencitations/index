@@ -60,78 +60,76 @@ class DatacitePreProcessing(Preprocessing):
             else:
                 f = open(file, encoding="utf8")
             for line in tqdm(f):
-                if self._low_memo:
-                    if last_processed_dict is not None:
-                        if not line.startswith('{"id":"' + last_dict_id+'",') :
-                            continue
+                if line:
+                    if self._low_memo:
+                        if last_processed_dict is not None:
+                            if not line.startswith('{"id":"' + last_dict_id+'",') :
+                                continue
+                            else:
+                                last_processed_dict = None
+                                continue
                         else:
-                            last_processed_dict = None
+                            pass
+                    else:
+                        if last_processed_dict is not None:
+                            if line.get("id") != last_dict_id:
+                                continue
+                            else:
+                                last_processed_dict = None
+                                continue
+                        else:
+                            pass
+
+                    if self._low_memo:
+                        try:
+                            linedict = json.loads(line)
+                        except:
+                            print(ValueError, line)
                             continue
                     else:
-                        pass
-                else:
-                    if last_processed_dict is not None:
-                        if line.get("id") != last_dict_id:
-                            continue
-                        else:
-                            last_processed_dict = None
-                            continue
-                    else:
-                        pass
-                    
-                if self._low_memo:
-                    try:
-                        linedict = json.loads(line)
-                    except:
-                        print(ValueError, line)
+                        linedict = line
+                    if 'id' not in linedict or 'type' not in linedict:
                         continue
-                else:
-                    linedict = line
-                if 'id' not in linedict or 'type' not in linedict:
-                    continue
-                if linedict['type'] != "dois":
-                    continue
-                attributes = linedict["attributes"]
-                rel_ids = attributes.get("relatedIdentifiers")
-                if rel_ids:
-                    for ref in rel_ids:
-                        if all(elem in ref for elem in self._needed_info):
-                            relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower()
-                            relationType = str(ref["relationType"]).lower()
-                            if relatedIdentifierType == "doi":
-                                if relationType in self._filter:
-                                    data.append(linedict)
-                                    count += 1
-                                    break
+                    if linedict['type'] != "dois":
+                        continue
+                    attributes = linedict["attributes"]
+                    rel_ids = attributes.get("relatedIdentifiers")
+                    if rel_ids:
+                        for ref in rel_ids:
+                            if all(elem in ref for elem in self._needed_info):
+                                relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower()
+                                relationType = str(ref["relationType"]).lower()
+                                if relatedIdentifierType == "doi":
+                                    if relationType in self._filter:
+                                        data.append(linedict)
+                                        count += 1
+                                        data = self.splitted_to_file(
+                                            count, self._interval, self._output_dir, data
+                                        )
+                                        break
 
-
-                data = self.splitted_to_file(
-                    count, self._interval, self._output_dir, data
-                )
             f.close()
 
         if len(data) > 0:
             count = count + (self._interval - (int(count) % int(self._interval)))
-            data = self.splitted_to_file(count, self._interval, self._output_dir, data)
+            self.splitted_to_file(count, self._interval, self._output_dir, data)
 
 
     def splitted_to_file(self, cur_n, target_n, out_dir, data):
         if not exists(out_dir):
             makedirs(out_dir)
         dict_to_json = dict()
-        if int(cur_n) != 0 and int(cur_n) % int(target_n) == 0:
+        if int(cur_n) != 0 and int(cur_n) % int(target_n) == 0: # and len(data)
             filename = "jSonFile_" + str(cur_n // target_n) + self._req_type
             if exists(os.path.join(out_dir, filename)):
                 cur_datetime = datetime.now()
                 dt_string = cur_datetime.strftime("%d%m%Y_%H%M%S")
                 filename = filename[:-len(self._req_type)] + "_" + dt_string + self._req_type
-            with (
-                    open(os.path.join(out_dir, filename), "w", encoding="utf8")
-            ) as json_file:
+            with open(os.path.join(out_dir, filename), "w", encoding="utf8") as json_file:
                 dict_to_json["data"] = data
                 json.dump(dict_to_json, json_file)
-                empt_list = []
-            return empt_list
+                json_file.close()
+            return []
         else:
             return data
 
