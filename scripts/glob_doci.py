@@ -103,10 +103,8 @@ def load_json_doci(file, targz_fd, file_idx, len_all_files):
     return result
 
 
-def process_doci(input_dir, output_dir):
+def process_doci(input_dir):
     start = timer()
-    if not exists(output_dir):
-        makedirs(output_dir)
 
     doi_manager = DOIManager()
     csv_datasource = CSVDataSource("DOCI")
@@ -148,7 +146,7 @@ def process_doci(input_dir, output_dir):
                                 date_not_found = False
                                 break
                 if date_not_found:
-                    cur_date = json_obj.get("publicationYear")
+                    cur_date = attributes.get("publicationYear")
                     if cur_date:
                         cur_date = dcrf.Date_Validator(str(cur_date))
                         if cur_date:
@@ -218,14 +216,7 @@ def main():
         help="Either the directory or the zip file that contains the DataCite data dump "
              "of JSON files.",
     )
-    arg_parser.add_argument(
-        "-o",
-        "--output",
-        dest="output",
-        required=True,
-        help="The directory where the indexes are stored.",
-    )
 
 
     args = arg_parser.parse_args()
-    process_doci(args.input, args.output)
+    process_doci(args.input)

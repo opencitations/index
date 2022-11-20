@@ -66,7 +66,6 @@ class GlobTest(unittest.TestCase):
 
         # DOCI
         self.inp_doci = join(self.test_dir, "doci_glob_dump_input")
-        self.out_doci = self.__get_output_directory("doci_glob_dump_output")
         self.issn_journal_doci = {
             "european journal of organic chemistry": ["1434193X"],
             "drug delivery and translational research": ["2190-3948"],
@@ -155,7 +154,7 @@ class GlobTest(unittest.TestCase):
         )
 
     def test_process_doci(self):
-        process_doci(self.inp_doci, self.out_doci)
+        process_doci(self.inp_doci)
         self.doci_datasource = CSVDataSource("DOCI")
 
         citing_doi = "doi:10.1002/ejoc.201800947"

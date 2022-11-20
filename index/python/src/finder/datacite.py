@@ -137,10 +137,10 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
                                               'sound': 'audio document',
                                               'workflow': 'workflow'}
 
-    def Define_Type(self, attributes):
+    def Define_Type(self, json_obj):
         define_type = None
-        if attributes.get('types') is not None:
-            types_dict = attributes['types']
+        if json_obj.get('types') is not None:
+            types_dict = json_obj['types']
             for k, v in types_dict.items():
                 if k.lower() == 'ris':
                     if type(v) is str:
@@ -230,36 +230,26 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
     def _get_issn(self, json_obj):
         issn_set = set()
         if json_obj:
-            type = self.Define_Type(json_obj)
-            # Get resource ISSN
-            if json_obj.get('identifiers'):
-                for other_id in json_obj.get('identifiers'):
-                    if other_id.get('identifier') and other_id.get('identifierType'):
-                        o_id_type = other_id.get('identifierType')
-                        o_id = other_id.get('identifier')
-                        if o_id_type == 'ISSN':
-                            if type in {'book series', 'book set', 'journal', 'proceedings series', 'series',
-                                               'standard series', 'report series'}:
-                                issn = self._im.normalise(o_id)
-                                if issn:
-                                    issn_set.add(issn)
+
             # Get ISSN from container
             if json_obj.get('container'):
                 container = json_obj.get('container')
                 if container.get("identifierType") == "ISSN":
-                    if type in {'book', 'data file', 'dataset', 'edited book', 'journal article',
-                                       'journal volume',
-                                       'journal issue', 'monograph', 'proceedings', 'peer review', 'reference book',
-                                       'reference entry', 'report'}:
-                        issn = self._im.normalise(container.get("identifier"))
-                        if issn:
-                            issn_set.add(issn)
+                    issn = self._im.normalise(container.get("identifier"))
+                    if issn:
+                        issn_set.add(issn)
+                                
+            # Get issn from related identifiers
+            if json_obj.get("relatedIdentifiers"):
+                relatedIdentifiers = json_obj.get("relatedIdentifiers")
+                for related in relatedIdentifiers:
+                    if related.get("relationType"):
+                        if related.get("relationType") == "IsPartOf":
+                            if related.get("relatedIdentifierType") == "ISSN":
+                                issn = self._im.normalise(related.get("relatedIdentifier"))
+                                if issn:
+                                    issn_set.add(issn)
 
-                    elif type == 'report series':
-                        if container.get("title"):
-                            issn = self._im.normalise(container.get("identifier"))
-                            if issn:
-                                issn_set.add(issn)
         return issn_set
 
     def _get_date(self, json_obj):
