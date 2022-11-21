@@ -68,9 +68,10 @@ class NIHPreProcessing:
             for file_idx, file in enumerate(all_files):
                 df = pd.read_csv(file, usecols=filter_col, low_memory=True)
                 df.fillna("", inplace=True)
-                f = df.values.tolist()
+                df_dict_list = df.to_dict("records")
+                filt_values = [d.values() for d in df_dict_list if d.get("cited_by") or d.get("references")]
                 headers = filter_col
-                for line in f:
+                for line in filt_values:
                     count += 1
                     lines.append(line)
                     if int(count) != 0 and int(count) % int(num) == 0:

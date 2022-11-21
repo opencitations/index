@@ -28,6 +28,7 @@ class DataCiteResourceFinder(ApiDOIResourceFinder):
         """Data cite resource finder constructor."""
         super().__init__(data, use_api_service=use_api_service)
         self._api = "https://api.datacite.org/dois/"
+        self._data = data
         self.RIS_types_map = {'abst': 'abstract',
                               'news': 'newspaper article',
                               'slide': 'presentation',

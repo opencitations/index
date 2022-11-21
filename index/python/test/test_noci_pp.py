@@ -19,6 +19,7 @@ from oc.index.preprocessing.nih_pp import NIHPreProcessing
 import shutil
 import csv
 import os
+import pandas as pd
 
 
 class NOCIPPTest(unittest.TestCase):
@@ -186,16 +187,29 @@ class NOCIPPTest(unittest.TestCase):
         # checks that the output directory is generated in the process.
         self.assertTrue(exists(self.output_md_dir))
 
-        # checks that the input lines where stored in 2 files, one containing 300 items and the other the remaining 56
+        # checks that the input lines where stored in the correct number of files, with respect to the parameters specified.
+        # checks that the number of filtered lines is equal to the number of lines in input - the number of discarded lines
+        input_files = self.NIHPP.get_all_files(self.input_md_dir)
+        len_discarded_lines = 0
+        len_total_lines = 0 
+        for idx, file in enumerate(input_files):
+            df = pd.read_csv(file, usecols=self.headers_md, low_memory=True)
+            df.fillna("", inplace=True)
+            df_dict_list = df.to_dict("records")
+            len_total_lines += len(df_dict_list)
+            len_discarded_lines += len([d for d in df_dict_list if not (d.get("cited_by") or d.get("references"))])
+
         files = self.NIHPP.get_all_files(self.output_md_dir)
         len_files = len(files)
         self.assertEqual(len_files, 2)
+        len_filtered_lines = 0
         for idx, file in enumerate(files):
             with open(file, "r") as op_file:
                 reader = csv.reader(op_file, delimiter=",")
                 next(reader, None)
-                len_lines = len(list(reader))
-                self.assertTrue(len_lines == 300 or len_lines == 56)
+                len_filtered_lines += len(list(reader))
+                
+        self.assertEqual(len_filtered_lines, len_total_lines - len_discarded_lines)
 
     def test_icmd_chunk_to_file(self):
         if exists(self.output_md_dir):
