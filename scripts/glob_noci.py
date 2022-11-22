@@ -36,6 +36,8 @@ from oc.index.identifier.orcid import ORCIDManager
 from oc.index.finder.orcid import ORCIDResourceFinder, ORCIDResourceFinderPMID
 from oc.index.finder.crossref import CrossrefResourceFinder
 from oc.index.glob.csv import CSVDataSource
+from oc.index.glob.redis import RedisDataSource
+from oc.index.utils.config import get_config
 
 
 def check_author_identity_api(
@@ -182,7 +184,16 @@ def process_noci(
     issn_manager = ISSNManager()
     orcid_manager = ORCIDManager()
     pmid_manager = PMIDManager()
-    csv_datasource = CSVDataSource("NOCI")
+
+    config = get_config()
+    service_ds = config.get("NOCI", "datasource")
+    svc_datasource = None
+    if service_ds == "redis":
+        svc_datasource = RedisDataSource("NOCI")
+    elif service_ds == "csv":
+        svc_datasource = CSVDataSource("NOCI")
+    else:
+        raise Exception(service_ds + " is not a valid data source")
 
     all_files, opener = get_all_files_noci(input_dir)
     len_all_files = len(all_files)
@@ -221,7 +232,7 @@ def process_noci(
                         author_dict = {"names": strp_names, "surnames": surnames_l}
                         authors_dicts_list.append(author_dict)
 
-                    if csv_datasource.get(citing_pmid) is None:
+                    if svc_datasource.get(citing_pmid) is None:
                         entity = dict()
 
                         entity["valid"] = True
@@ -306,7 +317,7 @@ def process_noci(
                         if issn_list != []:
                             entity["issn"] = issn_list
 
-                        csv_datasource.set(citing_pmid, entity)
+                        svc_datasource.set(citing_pmid, entity)
 
             pmid_doi_map = {
                 k: v for k, v in pmid_doi_map.items() if v["has_orcid"] is False
@@ -371,7 +382,7 @@ def process_noci(
                                     if matches and orcid:
                                         nor_orcid = orcid_manager.normalise(orcid)
                                         if nor_orcid:
-                                            c_pmid_entity = csv_datasource.get(c_pmid)
+                                            c_pmid_entity = svc_datasource.get(c_pmid)
                                             if c_pmid_entity["orcid"] is None:
                                                 c_pmid_entity["orcid"] = []
                                                 c_pmid_entity["orcid"].append(nor_orcid)
@@ -381,7 +392,7 @@ def process_noci(
                                                 )
                                                 c_pmid_entity["orcid"].append(nor_orcid)
 
-                                            csv_datasource.set(c_pmid, c_pmid_entity)
+                                            svc_datasource.set(c_pmid, c_pmid_entity)
                                             if (
                                                 pmid_doi_map[c_pmid]["has_orcid"]
                                                 == False
@@ -408,7 +419,7 @@ def process_noci(
                                     if chek_passed and norm_orc:
                                         certified_orcid.append(norm_orc)
 
-                                citing_pmid_dict = csv_datasource.get(citing_pmid)
+                                citing_pmid_dict = svc_datasource.get(citing_pmid)
 
                                 if len(certified_orcid) > 0:
                                     d["has_orcid"] = True
@@ -418,7 +429,7 @@ def process_noci(
                                         citing_pmid_dict["orcid"].extend(
                                             certified_orcid
                                         )
-                                    csv_datasource.set(citing_pmid, citing_pmid_dict)
+                                    svc_datasource.set(citing_pmid, citing_pmid_dict)
 
             pmid_doi_map = dict()
             issn_data_to_cache_noci(journal_issn_dict, output_dir)
@@ -443,13 +454,13 @@ def process_noci(
                         cited_pmid = pmid_manager.normalise(cited_pmid, True)
 
                         if cited_pmid is not None:
-                            cited_pmid_entity = csv_datasource.get(cited_pmid)
+                            cited_pmid_entity = svc_datasource.get(cited_pmid)
                             if cited_pmid_entity is None:
                                 cited_pmid_entity = dict()
                                 cited_pmid_entity["valid"] = (
                                     True if pmid_manager.is_valid(cited_pmid) else False
                                 )
-                                csv_datasource.set(cited_pmid, cited_pmid_entity)
+                                svc_datasource.set(cited_pmid, cited_pmid_entity)
 
                 if row["cited_by"] != "":
                     citing_string = row["cited_by"].strip()
@@ -458,13 +469,13 @@ def process_noci(
                     for citing_p in citing_pmids:
                         citing_p = pmid_manager.normalise(citing_p, True)
                         if citing_p is not None:
-                            citing_p_entity = csv_datasource.get(citing_p)
+                            citing_p_entity = svc_datasource.get(citing_p)
                             if citing_p_entity is None:
                                 citing_p_entity = dict()
                                 citing_p_entity["valid"] = (
                                     True if pmid_manager.is_valid(citing_p) else False
                                 )
-                                csv_datasource.set(citing_p, citing_p_entity)
+                                svc_datasource.set(citing_p, citing_p_entity)
 
     end = timer()
     # print("second process duration: ", end-middle)
