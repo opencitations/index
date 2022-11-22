@@ -10,10 +10,9 @@ from datetime import datetime
 from argparse import ArgumentParser
 
 
-
 class DatacitePreProcessing(Preprocessing):
     """This class aims at pre-processing DataCite dumps.
-    In particular, DatacitePreProcessing splits the original nldJSON in many JSON files, each one containing the number of entities specified in input by the user. Further, the class discards those entities that do not provide useful information for meta"""
+    In particular, DatacitePreProcessing splits the original nldJSON in many JSON files, each one containing the number of entities specified in input by the user. Further, the class discards those entities that are not involved in citations"""
 
     def __init__(self, input_dir, output_dir, interval, filter=None, low_memo=True):
         self._req_type = ".json"
@@ -104,7 +103,7 @@ class DatacitePreProcessing(Preprocessing):
                                         data.append(linedict)
                                         count += 1
                                         data = self.splitted_to_file(
-                                            count, self._interval, self._output_dir, data
+                                            count, data
                                         )
                                         break
 
@@ -112,20 +111,18 @@ class DatacitePreProcessing(Preprocessing):
 
         if len(data) > 0:
             count = count + (self._interval - (int(count) % int(self._interval)))
-            self.splitted_to_file(count, self._interval, self._output_dir, data)
+            self.splitted_to_file(count, data)
 
 
-    def splitted_to_file(self, cur_n, target_n, out_dir, data):
-        if not exists(out_dir):
-            makedirs(out_dir)
+    def splitted_to_file(self, cur_n, data):
         dict_to_json = dict()
-        if int(cur_n) != 0 and int(cur_n) % int(target_n) == 0: # and len(data)
-            filename = "jSonFile_" + str(cur_n // target_n) + self._req_type
-            if exists(os.path.join(out_dir, filename)):
+        if int(cur_n) != 0 and int(cur_n) % int(self._interval) == 0: # and len(data)
+            filename = "jSonFile_" + str(cur_n // self._interval) + self._req_type
+            if exists(os.path.join(self._output_dir, filename)):
                 cur_datetime = datetime.now()
                 dt_string = cur_datetime.strftime("%d%m%Y_%H%M%S")
                 filename = filename[:-len(self._req_type)] + "_" + dt_string + self._req_type
-            with open(os.path.join(out_dir, filename), "w", encoding="utf8") as json_file:
+            with open(os.path.join(self._output_dir, filename), "w", encoding="utf8") as json_file:
                 dict_to_json["data"] = data
                 json.dump(dict_to_json, json_file)
                 json_file.close()

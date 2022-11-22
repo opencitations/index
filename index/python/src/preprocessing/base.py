@@ -102,5 +102,5 @@ class Preprocessing(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def splitted_to_file(self, cur_n, target_n, out_dir, data, headers=None):
+    def splitted_to_file(self, cur_n, data):
         pass
