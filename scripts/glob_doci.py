@@ -24,11 +24,10 @@ from tqdm import tqdm
 import json
 import tarfile
 
-# from oc.index.legacy.csv import CSVManager
 from oc.index.identifier.doi import DOIManager
-from oc.index.identifier.issn import ISSNManager
-from oc.index.identifier.orcid import ORCIDManager
 from oc.index.glob.csv import CSVDataSource
+from oc.index.glob.redis import RedisDataSource
+from oc.index.utils.config import get_config
 from oc.index.finder.datacite import DataCiteResourceFinder
 
 
@@ -102,12 +101,19 @@ def load_json_doci(file, targz_fd, file_idx, len_all_files):
 
     return result
 
-
 def process_doci(input_dir):
     start = timer()
 
     doi_manager = DOIManager()
-    csv_datasource = CSVDataSource("DOCI")
+
+    config = get_config()
+    service_ds = config.get("DOCI", "datasource")
+    if service_ds == "redis":
+        svc_datasource = RedisDataSource("DOCI")
+    elif service_ds == "csv":
+        svc_datasource = CSVDataSource("DOCI")
+    else:
+        raise Exception(service_ds + " is not a valid data source")
     dcrf = DataCiteResourceFinder()
 
     all_files, targz_fd = get_all_files(input_dir, ".json")
@@ -127,7 +133,7 @@ def process_doci(input_dir):
             citing_doi = doi_manager.normalise(citing_doi, True)
             # valid_doi.add_value(citing_doi, "v" if doi_manager.is_valid(citing_doi) else "i")
             if citing_doi is not None:
-                entity = csv_datasource.get(citing_doi)
+                entity = svc_datasource.get(citing_doi)
                 if entity is None:
                     entity = dict()
                     entity["valid"] = True
@@ -165,7 +171,7 @@ def process_doci(input_dir):
                 if len(valid_issn_list) > 0:
                     entity["issn"] = valid_issn_list
 
-                csv_datasource.set(citing_doi, entity)
+                svc_datasource.set(citing_doi, entity)
 
     middle = timer()
     print("citing entities process duration: :", (middle - start))
@@ -190,12 +196,12 @@ def process_doci(input_dir):
                         if relationType in relevant_relations:
                             relatedDOI = doi_manager.normalise(rel_id, True)
                             if relatedDOI:
-                                relatedDOI_entity = csv_datasource.get(relatedDOI)
+                                relatedDOI_entity = svc_datasource.get(relatedDOI)
                                 if not relatedDOI_entity:
                                     relatedDOI_entity = dict()
                                     relatedDOI_entity["valid"] = (True if doi_manager.is_valid(relatedDOI) else False)
                                     cited_dois += 1
-                                    csv_datasource.set(relatedDOI, relatedDOI_entity)
+                                    svc_datasource.set(relatedDOI, relatedDOI_entity)
 
     end = timer()
     print("cited entities process duration: ", end-middle)
@@ -216,7 +222,6 @@ def main():
         help="Either the directory or the zip file that contains the DataCite data dump "
              "of JSON files.",
     )
-
 
     args = arg_parser.parse_args()
     process_doci(args.input)

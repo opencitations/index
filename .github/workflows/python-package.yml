@@ -6,11 +6,13 @@ on:
       - .github/workflows/python-package.yml
       - index/python/**
       - scripts/**
+      - config.ini
   pull_request:
     paths:
       - .github/workflows/python-package.yml
       - index/python/**
       - scripts/**
+      - config.ini
 
 jobs:
   build:
