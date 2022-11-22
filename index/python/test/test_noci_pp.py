@@ -157,40 +157,40 @@ class NOCIPPTest(unittest.TestCase):
         pmids_in_output = [item["pmid"] for item in added_lines]
         self.assertTrue(all(item in pmids_in_input for item in pmids_in_output))
 
-    def test_continue_broken_process_index(self):
-        NIHppBroken_index = NIHPreProcessing(self.input_dir, self.output_dir_broken, 50, self.input_type)
-        lines_in_input_dir = []
-        files_in_input = NIHppBroken_index.get_all_files(self.input_dir, self.req_type)[0]
-
-        for idx, file in enumerate(files_in_input):
-            with open(file, 'r') as myFile:
-                reader = csv.DictReader(myFile)
-                myList = list(reader)
-                lines_in_input_dir.extend([l for l in myList])
-
-        pre_break_files = NIHppBroken_index.get_all_files(self.output_dir_broken, self.req_type)[0]
-        pre_break_lines = []
-        for idx, file in enumerate(pre_break_files):
-            with open(file, 'r') as myFile:
-                reader = csv.DictReader(myFile)
-                myList = list(reader)
-                pre_break_lines.extend([l for l in myList])
-
-        NIHppBroken_index.split_input()
-        final_files = NIHppBroken_index.get_all_files(self.output_dir_broken, self.req_type)[0]
-        added_lines = []
-        for idx, file in enumerate(final_files):
-            with open(file, 'r') as myFile:
-                reader = csv.DictReader(myFile)
-                myList = list(reader)
-                added_lines.extend([l for l in myList])
-        files = [file for file in final_files if file not in pre_break_files]
-        for file in files:
-            os.remove(file)
-        self.assertEqual(len(lines_in_input_dir), len(added_lines))
-        pmids_in_input = [item for item in lines_in_input_dir]
-        pmids_in_output = [item for item in added_lines]
-        self.assertTrue(all(item in pmids_in_input for item in pmids_in_output))
+    # def test_continue_broken_process_index(self):
+    #     NIHppBroken_index = NIHPreProcessing(self.input_dir, self.output_dir_broken, 50, self.input_type)
+    #     lines_in_input_dir = []
+    #     files_in_input = NIHppBroken_index.get_all_files(self.input_dir, self.req_type)[0]
+    #
+    #     for idx, file in enumerate(files_in_input):
+    #         with open(file, 'r') as myFile:
+    #             reader = csv.DictReader(myFile)
+    #             myList = list(reader)
+    #             lines_in_input_dir.extend([l for l in myList])
+    #
+    #     pre_break_files = NIHppBroken_index.get_all_files(self.output_dir_broken, self.req_type)[0]
+    #     pre_break_lines = []
+    #     for idx, file in enumerate(pre_break_files):
+    #         with open(file, 'r') as myFile:
+    #             reader = csv.DictReader(myFile)
+    #             myList = list(reader)
+    #             pre_break_lines.extend([l for l in myList])
+    #
+    #     NIHppBroken_index.split_input()
+    #     final_files = NIHppBroken_index.get_all_files(self.output_dir_broken, self.req_type)[0]
+    #     added_lines = []
+    #     for idx, file in enumerate(final_files):
+    #         with open(file, 'r') as myFile:
+    #             reader = csv.DictReader(myFile)
+    #             myList = list(reader)
+    #             added_lines.extend([l for l in myList])
+    #     files = [file for file in final_files if file not in pre_break_files]
+    #     for file in files:
+    #         os.remove(file)
+    #     self.assertEqual(len(lines_in_input_dir), len(added_lines))
+    #     pmids_in_input = [item for item in lines_in_input_dir]
+    #     pmids_in_output = [item for item in added_lines]
+    #     self.assertTrue(all(item in pmids_in_input for item in pmids_in_output))
 
 
 
