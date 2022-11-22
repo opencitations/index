@@ -14,9 +14,7 @@ from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.pmid import PMIDManager
 
 from oc.index.scripts.glob_doci import (
-    issn_data_recover_doci,
-    issn_data_to_cache_doci,
-    valid_date_doci,
+    DataCiteResourceFinder,
     load_json_doci,
     process_doci,
 )
@@ -68,7 +66,6 @@ class GlobTest(unittest.TestCase):
 
         # DOCI
         self.inp_doci = join(self.test_dir, "doci_glob_dump_input")
-        self.out_doci = self.__get_output_directory("doci_glob_dump_output")
         self.issn_journal_doci = {
             "european journal of organic chemistry": ["1434193X"],
             "drug delivery and translational research": ["2190-3948"],
@@ -139,46 +136,17 @@ class GlobTest(unittest.TestCase):
         self.assertEqual(self.coci_datasource.get(citing_doi)["issn"], {"2167-8359"})
 
     # TEST DOCI GLOB
-    def test_issn_data_recover_doci(self):
-        self.assertTrue(True)
-        if exists(self.dir_no_issn_map_doci):
-            rmtree(self.dir_no_issn_map_doci)
-        makedirs(self.dir_no_issn_map_doci)
-        if exists(self.dir_issn_map_doci):
-            rmtree(self.dir_issn_map_doci)
-        makedirs(self.dir_issn_map_doci)
-        with open(
-            join(self.dir_no_issn_map_doci, "journal_issn.json"), "w", encoding="utf-8"
-        ) as g:
-            json.dump({}, g, ensure_ascii=False, indent=4)
-        with open(
-            join(self.dir_issn_map_doci, "journal_issn.json"), "w", encoding="utf-8"
-        ) as f:
-            json.dump(self.issn_journal_doci, f, ensure_ascii=False, indent=4)
-
-        # Test the case in which there is no mapping file for journals - issn
-        self.assertEqual(issn_data_recover_doci(self.dir_no_issn_map_doci), {})
-        # Test the case in which there is a mapping file for journals - issn
-        self.assertNotEqual(issn_data_recover_doci(self.dir_issn_map_doci), {})
-
-        rmtree(self.dir_no_issn_map_doci)
-        rmtree(self.dir_issn_map_doci)
-
-    def test_issn_data_to_cache_doci(self):
-        filename = join(self.dir_data_to_cache_doci, "journal_issn.json")
-        if not exists(self.dir_data_to_cache_doci):
-            makedirs(self.dir_data_to_cache_doci)
-        if exists(filename):
-            remove(filename)
-        self.assertFalse(exists(filename))
-        issn_data_to_cache_doci(self.issn_journal_doci, self.dir_data_to_cache_doci)
-        self.assertTrue(exists(filename))
-        rmtree(self.dir_data_to_cache_doci)
-
     def test_valid_date_doci(self):
-        self.assertTrue(isinstance(valid_date_doci(2018), str))
-        self.assertEqual(valid_date_doci("2018-11-25"), "2018-11-25")
-        self.assertIsNone(valid_date_doci("11-25-2018"))
+        dcrf = DataCiteResourceFinder()
+        self.assertTrue(isinstance(dcrf.Date_Validator(str(2018)), str))
+        self.assertEqual(dcrf.Date_Validator("2018-11-25"), "2018-11-25")
+        self.assertEqual(dcrf.Date_Validator("2015-07-14"), "2015-07-14")
+        self.assertEqual(dcrf.Date_Validator("2015-2016"), "2015")
+        self.assertEqual(dcrf.Date_Validator("2015-May"), "2015")
+        self.assertIsNone(dcrf.Date_Validator("May 2015"))
+        self.assertIsNone(dcrf.Date_Validator("14 2015"))
+        self.assertIsNone(dcrf.Date_Validator("11-25-2018"))
+        self.assertIsNone(dcrf.Date_Validator("25-11-2018"))
 
     def test_load_json_doci(self):
         self.assertTrue(
@@ -186,7 +154,7 @@ class GlobTest(unittest.TestCase):
         )
 
     def test_process_doci(self):
-        process_doci(self.inp_doci, self.out_doci, self.n_doci)
+        process_doci(self.inp_doci)
         self.doci_datasource = CSVDataSource("DOCI")
 
         citing_doi = "doi:10.1002/ejoc.201800947"

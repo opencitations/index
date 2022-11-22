@@ -21,41 +21,49 @@ from bs4 import BeautifulSoup
 
 import oc.index.utils.dictionary as dict_utils
 from oc.index.finder.base import ApiDOIResourceFinder
+from oc.index.identifier.issn import ISSNManager
 
 
 class NIHResourceFinder(ApiDOIResourceFinder):
-    """This class implements an api doi resource finder for crossref"""
+    """This class implements an api pmid resource finder for NIH"""
 
     def __init__(self, data={}, use_api_service=True):
         """National Institute of Health resource finder constructor."""
         super().__init__(data, use_api_service=use_api_service, id_type="pmid")
         self._api = "https://pubmed.ncbi.nlm.nih.gov/"
+        self._use_api_service = use_api_service
+        self._p = "pmid:"
+        self._data = data
+        self._issn_regex = r"(?<=^IS\s{2}-\s)[0-9]{4}-[0-9]{3}[0-9X]"
+        self._date_regex = r"DP\s+-\s+(\d{4}(\s?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))?(\s?((3[0-1])|([1-2][0-9])|([0]?[1-9])))?)"
+
 
     def _get_issn(self, txt_obj):
         result = set()
-        issns = re.findall("IS\s+-\s+\d{4}-\d{4}", txt_obj)
-        for i in issns:
-            issn = re.search("\d{4}-\d{4}", i).group(0)
-            norm_issn = self._im.normalise(issn)
-            if norm_issn is not None:
-                result.add(norm_issn)
+        fa_issn = re.finditer(self._issn_regex, txt_obj, re.MULTILINE)
+        for matchNum_issn, match_issn in enumerate(fa_issn, start=1):
+            m_issn = match_issn.group()
+            if m_issn:
+                norm_issn = self._im.normalise(m_issn)
+                if norm_issn is not None:
+                    result.add(norm_issn)
         return result
 
     def _get_date(self, txt_obj):
-        date = re.search(
-            "DP\s+-\s+(\d{4}(\s?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))?(\s?((3[0-1])|([1-2][0-9])|([0]?[1-9])))?)",
-            txt_obj,
-            re.IGNORECASE,
-        ).group(1)
+        pmid_date = None
+        date = re.search(self._date_regex,
+                         txt_obj,
+                         re.IGNORECASE,
+                         ).group(1)
         re_search = re.search(
             "(\d{4})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+((3[0-1])|([1-2][0-9])|([0]?[1-9]))",
             date,
             re.IGNORECASE,
         )
         if re_search is not None:
-            result = re_search.group(0)
-            datetime_object = datetime.strptime(result, "%Y %b %d")
-            return datetime.strftime(datetime_object, "%Y-%m-%d")
+            src = re_search.group(0)
+            datetime_object = datetime.strptime(src, "%Y %b %d")
+            pmid_date = datetime.strftime(datetime_object, "%Y-%m-%d")
         else:
             re_search = re.search(
                 "(\d{4})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)",
@@ -63,17 +71,17 @@ class NIHResourceFinder(ApiDOIResourceFinder):
                 re.IGNORECASE,
             )
             if re_search is not None:
-                result = re_search.group(0)
-                datetime_object = datetime.strptime(result, "%Y %b")
-                return datetime.strftime(datetime_object, "%Y-%m")
+                src = re_search.group(0)
+                datetime_object = datetime.strptime(src, "%Y %b")
+                pmid_date = datetime.strftime(datetime_object, "%Y-%m")
             else:
                 re_search = re.search("(\d{4})", date)
                 if re_search is not None:
-                    result = re.search("(\d{4})", date).group(0)
-                    datetime_object = datetime.strptime(result, "%Y")
-                    return datetime.strftime(datetime_object, "%Y")
-                else:
-                    return None
+                    src = re.search("(\d{4})", date).group(0)
+                    datetime_object = datetime.strptime(src, "%Y")
+                    pmid_date = datetime.strftime(datetime_object, "%Y")
+        return pmid_date
+
 
     def _call_api(self, pmid_full):
         if self._use_api_service:

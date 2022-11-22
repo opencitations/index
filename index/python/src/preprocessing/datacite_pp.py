@@ -1,216 +1,161 @@
 import json
-from os import sep, makedirs, walk
+from os import makedirs, listdir
+import glob
+import os
 from tqdm import tqdm
 import os.path
-import datetime
+from os.path import exists, join
+from oc.index.preprocessing.base import Preprocessing
+from datetime import datetime
+from argparse import ArgumentParser
 
 
-class DatacitePreProcessing:
+class DatacitePreProcessing(Preprocessing):
     """This class aims at pre-processing DataCite dumps.
-    In particular, DatacitePreProcessing splits the original nldJSON in many JSON files,
-    each one containing the number of entities specified in input by the user.
-    Further, the class discards those entities that do not provide useful information
-    (neither for the parser, nor for the glob)."""
+    In particular, DatacitePreProcessing splits the original nldJSON in many JSON files, each one containing the number of entities specified in input by the user. Further, the class discards those entities that are not involved in citations"""
 
-    def __init__(self):
+    def __init__(self, input_dir, output_dir, interval, filter=None, low_memo=True):
         self._req_type = ".json"
-
-    def valiDate(self, date_text):
-        date_text = str(date_text)
-        try:
-            return datetime.datetime.strptime(date_text, "%Y-%m-%d").strftime(
-                "%Y-%m-%d"
-            )
-        except ValueError:
-            try:
-                return datetime.datetime.strptime(date_text, "%Y-%m").strftime("%Y-%m")
-            except ValueError:
-                try:
-                    return datetime.datetime.strptime(date_text, "%Y").strftime("%Y")
-                except ValueError:
-                    if "-" in date_text:
-                        possibiliDate = date_text.split("-")
-                        while possibiliDate:
-                            possibiliDate.pop()
-                            seperator = "-"
-                            data = seperator.join(possibiliDate)
-                            try:
-                                return datetime.datetime.strptime(
-                                    data, "%Y-%m-%d"
-                                ).strftime("%Y-%m-%d")
-                            except ValueError:
-                                try:
-                                    return datetime.datetime.strptime(
-                                        data, "%Y-%m"
-                                    ).strftime("%Y-%m")
-                                except ValueError:
-                                    try:
-                                        return datetime.datetime.strptime(
-                                            data, "%Y"
-                                        ).strftime("%Y")
-                                    except ValueError:
-                                        pass
-
-    def get_all_files(self, i_dir):
-        result = []
-        for cur_dir, cur_subdir, cur_files in walk(i_dir):
-            for file in cur_files:
-                if file.lower().endswith(self._req_type):
-                    result.append(cur_dir + sep + file)
-        return result
-
-    def counter_check(self, cur_n, target_n, out_dir, dict_to_json, data_values):
-        if int(cur_n) != 0 and int(cur_n) % int(target_n) == 0:
-            # to be logged: print( "Processed lines:", cur_n, ". Reduced json nr.", cur_n //target_n)
-            filename = "jSonFile_" + str(cur_n // target_n) + self._req_type
-            with (
-                open(os.path.join(out_dir, filename), "w", encoding="utf8")
-            ) as json_file:
-                dict_to_json["data"] = data_values
-                json.dump(dict_to_json, json_file)
-                empt_list = []
-                empt_dict = {}
-                return empt_list, empt_dict
+        self._input_dir = input_dir
+        self._output_dir = output_dir
+        self._needed_info = ["relationType", "relatedIdentifierType", "relatedIdentifier"]
+        if not exists(self._output_dir):
+            makedirs(self._output_dir)
+        self._interval = interval
+        if low_memo:
+            self._low_memo = low_memo
         else:
-            return data_values, dict_to_json
+            self._low_memo = True
+        if filter:
+            self._filter = filter
+        else:
+            self._filter = ["references", "isreferencedby", "cites", "iscitedby"]
+        super(DatacitePreProcessing, self).__init__()
 
-    def dump_filter_and_split(self, input_dir, output_dir, numJF):
-        relevant_relations = ["references", "isreferencedby", "cites", "iscitedby"]
-        all_files = self.get_all_files(input_dir)
-        for file_idx, file in enumerate(all_files):
-            data = []
-            datadict = {}
-            count = 0
+    def split_input(self):
+        # restart from the last processed line, in case of previous process interruption
+        out_dir = listdir(self._output_dir)
+        # Checking if the list is empty or not
+        if len(out_dir) != 0:
+            list_of_files = glob.glob(join(self._output_dir, '*.json'))
+            latest_file = max(list_of_files, key=os.path.getctime)
+            with open(latest_file, encoding="utf8") as f:
+                recover_dict = json.load(f)
+                data_list = recover_dict["data"]
+                last_processed_dict = data_list[-1]
+                last_dict_id = last_processed_dict["id"]
+                f.close()
+        else:
+            last_processed_dict = None
 
-            with open(file, "r", encoding="utf-8") as f:
-                n_lines = 0
-                for line in tqdm(f):
-                    n_lines += 1
-                    # to be logged: print("Processing entity n.:", n_lines)
+        all_files, targz_fd = self.get_all_files(self._input_dir, self._req_type)
+        len_all_files = len(all_files)
+        data = []
+        count = 0
 
-                    linedict = json.loads(line)
+        for file_idx, file in enumerate(all_files, 1):
+            if not self._low_memo:
+                f = self.load_json(file, targz_fd, file_idx, len_all_files)
+            else:
+                f = open(file, encoding="utf8")
+            for line in tqdm(f):
+                if line:
+                    if self._low_memo:
+                        if last_processed_dict is not None:
+                            if not line.startswith('{"id":"' + last_dict_id+'",') :
+                                continue
+                            else:
+                                last_processed_dict = None
+                                continue
+                        else:
+                            pass
+                    else:
+                        if last_processed_dict is not None:
+                            if line.get("id") != last_dict_id:
+                                continue
+                            else:
+                                last_processed_dict = None
+                                continue
+                        else:
+                            pass
+
+                    if self._low_memo:
+                        try:
+                            linedict = json.loads(line)
+                        except:
+                            print(ValueError, line)
+                            continue
+                    else:
+                        linedict = line
+                    if 'id' not in linedict or 'type' not in linedict:
+                        continue
+                    if linedict['type'] != "dois":
+                        continue
                     attributes = linedict["attributes"]
-                    rel_ids = attributes["relatedIdentifiers"]
+                    rel_ids = attributes.get("relatedIdentifiers")
+                    if rel_ids:
+                        for ref in rel_ids:
+                            if all(elem in ref for elem in self._needed_info):
+                                relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower()
+                                relationType = str(ref["relationType"]).lower()
+                                if relatedIdentifierType == "doi":
+                                    if relationType in self._filter:
+                                        data.append(linedict)
+                                        count += 1
+                                        data = self.splitted_to_file(
+                                            count, data
+                                        )
+                                        break
 
-                    # Default settings
-                    creatorsWithOrcid = False
-                    issnsFromRelId = False
-                    issnsFromCont = False
+            f.close()
 
-                    # Check if the entity provides info for support files (DATES)
-                    listDates = attributes["dates"] != []
-                    publicationYear = self.valiDate(str(attributes["publicationYear"]))
+        if len(data) > 0:
+            count = count + (self._interval - (int(count) % int(self._interval)))
+            self.splitted_to_file(count, data)
 
-                    # Check if the entity provides info for support files (ORCID)
-                    creators = attributes["creators"]
-                    if creators != []:
-                        creatorsWithIds = [
-                            author
-                            for author in creators
-                            if "nameIdentifiers" in author.keys()
-                        ]
-                        if creatorsWithIds != []:
-                            creatorsWithIdScheme = [
-                                nameId
-                                for nameId in creatorsWithIds
-                                if "nameIdentifier" in nameId.keys()
-                                and "nameIdentifierScheme" in nameId.keys()
-                            ]
-                            if creatorsWithIdScheme != []:
-                                creatorsWithOrcid = any(
-                                    idInfo["nameIdentifierScheme"].lower() == "orcid"
-                                    for idInfo in creatorsWithIdScheme
-                                )
 
-                    # Check if the entity provides info for support files (ISSN)
-                    if rel_ids != []:
-                        idsWithType = [
-                            relId
-                            for relId in rel_ids
-                            if "relationType" in relId.keys()
-                            and "relatedIdentifierType" in relId.keys()
-                            and "relatedIdentifier" in relId.keys()
-                        ]
-                        if idsWithType != []:
-                            issnsFromRelId = [
-                                relId
-                                for relId in idsWithType
-                                if relId["relationType"].lower() == "ispartof"
-                                and relId["relatedIdentifierType"].lower() == "issn"
-                            ] != []
-                    elif "container" in attributes.keys():
-                        container = attributes["container"]
-                        if (
-                            "identifier" in container.keys()
-                            and "identifierType" in container.keys()
-                        ):
-                            issnsFromCont = (
-                                container["identifier"] != ""
-                                and (container["identifierType"]).lower() == "issn"
-                            )
+    def splitted_to_file(self, cur_n, data):
+        dict_to_json = dict()
+        if int(cur_n) != 0 and int(cur_n) % int(self._interval) == 0: # and len(data)
+            filename = "jSonFile_" + str(cur_n // self._interval) + self._req_type
+            if exists(os.path.join(self._output_dir, filename)):
+                cur_datetime = datetime.now()
+                dt_string = cur_datetime.strftime("%d%m%Y_%H%M%S")
+                filename = filename[:-len(self._req_type)] + "_" + dt_string + self._req_type
+            with open(os.path.join(self._output_dir, filename), "w", encoding="utf8") as json_file:
+                dict_to_json["data"] = data
+                json.dump(dict_to_json, json_file)
+                json_file.close()
+            return []
+        else:
+            return data
 
-                    # Check if the entity provides citations
-                    if rel_ids != []:
-                        for i in rel_ids:
-                            if (
-                                "relationType" in i.keys()
-                                and (i["relationType"]).lower() in relevant_relations
-                            ):
-                                if (
-                                    "relatedIdentifierType" in i.keys()
-                                    and (i["relatedIdentifierType"]).lower() == "doi"
-                                ):
-                                    data.append(linedict)
-                                    count += 1
-                                    break
+if __name__ == '__main__':
+    arg_parser = ArgumentParser('datacite_pp.py', description='This script preprocesses a nldjson datacite dump by '
+                                                              'deleting the entities which are not involved in citations'
+                                                              'and storing the other ones in smaller json files')
+    arg_parser.add_argument('-in', '--input', dest='input', required=True,
+                            help='Either a directory containing the decompressed json input file or the zst compressed '
+                                 'json input file')
+    arg_parser.add_argument('-out', '--output', dest='output', required=True,
+                            help='Directory the preprocessed json files will be stored')
+    arg_parser.add_argument('-n', '--number', dest='number', required=True, type=int,
+                            help='Number of relevant entities which will be stored in each json file')
+    arg_parser.add_argument('-f', '--filter', dest='filter', required=False,
+                            help='Optional parameter, allows the user to specify a list of lowercase datacite relation'
+                                 'types which will be used as a filter to decide whether or not a an entity will be'
+                                 'processed. The elements of the list must be specified as a string of elements separated'
+                                 'by semicolon. By default, the "filter" parameter is set to ["references", '
+                                 '"isreferencedby", "cites", "iscitedby"], i.e.: the relations concerning citations.')
+    arg_parser.add_argument('-lm', '--low_memo', dest='low_memo', required=False, action='store_false',
+                            help='Optional parameter, True by default. Set it to False in order to load all the input'
+                                 'at once instead of loading in memory each entity individually')
 
-                                # Keep the entity if it provides at least info for the support files
-                                elif (
-                                    creatorsWithOrcid
-                                    or listDates
-                                    or publicationYear
-                                    or issnsFromRelId
-                                    or issnsFromCont
-                                ):
-                                    data.append(linedict)
-                                    count += 1
-                                    break
+    args = arg_parser.parse_args()
 
-                            # Keep the entity if it provides at least info for the support files
-                            elif (
-                                creatorsWithOrcid
-                                or listDates
-                                or publicationYear
-                                or issnsFromRelId
-                                or issnsFromCont
-                            ):
-                                data.append(linedict)
-                                count += 1
-                                break
+    filter = None
+    if args.filter:
+        filter = args.filter.split(";")
 
-                            data, datadict = self.counter_check(
-                                count, numJF, output_dir, datadict, data
-                            )
-
-                    # Keep the entity if it provides at least info for the support files
-                    elif (
-                        creatorsWithOrcid
-                        or listDates
-                        or publicationYear
-                        or issnsFromRelId
-                        or issnsFromCont
-                    ):
-                        data.append(linedict)
-                        count += 1
-
-                    data, datadict = self.counter_check(
-                        count, numJF, output_dir, datadict, data
-                    )
-
-                if len(data) > 0:
-                    filename = "jSonFile_rest" + self._req_type
-                    with (
-                        open(os.path.join(output_dir, filename), "w", encoding="utf8")
-                    ) as json_file:
-                        datadict["data"] = data
-                        json.dump(datadict, json_file)
+    dcpp = DatacitePreProcessing(input_dir=args.input, output_dir=args.output, interval=args.number, filter=filter, low_memo=args.low_memo)
+    dcpp.split_input()

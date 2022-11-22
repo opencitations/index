@@ -25,8 +25,8 @@ from oc.index.utils.logging import get_logger
 
 
 class NIHValidator(CitationValidator):
-    def __init__(self):
-        super().__init__("NOCI")
+    def __init__(self, service):
+        super().__init__(service)
         self._pmid_manager = PMIDManager()
         self._logger = get_logger()
 

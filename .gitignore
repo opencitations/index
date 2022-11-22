@@ -11,9 +11,9 @@ input.csv
 # Reference: 
 # https://github.com/github/gitignore
 
-################################################
-#          VisualStudioCode.gitignore          #
-################################################
+########################################################
+#          VisualStudioCode.gitignore + fleet          #
+########################################################
 
 .vscode/*
 !.vscode/settings.json
@@ -21,6 +21,7 @@ input.csv
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+.fleet
 
 # Local History for Visual Studio Code
 .history/

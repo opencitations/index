@@ -160,6 +160,10 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# Directory containing code for analysis purposes, contains scripts which
+# need index imports to be extecuted, but that should not be included in the project
+analysis_scripts/
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

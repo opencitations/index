@@ -17,7 +17,7 @@ The proposed case use crossref as an example.
     1.2 **Only if migration from csv is needed:  Run datasource utility in order to import data from csv to redis
 
     ```
-    oc.index.datasource -o populate -i ./input_dir
+    oc.index.datasource -o csv2redis -s INDEX_SERVICE -i ./glob_dir -id doi
     ```
 
 2. Remove **existing** and **duplicated** entities
