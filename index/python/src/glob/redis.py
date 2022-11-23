@@ -30,7 +30,10 @@ class RedisDataSource(DataSource):
         )
 
     def get(self, resource_id):
-        return json.loads(self._r.get(resource_id))
+        redis_data = self._r.get(resource_id)
+        if redis_data != None:
+            redis_data = json.loads(redis_data)
+        return redis_data
 
     def mget(self, resources_id):
         return {
