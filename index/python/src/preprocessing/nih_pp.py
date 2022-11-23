@@ -72,21 +72,20 @@ class NIHPreProcessing(Preprocessing):
         count = 0
         lines = []
         for file_idx, file in enumerate(all_files, 1):
-            df = pd.read_csv(file, usecols=self._filter, low_memory=True)
-                # idx = df[df['pmid'] == int(last_processed_pmid)].index.item()
-                # #idx = df.index[df['pmid'] == pmid].tolist()[0]
-                # print("CCCCCCC", idx)
-            df.fillna("", inplace=True)
-            df_dict_list = df.to_dict("records")
-            if self._input_type == "icmd":
-                filt_values = [d.values() for d in df_dict_list if d.get("pmid") > last_processed_pmid and (d.get("cited_by") or d.get("references"))]
-            else:
-                filt_values = [d.values() for d in df_dict_list]
-            for line in filt_values:
-                count += 1
-                lines.append(line)
-                if int(count) != 0 and int(count) % int(self._interval) == 0:
-                    lines = self.splitted_to_file(count, lines)
+            chunksize = 100000
+            with pd.read_csv(file, chunksize=chunksize) as reader:
+                for chunk in reader:
+                    chunk.fillna("", inplace=True)
+                    df_dict_list = chunk.to_dict("records")
+                    if self._input_type == "icmd":
+                        filt_values = [d.values() for d in df_dict_list if d.get("pmid") > last_processed_pmid and (d.get("cited_by") or d.get("references"))]
+                    else:
+                        filt_values = [d.values() for d in df_dict_list]
+                    for line in filt_values:
+                        count += 1
+                        lines.append(line)
+                        if int(count) != 0 and int(count) % int(self._interval) == 0:
+                            lines = self.splitted_to_file(count, lines)
 
         if len(lines) > 0:
             count = count + (self._interval - (int(count) % int(self._interval)))
