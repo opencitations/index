@@ -59,7 +59,7 @@ class NIHPreProcessing(Preprocessing):
         if len(out_dir) != 0:
             list_of_files = glob.glob(join(self._output_dir, '*.csv'))
             latest_file = max(list_of_files, key=os.path.getctime)
-            df = pd.read_csv(latest_file, usecols=self._filter, low_memory=True)
+            df = pd.read_csv(latest_file, low_memory=True)
             df.fillna("", inplace=True)
             df_dict_list = df.to_dict("records")
             if self._input_type == "icmd":
@@ -73,7 +73,7 @@ class NIHPreProcessing(Preprocessing):
         lines = []
         for file_idx, file in enumerate(all_files, 1):
             chunksize = 100000
-            with pd.read_csv(file, chunksize=chunksize) as reader:
+            with pd.read_csv(file,  usecols=self._filter, chunksize=chunksize) as reader:
                 for chunk in reader:
                     chunk.fillna("", inplace=True)
                     df_dict_list = chunk.to_dict("records")
