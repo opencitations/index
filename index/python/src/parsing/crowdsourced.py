@@ -63,17 +63,3 @@ class CrowdsourcedParser(CitationParser):
 
         return self.get_next_citation_data()
 
-
-if __name__ == "__main__":
-    croci = CrowdsourcedParser("..\\meta_config.yaml")
-    for dir, path, files in walk("..\\croci_citations"):
-
-        for file in files:
-            if "csv" not in file[-4:]:
-                continue
-            timer = time.perf_counter()
-            croci.parse(join(dir, file))
-            result = croci.get_next_citation_data()
-            while result is not None:
-                result = croci.get_next_citation_data()
-            print(f"{file} - TIME: {time.perf_counter() - timer}")

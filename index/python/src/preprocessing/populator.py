@@ -557,16 +557,3 @@ class MetaFeeder:
             shutil.rmtree(join(self.tmp_dir, "meta"))
             os.mkdir(join(self.tmp_dir, "meta"))
 
-
-if __name__ == "__main__":
-    auth_pop = AuthorPopulator()
-    print(
-        auth_pop.get_author_info(
-            {"pmid": "19060306"},
-            {
-                "id": {"pmid": "19060306"},
-                "author": "Shotton, David [viaf:7484794]",
-                "title": "Linked data and provenance in biological data webs.",
-            },
-        )
-    )
