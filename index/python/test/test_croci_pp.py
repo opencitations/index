@@ -55,7 +55,6 @@ class CROCIPPTest(unittest.TestCase):
         ]
         for i in range(len(input)):
             with self.subTest(i=i):
-                print(expected)
                 self.assertEqual(result[i], expected[i])
 
     def test_ids(self):
