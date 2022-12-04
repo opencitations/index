@@ -8,3 +8,8 @@ beautifulsoup4
 pandas
 lxml
 regex
+oc_graphenricher
+Levenshtein
+requests_cache
+oc_meta
+wget

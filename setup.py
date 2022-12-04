@@ -42,7 +42,12 @@ setup(
         "pandas",
         "lxml",
         "regex",
-        "zstandard"
+        "zstandard",
+        "oc_graphenricher",
+        "Levenshtein",
+        "requests_cache",
+        "oc_meta",
+        "wget"
     ],
     packages=[
         f"oc.index.{mod}"

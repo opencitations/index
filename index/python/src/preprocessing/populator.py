@@ -33,7 +33,7 @@ import random
 import requests_cache
 from oc_meta.plugins.crossref.crossref_processing import CrossrefProcessing
 from oc_meta.run.meta_process import MetaProcess, run_meta_process
-from oc_meta.lib.file_manager import get_data
+from oc_meta.lib.file_manager import get_csv_data
 
 ID_WD_QUERIES = {
     "doi":"SELECT ?doi WHERE {{wd:{value} wdt:P356 ?doi }} ",
@@ -473,7 +473,7 @@ class MetaFeeder:
         for dirpath, _, filenames in os.walk(join(self.meta_folder, "csv")):
             for el in filenames:
                 if file_to_meta[:-4] in el:
-                    meta_info = (get_data(join(dirpath, el)))
+                    meta_info = (get_csv_data(join(dirpath, el)))
                     os.remove(join(dirpath, el))
                     break
         with open(join(self.tmp_dir, file_to_meta), "w+") as output:
@@ -556,5 +556,9 @@ class MetaFeeder:
 
 
 if __name__ == "__main__":
-    populator = MetaFeeder(meta_config="..\\meta_config.yaml")
-    populator.parse("..\\test.csv")
+    auth_pop = AuthorPopulator()
+    print(auth_pop.get_author_info({"pmid": "19060306"},{
+                "id": {"pmid": "19060306"},
+                "author": "Shotton, David [viaf:7484794]",
+                "title": "Linked data and provenance in biological data webs.",
+            }))

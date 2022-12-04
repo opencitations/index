@@ -42,28 +42,27 @@ class WikidataResourceFinder(ResourceFinder):
         self.valid_queries = dict()
         for el in queries:
             self.valid_queries[el] = queries[el] 
-        self._dm = self.__id_type_manager_class(data, use_api_service)
 
     
     def normalise(self, id_string):
-        """_summary_
+        """Normalises the id string in input
 
         Args:
-            id_string (_type_): _description_
+            id_string (str): id string
 
         Returns:
-            _type_: _description_
+            str: normalised ID string
         """
         return self._dm.normalise(id_string, include_prefix=True)
         
     def get_orcid(self, id_string):
-        """_summary_
+        """Gathers an ORCID associated to the input ID
 
         Args:
-            id_string (_type_): _description_
+            id_string (str): id string
 
         Returns:
-            _type_: _description_
+            str: normalised ID string
         """
         if not id_string in self._data or self._data[id_string] is None:
             return self._get_item(id_string, "orcid").split(', ')

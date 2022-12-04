@@ -29,8 +29,8 @@ class WikiDataIDManager(IdentifierManager):
         super().__init__()
         self._api = "http://wikidata.org/entity/"
         self._data = data
-        self.use_api_service = use_api_service
-        self.p = "wikidata:"
+        self._use_api_service = use_api_service
+        self._p = "wikidata:"
 
     def is_valid(self, id_string):
         qid = self.normalise(id_string)
@@ -46,7 +46,7 @@ class WikiDataIDManager(IdentifierManager):
         try:
             id_string = id_string.upper()
             qid_string = sub("\0+", "", sub("\s+", "", unquote(id_string[id_string.index("Q"):])))
-            return "%s%s" % (self.p if include_prefix else "", qid_string.strip())
+            return "%s%s" % (self._p if include_prefix else "", qid_string.strip())
         except Exception as e:  # Any error in processing the WikiData ID will return None
             print(e)
             return None
