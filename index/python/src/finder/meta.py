@@ -33,7 +33,6 @@ class MetaFinder(ResourceFinder):
             use_api_service (bool): true whenever you want make use of api, false otherwise.
         """
         super().__init__(data, use_api_service)
-        
 
         self._data = data
 
@@ -53,7 +52,6 @@ class MetaFinder(ResourceFinder):
         }
         self._use_api_service = use_api_service
         self._api = "https://127.0.0.1:5000/api/v1/metadata/"
-
 
     # The implementation of the following methods is strictly dependent on the actual
     # implementation of the previous three methods, since they strictly reuse them
@@ -142,5 +140,3 @@ class MetaFinder(ResourceFinder):
                 return None
 
             return self._data[metaid][column]
-
-

@@ -21,14 +21,13 @@ from os.path import join
 from os import walk
 import time
 
+
 class CrowdsourcedParser(CitationParser):
-    def __init__(self, meta_config = join("..", "meta_config.yaml")):
+    def __init__(self, meta_config=join("..", "meta_config.yaml")):
         super().__init__()
         self._rows = []
         self._metaid_manager = MetaIDManager()
         self._meta_feeder = MetaFeeder(meta_config=meta_config)
-
-
 
     def is_valid(self, filename: str):
         super().is_valid(filename)
@@ -47,7 +46,9 @@ class CrowdsourcedParser(CitationParser):
 
         row = self._rows.pop(0)
         self._current_item += 1
-        citing = self._metaid_manager.normalise(row.get("citing_id"), include_prefix=True)
+        citing = self._metaid_manager.normalise(
+            row.get("citing_id"), include_prefix=True
+        )
         cited = self._metaid_manager.normalise(row.get("cited_id"), include_prefix=True)
 
         if citing is not None and cited is not None:
@@ -58,19 +59,20 @@ class CrowdsourcedParser(CitationParser):
             cited_date = row.get("cited_publication_date")
             if not cited_date:
                 cited_date = None
-            return citing, cited, citing_date, cited_date,"", ""
+            return citing, cited, citing_date, cited_date, "", ""
 
         return self.get_next_citation_data()
 
-if __name__ == '__main__':
-    croci  = CrowdsourcedParser('..\\meta_config.yaml')
-    for dir,path,files in walk('..\\croci_citations'):
-        
+
+if __name__ == "__main__":
+    croci = CrowdsourcedParser("..\\meta_config.yaml")
+    for dir, path, files in walk("..\\croci_citations"):
+
         for file in files:
             if "csv" not in file[-4:]:
                 continue
             timer = time.perf_counter()
-            croci.parse(join(dir,file))
+            croci.parse(join(dir, file))
             result = croci.get_next_citation_data()
             while result is not None:
                 result = croci.get_next_citation_data()

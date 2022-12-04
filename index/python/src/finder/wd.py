@@ -20,7 +20,7 @@ from urllib.parse import quote
 from oc.index.finder.base import ResourceFinder
 
 BASE_QUERIES = {
-    "base_info" : """SELECT (GROUP_CONCAT( ?ids; separator = ', ') as ?orcid) ?issn ?pub_date  
+    "base_info": """SELECT (GROUP_CONCAT( ?ids; separator = ', ') as ?orcid) ?issn ?pub_date  
                     WHERE {{OPTIONAL {{ wd:{value} wdt:P123 ?publisher.
                                             ?publisher wdt:P236 ?issn}}
                                    OPTIONAL{{ {value} wdt:P577 ?date.
@@ -30,20 +30,20 @@ BASE_QUERIES = {
                         }} group by ?issn ?pub_date"""
 }
 
-class WikidataResourceFinder(ResourceFinder):
-    '''This class allows for querying Wikidata'''
 
-    def __init__(self, data={}, use_api_service=True, api_key=None, queries = dict()):
+class WikidataResourceFinder(ResourceFinder):
+    """This class allows for querying Wikidata"""
+
+    def __init__(self, data={}, use_api_service=True, api_key=None, queries=dict()):
         super().__init__(data, use_api_service)
         self.api = "https://query.wikidata.org/sparql"
-        self._headers = 'ResourceFinder / OpenCitations Indexes -'
-        ' (http://opencitations.net; mailto:contact@opencitations.net)'
-        self.sparql = SPARQLWrapper(self.api , agent= self._headers)
+        self._headers = "ResourceFinder / OpenCitations Indexes -"
+        " (http://opencitations.net; mailto:contact@opencitations.net)"
+        self.sparql = SPARQLWrapper(self.api, agent=self._headers)
         self.valid_queries = dict()
         for el in queries:
-            self.valid_queries[el] = queries[el] 
+            self.valid_queries[el] = queries[el]
 
-    
     def normalise(self, id_string):
         """Normalises the id string in input
 
@@ -54,7 +54,7 @@ class WikidataResourceFinder(ResourceFinder):
             str: normalised ID string
         """
         return self._dm.normalise(id_string, include_prefix=True)
-        
+
     def get_orcid(self, id_string):
         """Gathers an ORCID associated to the input ID
 
@@ -65,9 +65,9 @@ class WikidataResourceFinder(ResourceFinder):
             str: normalised ID string
         """
         if not id_string in self._data or self._data[id_string] is None:
-            return self._get_item(id_string, "orcid").split(', ')
+            return self._get_item(id_string, "orcid").split(", ")
         else:
-            return self._data[id_string]["orcid"].split(', ')
+            return self._data[id_string]["orcid"].split(", ")
 
     def get_pub_date(self, id_string):
         """_summary_
@@ -116,7 +116,7 @@ class WikidataResourceFinder(ResourceFinder):
             qid = self.normalise(qid_entity)
 
             if not qid in self._data:
-                json_obj = self._call_api("base_info", value = qid)
+                json_obj = self._call_api("base_info", value=qid)
 
                 if json_obj is not None:
                     if column == "issn":
@@ -128,7 +128,7 @@ class WikidataResourceFinder(ResourceFinder):
                 return None
 
             return self._data[qid][column]
-    
+
     def _call_api(self, to_search, **kwargs):
         query = self.valid_queries.get(to_search)
         if query is None:
@@ -138,13 +138,13 @@ class WikidataResourceFinder(ResourceFinder):
         except:
             raise ValueError("Not enough values to complete the query")
         self.sparql.setQuery(query)
-        self.sparql.setReturnFormat(JSON) 
+        self.sparql.setReturnFormat(JSON)
         response = self.sparql.query().convert()
         result = {}
-        for el in response['results']['bindings']:
+        for el in response["results"]["bindings"]:
             for variable in el:
                 if variable not in result:
-                    result[variable] = el[variable]['value']
+                    result[variable] = el[variable]["value"]
                 elif el[variable].get("xml:lang") == "en":
-                    result[variable] = el[variable]['value']
+                    result[variable] = el[variable]["value"]
         return result

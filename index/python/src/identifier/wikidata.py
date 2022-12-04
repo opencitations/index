@@ -22,10 +22,12 @@ from requests.exceptions import ConnectionError
 from time import sleep
 import os
 from oc.index.identifier.base import IdentifierManager
-    
+
+
 class WikiDataIDManager(IdentifierManager):
-    '''This class is used to validate WikiData Identifiers. This is done through an ASK query to the WikiData SPARQL Endpoint.'''
-    def __init__(self, data = {}, use_api_service=True):
+    """This class is used to validate WikiData Identifiers. This is done through an ASK query to the WikiData SPARQL Endpoint."""
+
+    def __init__(self, data={}, use_api_service=True):
         super().__init__()
         self._api = "http://wikidata.org/entity/"
         self._data = data
@@ -45,7 +47,9 @@ class WikiDataIDManager(IdentifierManager):
     def normalise(self, id_string, include_prefix=False):
         try:
             id_string = id_string.upper()
-            qid_string = sub("\0+", "", sub("\s+", "", unquote(id_string[id_string.index("Q"):])))
+            qid_string = sub(
+                "\0+", "", sub("\s+", "", unquote(id_string[id_string.index("Q") :]))
+            )
             return "%s%s" % (self._p if include_prefix else "", qid_string.strip())
         except Exception as e:  # Any error in processing the WikiData ID will return None
             print(e)

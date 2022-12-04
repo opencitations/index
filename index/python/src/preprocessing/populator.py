@@ -36,12 +36,12 @@ from oc_meta.run.meta_process import MetaProcess, run_meta_process
 from oc_meta.lib.file_manager import get_csv_data
 
 ID_WD_QUERIES = {
-    "doi":"SELECT ?doi WHERE {{wd:{value} wdt:P356 ?doi }} ",
-    "pmid":"SELECT ?pmid WHERE {{wd:{value} wdt:P698 ?pmid}}",
-    "isbn":"SELECT(GROUP_CONCAT( ?booknumber; separator = ' ') as ?isbn) WHERE {{wd:{value} wdt:P212|wdt:P957 ?booknumber}}",
+    "doi": "SELECT ?doi WHERE {{wd:{value} wdt:P356 ?doi }} ",
+    "pmid": "SELECT ?pmid WHERE {{wd:{value} wdt:P698 ?pmid}}",
+    "isbn": "SELECT(GROUP_CONCAT( ?booknumber; separator = ' ') as ?isbn) WHERE {{wd:{value} wdt:P212|wdt:P957 ?booknumber}}",
     "qid": """SELECT DISTINCT ?qid 
     WHERE {{{{  ?qid wdt:P356 '{value}'}} UNION {{?qid wdt:P698 '{value}'}} UNION {{  ?qid wdt:P212|wdt:P957 '{value}'}}
-        }}"""
+        }}""",
 }
 
 VALID_QUERIES = {
@@ -89,49 +89,49 @@ TYPE_DENOMINATIONS_WD = {
     "Q265158": "peer review",
     "Q3331189": "book",
     "Q7725634": "book",
-    "Q571" : "book",
-    "Q60534428":"edited book",
-    "Q55915575":"journal article",
-    "Q223638":"book",
-    "Q234460":"other",
-    "Q10870555":"report",
-    "Q71631512":"other",
-    "Q1643932":"other",
-    "Q20540385":"book",
-    "Q64548048":"report",
-    "Q1228945":"report",
-    "Q47461344":"other",
-    "Q7433672":"book"
+    "Q571": "book",
+    "Q60534428": "edited book",
+    "Q55915575": "journal article",
+    "Q223638": "book",
+    "Q234460": "other",
+    "Q10870555": "report",
+    "Q71631512": "other",
+    "Q1643932": "other",
+    "Q20540385": "book",
+    "Q64548048": "report",
+    "Q1228945": "report",
+    "Q47461344": "other",
+    "Q7433672": "book",
 }
 
 
 TYPE_DENOMINATIONS_DATACITE = {
-    "Audiovisual":"other",
+    "Audiovisual": "other",
     "Book": "book",
     "BookChapter": "book chapter",
-    "ComputationalNotebook" : "other",
-    "ConferencePaper":"proceedings article",
-    "ConferenceProceeding":"proceedings",
-    "DataPaper":"other",
-    "Dataset":"dataset",
-    "Dissertation":"dissertation",
-    "Event":"other",
-    "Image":"posted content",
-    "InteractiveResource":"posted content",
-    "Journal":"journal",
-    "JournalArticle":"journal article",
-    "Model":"other",
-    "OutputManagementPlan":"other",
-    "PeerReview":"peer review",
-    "PhysicalObject":"other",
-    "Preprint":"journal article",
-    "Report":"report",
-    "Service":"other",
-    "Sound":"other",
-    "Standard":"standard",
-    "Text":"other",
-    "Workflow":"other",
-    "Other":"other"
+    "ComputationalNotebook": "other",
+    "ConferencePaper": "proceedings article",
+    "ConferenceProceeding": "proceedings",
+    "DataPaper": "other",
+    "Dataset": "dataset",
+    "Dissertation": "dissertation",
+    "Event": "other",
+    "Image": "posted content",
+    "InteractiveResource": "posted content",
+    "Journal": "journal",
+    "JournalArticle": "journal article",
+    "Model": "other",
+    "OutputManagementPlan": "other",
+    "PeerReview": "peer review",
+    "PhysicalObject": "other",
+    "Preprint": "journal article",
+    "Report": "report",
+    "Service": "other",
+    "Sound": "other",
+    "Standard": "standard",
+    "Text": "other",
+    "Workflow": "other",
+    "Other": "other",
 }
 
 FIELDNAMES = (
@@ -148,8 +148,9 @@ FIELDNAMES = (
     "editor",
 )
 
+
 def wd_preprocessing(values, id):
-    '''This function preprocess the information retrieved from wikidata'''
+    """This function preprocess the information retrieved from wikidata"""
     if values is None:
         return None
     values["id"] = id
@@ -169,7 +170,7 @@ def wd_preprocessing(values, id):
 
 
 def datacite_preprocessing(values, id):  # TODO: better preprocessing
-    '''This function preprocesses the information retrieved from DataCite'''
+    """This function preprocesses the information retrieved from DataCite"""
     if values is None:
         return None
     result = {}
@@ -177,7 +178,7 @@ def datacite_preprocessing(values, id):  # TODO: better preprocessing
     authors = []
     for person in values["creators"]:
         if "givenName" in person and "familyName" in person:
-            name = ", ".join((person["familyName"],  person["givenName"]))
+            name = ", ".join((person["familyName"], person["givenName"]))
             orcid = ""
             for identifier in person["nameIdentifiers"]:
                 if identifier.get("nameIdentifierScheme") == "ORCID":
@@ -187,10 +188,12 @@ def datacite_preprocessing(values, id):  # TODO: better preprocessing
             name = f"{person['familyName']}, {person['givenName']}{orcid}"
             authors.append(name)
     if values["types"].get("resourceTypeGeneral") in TYPE_DENOMINATIONS_DATACITE:
-        result["type"] = TYPE_DENOMINATIONS_DATACITE[values["types"]["resourceTypeGeneral"]]
+        result["type"] = TYPE_DENOMINATIONS_DATACITE[
+            values["types"]["resourceTypeGeneral"]
+        ]
     else:
         result["type"] = ""
-        val =  values["types"].get("resourceTypeGeneral")
+        val = values["types"].get("resourceTypeGeneral")
         if val is not None:
             print(f"Type from Datacite not recognised: {val}")
 
@@ -204,13 +207,13 @@ def datacite_preprocessing(values, id):  # TODO: better preprocessing
 
     return result
 
+
 class MetadataPopulator:
     def __init__(self) -> None:
         self.crossref_processor = CrossrefProcessing()
         self.cr_finder = CrossrefResourceFinder()
         self.wd_finder = WikidataResourceFinder(queries=VALID_QUERIES)
         self.datacite_finder = DataCiteResourceFinder()
-        
 
     def launch_service(self, ids) -> dict:
         """
@@ -227,11 +230,13 @@ class MetadataPopulator:
             if cr_result is not None:
                 result = self.crossref_processor.csv_creator(cr_result)
             elif cr_result is None:
-                result = datacite_preprocessing(self.datacite_finder._call_api(ids["doi"]),ids)
+                result = datacite_preprocessing(
+                    self.datacite_finder._call_api(ids["doi"]), ids
+                )
 
         if "wikidata" in ids and result is None:
             result = wd_preprocessing(
-                self.wd_finder._call_api("metadata", value = ids["wikidata"]), ids
+                self.wd_finder._call_api("metadata", value=ids["wikidata"]), ids
             )
 
         if result is None:
@@ -240,7 +245,7 @@ class MetadataPopulator:
         for field in FIELDNAMES:
             if field not in result:
                 result[field] = ""
-        
+
         id_string = []
         for identifier in ids:
             for id in ids[identifier].split(" "):
@@ -250,13 +255,12 @@ class MetadataPopulator:
         return result
 
 
-
 class IDPopulator:
     """This class is responsible for validating and populating a string of ids"""
 
     def __init__(self) -> None:
-        self.wd_finder =  WikidataResourceFinder(queries=ID_WD_QUERIES)
- 
+        self.wd_finder = WikidataResourceFinder(queries=ID_WD_QUERIES)
+
         self.ids = {
             "doi": DOIManager(),
             "pmid": PMIDManager(),
@@ -267,7 +271,7 @@ class IDPopulator:
         self.seen_ids = {}
         self.id_num = 0
 
-    def validate_ids(self, ids:str) -> dict: 
+    def validate_ids(self, ids: str) -> dict:
         """This method transforms an id string into a dictionary with multiple ids and launchs the right pipeline
         :params ids: a string with the ids separated by ';'
         :params return_ids: a boolean that indicates if just the ids need to be cached
@@ -302,16 +306,14 @@ class IDPopulator:
             return identifiers
 
     def complete_ids(self, identifiers: dict):
-        missing_ids = list(
-            el for el in self.ids if el not in identifiers
-        )
+        missing_ids = list(el for el in self.ids if el not in identifiers)
         if len(missing_ids) > 0:
             if "wikidata" in missing_ids:
                 for key in identifiers:
 
                     possible_wd = self.wd_finder._call_api(
-                        "qid", value = identifiers[key]
-                    ) 
+                        "qid", value=identifiers[key]
+                    )
                     if possible_wd is None or len(possible_wd) == 0:
                         if any(char.islower() for char in identifiers[key]):
                             tmp = identifiers[key]
@@ -325,8 +327,8 @@ class IDPopulator:
                         raise Warning(
                             f"There is more than one wikidata id for {identifiers[key]}"
                         )
-                    
-                    possible_wd = self.ids['wikidata'].normalise(possible_wd["qid"])
+
+                    possible_wd = self.ids["wikidata"].normalise(possible_wd["qid"])
 
                     if possible_wd is not None:
                         identifiers["wikidata"] = possible_wd
@@ -335,19 +337,20 @@ class IDPopulator:
 
             if "wikidata" in identifiers:
                 for id in missing_ids:
-                    new_id = self.wd_finder._call_api(
-                        id, value = identifiers["wikidata"]
-                    )
-                    
-                    if new_id is not None and new_id.get(id) is not None and new_id.get(id) != "":
+                    new_id = self.wd_finder._call_api(id, value=identifiers["wikidata"])
+
+                    if (
+                        new_id is not None
+                        and new_id.get(id) is not None
+                        and new_id.get(id) != ""
+                    ):
                         to_add = []
                         for el in new_id[id].split(" "):
                             to_add.append(getattr(self.ids[id], "normalise")(el))
                         identifiers[id] = " ".join(to_add)
         return identifiers
-            
 
-    def populate_ids(self, ids:str) -> tuple:
+    def populate_ids(self, ids: str) -> tuple:
         validated = self.validate_ids(ids)
         if isinstance(validated, int):
             return validated
@@ -383,21 +386,21 @@ class AuthorPopulator:
         self.viaf_api = VIAF()
         self.orcid_api = ORCID()
 
-    def get_author_info(self, ids:dict, resource:dict) -> str:
+    def get_author_info(self, ids: dict, resource: dict) -> str:
         authors_complete = []
         for author in resource["author"].split("; "):
-            if 'orcid:' in author and 'viaf:' in author:
+            if "orcid:" in author and "viaf:" in author:
                 authors_complete.append(author)
                 continue
             author_ids = {}
-            if "[" in author: #if there is an identifier:
+            if "[" in author:  # if there is an identifier:
                 author, identifiers = author.split(" [")
                 for el in identifiers[:-1].split(" "):
                     prefix, el = el.split(":")
                     author_ids[prefix] = el
             try:
                 last_name, first_name = author.split(", ")
-                
+
             except ValueError:
                 authors_complete.append(author)
                 continue
@@ -407,37 +410,38 @@ class AuthorPopulator:
                     author_list = self.orcid_api.query(
                         author_list, [(GraphEntity.iri_doi, ids["doi"])]
                     )
-                    
+
                 elif "pmid" in ids:
                     author_list = self.orcid_api.query(
                         author_list, [(GraphEntity.iri_pmid, ids["pmid"])]
                     )
                 if author_list[0][2] is not None:  # If an orcid is found, add it
-                    author_ids['orcid'] = author_list[0][2]
+                    author_ids["orcid"] = author_list[0][2]
             if "viaf" not in author_ids:
                 possible_viaf = self.viaf_api.query(
                     first_name, last_name, resource["title"]
                 )
                 if possible_viaf != None:
-                    author_ids['viaf'] = possible_viaf
-            author_ids = " ".join(f'{k}:{v}' for k,v in author_ids.items())
+                    author_ids["viaf"] = possible_viaf
+            author_ids = " ".join(f"{k}:{v}" for k, v in author_ids.items())
             author = f"{last_name}, {first_name} [{author_ids}]"
             authors_complete.append(author)
         return "; ".join(authors_complete)
 
-class MetaFeeder: 
+
+class MetaFeeder:
     """
-    This class manages the creation of files to send to OC Meta, interfaces with the database and 
+    This class manages the creation of files to send to OC Meta, interfaces with the database and
     """
 
-    def __init__(self, meta_config=join("..","meta_config.yaml")) -> None:
+    def __init__(self, meta_config=join("..", "meta_config.yaml")) -> None:
         self.id_populator = IDPopulator()
         self.metadata_populator = MetadataPopulator()
         self.author_pop = AuthorPopulator()
         self.citations = []
         self.meta_process = MetaProcess(config=meta_config)
-        self.meta_folder = join("..","output")
-        self.tmp_dir = join("..","croci_tmp")
+        self.meta_folder = join("..", "output")
+        self.tmp_dir = join("..", "croci_tmp")
         if not os.path.isdir(self.tmp_dir):
             os.mkdir(self.tmp_dir)
         if not os.path.isdir(join(self.tmp_dir, "meta")):
@@ -445,7 +449,7 @@ class MetaFeeder:
         self.clean_dir()
 
     def parse(self, file) -> str:
-        '''This method manages the parsing of input files.'''
+        """This method manages the parsing of input files."""
         to_meta = []
         citations = []
         with open(file, "r") as input:
@@ -468,12 +472,12 @@ class MetaFeeder:
             for row in to_meta:
                 writer.writerow(row)
         run_meta_process(self.meta_process)
-        #os.remove(join(self.tmp_dir, "meta", file_to_meta))
+        # os.remove(join(self.tmp_dir, "meta", file_to_meta))
         meta_info = []
         for dirpath, _, filenames in os.walk(join(self.meta_folder, "csv")):
             for el in filenames:
                 if file_to_meta[:-4] in el:
-                    meta_info = (get_csv_data(join(dirpath, el)))
+                    meta_info = get_csv_data(join(dirpath, el))
                     os.remove(join(dirpath, el))
                     break
         with open(join(self.tmp_dir, file_to_meta), "w+") as output:
@@ -487,12 +491,11 @@ class MetaFeeder:
                 ),
             )
             writer.writeheader()
-            
-                
+
             for citation in citations:
 
                 to_write = {}
-                citing = meta_info[citation[0]]["id"].split('meta:')[1]
+                citing = meta_info[citation[0]]["id"].split("meta:")[1]
                 cited = meta_info[citation[1]]["id"].split("meta:")[1]
                 to_write["citing_id"] = f"meta:{citing}"
                 to_write["citing_publication_date"] = meta_info[citation[0]]["pub_date"]
@@ -502,10 +505,10 @@ class MetaFeeder:
         self.id_populator.id_num = 0
         return join(self.tmp_dir, file_to_meta)
 
-    def run(self, row:dict) -> tuple:
+    def run(self, row: dict) -> tuple:
         """This method manages the process for the preprocessing to OC_Meta for each row of the file.
         :params row: dict to be processed
-        :returns: a tuple with the populated bibliographic information and the position of citations in the IDs that are found. """
+        :returns: a tuple with the populated bibliographic information and the position of citations in the IDs that are found."""
         found_ids = []
         result = []
         ids = {
@@ -528,14 +531,15 @@ class MetaFeeder:
                 found_ids.append(id)
 
         for i in range(len(found_ids)):
-            id = found_ids[i] # get each id
+            id = found_ids[i]  # get each id
 
-            date = ids[id.pop("start_id")] # get the date in input for each id
-        
+            date = ids[id.pop("start_id")]  # get the date in input for each id
 
-            pop_row = self.metadata_populator.launch_service(id)  # this launchs the pipeline
+            pop_row = self.metadata_populator.launch_service(
+                id
+            )  # this launchs the pipeline
             pop_row["author"] = self.author_pop.get_author_info(id, pop_row)
-            
+
             if pop_row.get("pub_date") is None:
                 pop_row["pub_date"] = date
             # If the pipeline does not find a date, use the date given to give to Meta.
@@ -554,11 +558,15 @@ class MetaFeeder:
             os.mkdir(join(self.tmp_dir, "meta"))
 
 
-
 if __name__ == "__main__":
     auth_pop = AuthorPopulator()
-    print(auth_pop.get_author_info({"pmid": "19060306"},{
+    print(
+        auth_pop.get_author_info(
+            {"pmid": "19060306"},
+            {
                 "id": {"pmid": "19060306"},
                 "author": "Shotton, David [viaf:7484794]",
                 "title": "Linked data and provenance in biological data webs.",
-            }))
+            },
+        )
+    )

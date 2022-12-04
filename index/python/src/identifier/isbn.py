@@ -3,21 +3,20 @@ from re import sub
 
 
 class ISBNManager(IdentifierManager):
-    def __init__(self, data = {}):
+    def __init__(self, data={}):
         super(ISBNManager, self).__init__()
         self.p = "isbn:"
         self._data = data
-        
 
     def is_valid(self, id_string):
-        isbn = self.normalise(id_string, with_hyphens = False)
+        isbn = self.normalise(id_string, with_hyphens=False)
         if isbn is None:
             return False
         elif not isbn in self._data:
             self._data[isbn] = ISBNManager.__check_digit(isbn)
         return self._data[isbn]
 
-    def normalise(self, id_string, include_hyphens = True, include_prefix=False):
+    def normalise(self, id_string, include_hyphens=True, include_prefix=False):
         if include_hyphens:
             try:
                 isbn_string = sub("[^X0-9|-]", "", id_string.upper())
@@ -40,7 +39,7 @@ class ISBNManager(IdentifierManager):
             for x in isbn:
                 if x == "X":
                     x = 10
-                total += int(x)*val
+                total += int(x) * val
                 val = 3 if val == 1 else val == 1
             if (total % 10) == 0:
                 check_digit = True
@@ -50,7 +49,7 @@ class ISBNManager(IdentifierManager):
             for x in isbn:
                 if x == "X":
                     x = 10
-                total += int(x)*val
+                total += int(x) * val
                 val -= 1
             if (total % 11) == 0:
                 check_digit = True
