@@ -43,8 +43,8 @@ class NIHParser(CitationParser):
 
         row = self._rows.pop(0)
         self._current_item += 1
-        citing = self._pmid_manager.normalise(row.get("citing"))
-        cited = self._pmid_manager.normalise(row.get("referenced"))
+        citing = self._pmid_manager.normalise(str(row.get("citing")))
+        cited = self._pmid_manager.normalise(str(row.get("referenced")))
 
         if citing is not None and cited is not None:
             return citing, cited, None, None, None, None

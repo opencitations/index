@@ -8,6 +8,7 @@ import pandas as pd
 import json
 
 from oc.index.glob.csv import CSVDataSource
+from oc.index.glob.redis import RedisDataSource
 from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 from oc.index.identifier.doi import DOIManager
@@ -83,9 +84,10 @@ class GlobTest(unittest.TestCase):
 
         # NOCI
         self.inp_noci = join(self.test_dir, "noci_glob_dump_input")
+        self.inp_noci_map = join(self.test_dir, "noci_glob_input_doi_orcid_map")
         self.out_noci = self.__get_output_directory("noci_glob_dump_output")
         self.id_orcid_map = join(
-            self.test_dir, "noci_id_orcid_mapping", "doi_orcid_index.zip"
+            self.test_dir, "noci_id_orcid_map_zip", "doi_orcid_mapping.zip"
         )
         self.n_noci = 3
         self.issn_journal_noci = {
@@ -216,6 +218,13 @@ class GlobTest(unittest.TestCase):
                 self.assertEqual(len(pub_date), 4)
 
     def test_process_noci(self):
+        for files in os.listdir(self.out_noci):
+            path = os.path.join(self.out_noci, files)
+            try:
+                shutil.rmtree(path)
+            except OSError:
+                os.remove(path)
+
         process_noci(self.inp_noci, self.out_noci, self.n_noci)
         self.noci_datasource = CSVDataSource("NOCI")
 
@@ -225,32 +234,39 @@ class GlobTest(unittest.TestCase):
         # self.assertEqual(self.noci_datasource.get(citing_pmid5)["orcid"], {"0000-0002-4762-5345"})
         # run the glob process with credetials to make this test assertion pass
         self.assertEqual(self.noci_datasource.get(citing_pmid)["valid"], {"v"})
-        self.assertEqual(
-            self.noci_datasource.get(self.sample_reference_noci)["valid"], {"v"}
-        )
         self.assertEqual(self.noci_datasource.get(citing_pmid)["date"], {"1975"})
         self.assertEqual(self.noci_datasource.get(citing_pmid)["issn"], {"0006-291X"})
 
-        # try again with doi_orcid mapping folder
-        # for files in os.listdir(self.out_noci):
-        #     path = os.path.join(self.out_noci, files)
-        #     try:
-        #         shutil.rmtree(path)
-        #     except OSError:
-        #         os.remove(path)
-        # self.assertEqual(len(os.listdir(self.out_noci)),0)
-        # process_noci(self.inp_noci, self.out_noci, self.n_noci, self.id_orcid_map)
-        # self.assertEqual(len(os.listdir(self.out_noci)), 5)
-        #
-        # df = pd.DataFrame()
-        # for chunk in pd.read_csv(self.csv_sample, chunksize=1000):
-        #     f = pd.concat([df, chunk], ignore_index=True)
-        #     f.fillna("", inplace=True)
-        #     for index, row in f.iterrows():
-        #         pmid = row["pmid"]
-        #         citing_pmid = self.pmid_manager.normalise(pmid, include_prefix=True)
-        #         if citing_pmid == "pmid:2":
-        #             self.assertEqual(self.id_orcid.get_value(citing_pmid), {'0000-0003-0014-4963'})
+        for files in os.listdir(self.out_noci):
+            path = os.path.join(self.out_noci, files)
+            try:
+                shutil.rmtree(path)
+            except OSError:
+                os.remove(path)
+
+    def test_noci_process_doi_orcid_map(self):
+        for files in os.listdir(self.out_noci):
+            path = os.path.join(self.out_noci, files)
+            try:
+                shutil.rmtree(path)
+            except OSError:
+                os.remove(path)
+
+        # try with doi_orcid mapping folder
+
+        process_noci(self.inp_noci_map, self.out_noci, 2, self.id_orcid_map)
+        noci_datasource_m = CSVDataSource("NOCI")
+        self.assertEqual({'0000-0001-8665-095X', '0000-0003-0530-4305', '0000-0001-5486-7070'}, noci_datasource_m.get("pmid:1000000001")["orcid"])
+        self.assertEqual({'0000-0001-5366-5194', '0000-0001-5439-4576'}, noci_datasource_m.get("pmid:1000000002")["orcid"])
+        self.assertEqual({'0000-0002-9812-4065', '0000-0001-7363-6737', '0000-0002-8420-0696'}, noci_datasource_m.get("pmid:1000000003")["orcid"])
+        self.assertEqual({'0000-0001-5506-523X', '0000-0002-6279-3830'}, noci_datasource_m.get("pmid:1000000004")["orcid"])
+
+        for files in os.listdir(self.out_noci):
+            path = os.path.join(self.out_noci, files)
+            try:
+                shutil.rmtree(path)
+            except OSError:
+                os.remove(path)
 
 
 if __name__ == "__main__":
