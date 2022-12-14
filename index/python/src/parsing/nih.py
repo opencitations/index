@@ -15,7 +15,7 @@
 
 from oc.index.identifier.pmid import PMIDManager
 from oc.index.parsing.base import CitationParser
-import pandas as pd
+import csv
 
 
 class NIHParser(CitationParser):
@@ -30,12 +30,10 @@ class NIHParser(CitationParser):
 
     def parse(self, filename: str):
         super().parse(filename)
-        df = pd.DataFrame()
-        for chunk in pd.read_csv(filename, chunksize=1000):
-            f = pd.concat([df, chunk], ignore_index=True)
-            f.fillna("", inplace=True)
-            self._rows = f.to_dict("records")
-            self._items = len(self._rows)
+        with open(filename, mode='r') as csv_file:
+            csv_reader_l = list(csv.DictReader(csv_file))
+            self._rows = csv_reader_l
+            self._items = len(csv_reader_l)
 
     def get_next_citation_data(self):
         if len(self._rows) == 0:
