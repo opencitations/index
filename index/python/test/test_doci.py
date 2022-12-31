@@ -19,7 +19,6 @@ from os.path import join, exists
 from os.path import join
 from csv import DictReader
 from oc.index.parsing.datacite import DataciteParser
-import json
 
 
 class DOCITest(unittest.TestCase):
@@ -29,7 +28,7 @@ class DOCITest(unittest.TestCase):
         if not exists("tmp"):
             makedirs("tmp")
         test_dir = join("index", "python", "test", "data")
-        self.input = join(test_dir, "doci_dump.json")
+        self.input = join(test_dir, "doci_dump.csv")
         self.citations = join(test_dir, "doci_citations.csv")
 
     def test_citation_source(self):
@@ -41,29 +40,22 @@ class DOCITest(unittest.TestCase):
         cit = parser.get_next_citation_data()
 
         while cit is not None:
-            # print("PROCESSING ENTITY N.", counter)
-            for citation_data in cit:
-                # print( "PROCESSING CIT N.", counter_cit, ":", citation_data)
-                citing, cited, creation, timespan, journal_sc, author_sc = citation_data
-                new.append(
-                    {
-                        "citing": citing,
-                        "cited": cited,
-                        "creation": "" if creation is None else creation,
-                        "timespan": "" if timespan is None else timespan,
-                        "journal_sc": "" if journal_sc is None else journal_sc,
-                        "author_sc": "" if author_sc is None else author_sc,
-                    }
-                )
-                counter_cit += 1
-            counter += 1
+            citing, cited, creation, timespan, journal_sc, author_sc = cit
+            new.append(
+                {
+                    "citing": citing,
+                    "cited": cited,
+                    "creation": "" if creation is None else creation,
+                    "timespan": "" if timespan is None else timespan,
+                    "journal_sc": "" if journal_sc is None else journal_sc,
+                    "author_sc": "" if author_sc is None else author_sc,
+                }
+            )
             cit = parser.get_next_citation_data()
+            counter += 1
 
-        with open(self.citations, encoding="utf-8") as f:
-            csv_to_dict = list(DictReader(f))
-            old = json.loads(json.dumps(csv_to_dict))
+        with open(self.citations, encoding="utf8") as f:
+            old = list(DictReader(f))
 
-        # check that old and new contain the same elements, regardless of their order
-        self.assertTrue([x for x in new if x not in old] == [])
-        self.assertTrue([x for x in old if x not in new] == [])
-        self.assertCountEqual(new, old)
+        self.assertEqual(new, old)
+

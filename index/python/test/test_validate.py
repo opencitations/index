@@ -98,23 +98,23 @@ class ValidateTest(unittest.TestCase):
 
     def test_datacite_query_build(self):
         query = self.doci_validate.build_oci_query(
-            join(self.doci_input, "0.json"), {}, disable_tqdm=True
+            join(self.doci_input, "0.csv"), {}, disable_tqdm=True
         )
         self.assertEqual(set(query), set(self.doci_truth))
 
     def test_datacite_validate(self):
         query_old = self.doci_validate.build_oci_query(
-            join(self.doci_input, "0.json"), {}, disable_tqdm=True
+            join(self.doci_input, "0.csv"), {}, disable_tqdm=True
         )
         result_map = {key: False for key in query_old}
         result_map[
-            "08001000007362801030304066300010763000307066305-0800100010636193719122423271421370200000337000204"
+            "0800100000236020001041611000004090705-0800100020936020000021912000001070309"
         ] = True
         self.doci_validate.validate_citations(
             self.doci_input, result_map, join("tmp", "doci_validate")
         )
         query_new = self.doci_validate.build_oci_query(
-            join(join("tmp", "doci_validate"), "0.json"), {}, disable_tqdm=True
+            join(join("tmp", "doci_validate"), "0.csv"), {}, disable_tqdm=True
         )
         self.assertEqual(len(query_old) - 1, len(query_new))
         pass

@@ -33,7 +33,7 @@ class NIHPreProcessing(Preprocessing):
             self._filter = ["citing", "referenced"]
         super(NIHPreProcessing, self).__init__()
 
-    def splitted_to_file(self, cur_n, lines):
+    def splitted_to_file(self, cur_n, lines, type=None):
         if int(cur_n) != 0 and int(cur_n) % int(self._interval) == 0:
             # to be logged: print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // self._interval)
             filename = "CSVFile_" + str(cur_n // self._interval) + self._req_type
