@@ -41,7 +41,7 @@ class DatacitePreProcessing(Preprocessing):
 
     def split_input(self):
         # retrieve already processed citations, if any, in order to restart an interrupted process and avoid duplicates
-        processed_citations = []
+        processed_citations = set()
         out_dir_p = listdir(self._output_dir_p)
         if len(out_dir_p) != 0:
             list_of_csv = glob.glob(join(self._output_dir_p, '*.csv'))
@@ -49,8 +49,8 @@ class DatacitePreProcessing(Preprocessing):
                 with open(file, 'r') as read_obj:
                     csv_reader = csv.reader(read_obj)
                     next(csv_reader)
-                    citations = list(csv_reader)
-                    processed_citations.extend(citations)
+                    citations = [tuple(x) for x in csv_reader]
+                    processed_citations.update(citations)
 
         # restart from the last processed line, in case of previous process interruption
         out_dir = listdir(self._output_dir)
@@ -138,16 +138,16 @@ class DatacitePreProcessing(Preprocessing):
                                         rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
                                         relationType = str(ref["relationType"]).lower().strip()
                                         if relationType == "references" or relationType == "cites":
-                                            cit = [str(doi_entity), str(rel_id)]
+                                            cit = (str(doi_entity), str(rel_id))
                                             if cit not in processed_citations:
-                                                processed_citations.append(cit)
+                                                processed_citations.add(cit)
                                                 data_csv.append(cit)
                                                 count_csv += 1
                                                 data_csv = self.splitted_to_file(count_csv, data_csv, ".csv")
                                         elif relationType == "isreferencedby" or relationType == "iscitedby":
-                                            cit = [str(rel_id), str(doi_entity)]
+                                            cit = (str(rel_id), str(doi_entity))
                                             if cit not in processed_citations:
-                                                processed_citations.append(cit)
+                                                processed_citations.add(cit)
                                                 data_csv.append(cit)
                                                 count_csv += 1
                                                 data_csv = self.splitted_to_file(count_csv, data_csv, ".csv")

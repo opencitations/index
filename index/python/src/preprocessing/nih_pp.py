@@ -55,6 +55,7 @@ class NIHPreProcessing(Preprocessing):
     def split_input(self):
         # restart from the last processed line, in case of previous process interruption
         out_dir = listdir(self._output_dir)
+        processed_citations = set()
         # Checking if the list is empty or not
         if len(out_dir) != 0:
             list_of_files = glob.glob(join(self._output_dir, '*.csv'))
@@ -64,6 +65,13 @@ class NIHPreProcessing(Preprocessing):
             df_dict_list = df.to_dict("records")
             if self._input_type == "icmd":
                 last_processed_pmid = df_dict_list[-1]["pmid"]
+            elif self._input_type == "occ":
+                for file in list_of_files:
+                    with open(file, 'r') as read_obj:
+                        csv_reader = csv.reader(read_obj)
+                        next(csv_reader)
+                        citations = [tuple(x) for x in csv_reader]
+                        processed_citations.update(citations)
         else:
             if self._input_type == "icmd":
                 last_processed_pmid = 0
@@ -81,11 +89,14 @@ class NIHPreProcessing(Preprocessing):
                         filt_values = [d.values() for d in df_dict_list if d.get("pmid") > last_processed_pmid and (d.get("cited_by") or d.get("references"))]
                     else:
                         filt_values = [d.values() for d in df_dict_list]
+
                     for line in filt_values:
-                        count += 1
-                        lines.append(line)
-                        if int(count) != 0 and int(count) % int(self._interval) == 0:
-                            lines = self.splitted_to_file(count, lines)
+                        if tuple(line) not in processed_citations:
+                            count += 1
+                            lines.append(line)
+                            processed_citations.add(tuple(line))
+                            if int(count) != 0 and int(count) % int(self._interval) == 0:
+                                lines = self.splitted_to_file(count, lines)
 
         if len(lines) > 0:
             count = count + (self._interval - (int(count) % int(self._interval)))

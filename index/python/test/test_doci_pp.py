@@ -176,13 +176,14 @@ class PreprocessingTest(unittest.TestCase):
                 shutil.rmtree(self._output_dir_cit)
             if exists(self._out_dir_csv_2):
                 shutil.rmtree(self._out_dir_csv_2)
+
             self._dc_pp_cit = DatacitePreProcessing(self._input_dir_cit, self._output_dir_cit, self._out_dir_csv_2, self._interval)
             self._dc_pp_cit.split_input()
-            expected_citations_list = [["10.1002/2013jc009302","10.1002/2014gb004975"],
-                              ["10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"],
-                              ["10.1002/2014gl061020", "10.1029/2000jc000355"],
-                              ["10.1002/2014gl061020","10.1029/2011gl050078"]]
-            processed_citations = []
+            expected_citations_set = {("10.1002/2013jc009302","10.1002/2014gb004975"),
+                                      ("10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"),
+                                      ("10.1002/2014gl061020", "10.1029/2000jc000355"),
+                                      ("10.1002/2014gl061020","10.1029/2011gl050078")}
+            processed_citations = set()
             out_dir_p = listdir(self._out_dir_csv_2)
             if len(out_dir_p) != 0:
                 list_of_csv = glob.glob(join(self._out_dir_csv_2, '*.csv'))
@@ -190,11 +191,9 @@ class PreprocessingTest(unittest.TestCase):
                     with open(file, 'r') as read_obj:
                         csv_reader = csv.reader(read_obj)
                         next(csv_reader)
-                        citations = list(csv_reader)
-                        processed_citations.extend(citations)
-            processed_citations.sort()
-            expected_citations_list.sort()
-            self.assertEqual(processed_citations, expected_citations_list)
+                        citations = [tuple(x) for x in csv_reader]
+                        processed_citations.update(citations)
+            self.assertEqual(processed_citations, expected_citations_set)
             shutil.rmtree(self._out_dir_csv_2)
             shutil.rmtree(self._output_dir_cit)
 
@@ -203,31 +202,27 @@ class PreprocessingTest(unittest.TestCase):
                 shutil.rmtree(self._output_dir_cit)
             self._dc_pp_cit = DatacitePreProcessing(self._input_dir_cit, self._output_dir_cit, self._out_dir_dupl_check, self._interval)
             out_dir_p = listdir(self._out_dir_dupl_check)
-            citations_before_process = []
-            list_of_csv_before_process = []
+            citations_before_process = set()
+            list_of_csv_before_process = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
             if len(out_dir_p) != 0:
-                list_of_csv_before_process = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
                 for file in list_of_csv_before_process:
                     with open(file, 'r') as read_obj:
                         csv_reader = csv.reader(read_obj)
                         next(csv_reader)
-                        citations = list(csv_reader)
-                        citations_before_process.extend(citations)
-
-            citations_before_process.sort()
-            expected_citations_before_process = [["10.1002/2013jc009302","10.1002/2014gb004975"],
-                              ["10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"],
-                              ["10.1002/2014gl061020", "10.1029/2000jc000355"]]
-            expected_citations_before_process.sort()
+                        citations = [tuple(x) for x in csv_reader]
+                        citations_before_process.update(citations)
+            expected_citations_before_process = {("10.1002/2013jc009302","10.1002/2014gb004975"),
+                                                 ("10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"),
+                                                 ("10.1002/2014gl061020", "10.1029/2000jc000355")}
             self.assertEqual(citations_before_process, expected_citations_before_process)
 
             self._dc_pp_cit.split_input()
 
-            expected_citations_list = [["10.1002/2013jc009302","10.1002/2014gb004975"],
-                              ["10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"],
-                              ["10.1002/2014gl061020", "10.1029/2000jc000355"],
-                              ["10.1002/2014gl061020","10.1029/2011gl050078"]]
-            processed_citations = []
+            expected_citations_set = {("10.1002/2013jc009302","10.1002/2014gb004975"),
+                                      ("10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"),
+                                      ("10.1002/2014gl061020", "10.1029/2000jc000355"),
+                                      ("10.1002/2014gl061020","10.1029/2011gl050078")}
+            processed_citations = set()
             out_dir_p_post = listdir(self._out_dir_dupl_check)
             if len(out_dir_p_post) != 0:
                 list_of_csv_post = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
@@ -235,11 +230,9 @@ class PreprocessingTest(unittest.TestCase):
                     with open(file, 'r') as read_obj:
                         csv_reader = csv.reader(read_obj)
                         next(csv_reader)
-                        citations = list(csv_reader)
-                        processed_citations.extend(citations)
-            processed_citations.sort()
-            expected_citations_list.sort()
-            self.assertEqual(processed_citations, expected_citations_list)
+                        citations = [tuple(x) for x in csv_reader]
+                        processed_citations.update(citations)
+            self.assertEqual(processed_citations, expected_citations_set)
             shutil.rmtree(self._output_dir_cit)
 
             list_of_csv_post_process = glob.glob(join(self._out_dir_dupl_check, '*.csv'))

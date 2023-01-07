@@ -20,7 +20,10 @@ from oc.index.preprocessing.nih_pp import NIHPreProcessing
 import shutil
 import csv
 import os
+from os import listdir
 import pandas as pd
+import glob
+
 
 
 class NOCIPPTest(unittest.TestCase):
@@ -38,8 +41,10 @@ class NOCIPPTest(unittest.TestCase):
         # NIH-OCC data, for NOCI parser
         self.input_type = "occ"
         self.input_dir = join(self.test_dir, "noci_pp_dump_input")
+        self.input_dir_red = join(self.test_dir, "noci_pp_dump_input_reduced")
         self.output_dir = self.__get_output_directory("noci_pp_dump_output")
         self.output_dir_broken = join(self.test_dir, "noci_index_dump_output_broken")
+        self._out_dir_dupl_check = "index/python/test/data/preprocess/nih_csv_duplicate_check"
 
         # iCite Metadata, for NOCI glob
         self.input_type_md = "icmd"
@@ -157,43 +162,49 @@ class NOCIPPTest(unittest.TestCase):
         pmids_in_output = [item["pmid"] for item in added_lines]
         self.assertTrue(all(item in pmids_in_input for item in pmids_in_output))
 
-    # def test_continue_broken_process_index(self):
-    #     NIHppBroken_index = NIHPreProcessing(self.input_dir, self.output_dir_broken, 50, self.input_type)
-    #     lines_in_input_dir = []
-    #     files_in_input = NIHppBroken_index.get_all_files(self.input_dir, self.req_type)[0]
-    #
-    #     for idx, file in enumerate(files_in_input):
-    #         with open(file, 'r') as myFile:
-    #             reader = csv.DictReader(myFile)
-    #             myList = list(reader)
-    #             lines_in_input_dir.extend([l for l in myList])
-    #
-    #     pre_break_files = NIHppBroken_index.get_all_files(self.output_dir_broken, self.req_type)[0]
-    #     pre_break_lines = []
-    #     for idx, file in enumerate(pre_break_files):
-    #         with open(file, 'r') as myFile:
-    #             reader = csv.DictReader(myFile)
-    #             myList = list(reader)
-    #             pre_break_lines.extend([l for l in myList])
-    #
-    #     NIHppBroken_index.split_input()
-    #     final_files = NIHppBroken_index.get_all_files(self.output_dir_broken, self.req_type)[0]
-    #     added_lines = []
-    #     for idx, file in enumerate(final_files):
-    #         with open(file, 'r') as myFile:
-    #             reader = csv.DictReader(myFile)
-    #             myList = list(reader)
-    #             added_lines.extend([l for l in myList])
-    #     files = [file for file in final_files if file not in pre_break_files]
-    #     for file in files:
-    #         os.remove(file)
-    #     self.assertEqual(len(lines_in_input_dir), len(added_lines))
-    #     pmids_in_input = [item for item in lines_in_input_dir]
-    #     pmids_in_output = [item for item in added_lines]
-    #     self.assertTrue(all(item in pmids_in_input for item in pmids_in_output))
+    def test_citations_preprocessing_duplicates(self):
+        self.NIHPP = NIHPreProcessing(self.input_dir_red, self._out_dir_dupl_check, self.num_3, self.input_type)
 
+        out_dir_p = listdir(self._out_dir_dupl_check)
+        citations_before_process = set()
+        list_of_csv_before_process = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
+        if len(out_dir_p) != 0:
+            for file in list_of_csv_before_process:
+                with open(file, 'r') as read_obj:
+                    csv_reader = csv.reader(read_obj)
+                    next(csv_reader)
+                    citations = [tuple(x) for x in csv_reader]
+                    citations_before_process.update(citations)
+        expected_citations_before_process = {("1", "4972128"),
+                                             ("1", "4332837"),
+                                             ("1", "13672941"),
+                                             ("1", "14203183")}
+        self.assertEqual(citations_before_process, expected_citations_before_process)
 
+        self.NIHPP.split_input()
 
+        expected_citations_set = {("1", "4972128"),
+                                  ("1", "4332837"),
+                                  ("1", "13672941"),
+                                  ("1", "14203183"),
+                                  ("1", "14161139")
+                                  }
+        processed_citations = set()
+        out_dir_p_post = listdir(self._out_dir_dupl_check)
+        if len(out_dir_p_post) != 0:
+            list_of_csv_post = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
+            for file in list_of_csv_post:
+                with open(file, 'r') as read_obj:
+                    csv_reader = csv.reader(read_obj)
+                    next(csv_reader)
+                    citations = [tuple(x) for x in csv_reader]
+                    processed_citations.update(citations)
+        self.assertEqual(processed_citations, expected_citations_set)
+
+        list_of_csv_post_process = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
+        new_files = [f for f in list_of_csv_post_process if f not in list_of_csv_before_process]
+        for nf in new_files:
+            os.remove(nf)
 
 
 
