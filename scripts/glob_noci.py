@@ -192,9 +192,11 @@ def process_noci(
     input_dir,
     output_dir,
     n,
+    use_api=True,
     id_orcid_dir=None,
     orcid_client_id=None,
     orcid_client_secret=None,
+
 ):
 
     start = timer()
@@ -273,7 +275,7 @@ def process_noci(
                     if citing_date:
                         entity["date"] = [citing_date]
 
-                    if orcid_client_id and orcid_client_secret:
+                    if orcid_client_id and orcid_client_secret and use_api:
                         json_res_pmid = pmid_orcid_resource_finder._call_api(
                             citing_pmid
                         )
@@ -308,7 +310,7 @@ def process_noci(
                                 issn_list.append(issn)
 
                         else:
-                            if citing_doi:
+                            if citing_doi and use_api:
                                 json_res = crossref_resource_finder._call_api(
                                     citing_doi
                                 )
@@ -327,7 +329,7 @@ def process_noci(
                                             issn_norm
                                         )
                     else:
-                        if citing_doi:
+                        if citing_doi and use_api:
                             json_res = crossref_resource_finder._call_api(
                                 citing_doi
                             )
@@ -405,7 +407,7 @@ def process_noci(
                                     ):
                                         pmid_doi_map[k]["has_orcid"] = True
 
-            if orcid_client_id and orcid_client_secret:
+            if orcid_client_id and orcid_client_secret and use_api:
                 for citing_pmid, d in pmid_doi_map.items():
                     if d["has_orcid"] == False:
                         json_res = orcid_resource_finder._call_api(d["doi"])
@@ -469,6 +471,17 @@ def main():
     )
 
     arg_parser.add_argument(
+        "-api",
+        "--use_api",
+        dest="use_api",
+        required=False,
+        default='True',
+        choices=['True', 'False'],
+        help="True or False. Use False as parameter value to disable API both for obtaining ORCID id in case the "
+             "mapping file was not specified and for publishers' ISSNs.",
+    )
+
+    arg_parser.add_argument(
         "-iod",
         "--orcid",
         dest="orcid",
@@ -498,12 +511,16 @@ def main():
         "Developer tools section of the ORCID platform.",
     )
 
+
     args = arg_parser.parse_args()
     process_noci(
         args.input,
         args.output,
         args.entities,
+        args.use_api,
         args.orcid,
         args.orcid_client_id,
         args.orcid_client_secret,
     )
+
+# oc.index.glob.noci -i index/python/test/data/noci_glob_dump_input -o tmp/noci_glob_dump_output -n 10

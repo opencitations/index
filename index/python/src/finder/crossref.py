@@ -13,8 +13,10 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from requests import get
+from requests import get, ConnectionError
+import requests
 from datetime import datetime
+import time
 
 from urllib.parse import quote
 
@@ -83,8 +85,32 @@ class CrossrefResourceFinder(ApiDOIResourceFinder):
 
     def _call_api(self, doi_full):
         if self._use_api_service:
+            connection_timeout = 30
+            count = 3
             doi = self._dm.normalise(doi_full)
-            r = get(self._api + quote(doi), headers=self._headers, timeout=30)
-            if r.status_code == 200:
-                r.encoding = "utf-8"
-                return r.json().get("message")
+            try:
+                r = get(self._api + quote(doi), headers=self._headers, timeout=connection_timeout)
+                if r.status_code == 200:
+                    r.encoding = "utf-8"
+                    return r.json().get("message")
+                else:
+                    return
+            except:
+                last_connection_timeout = 60
+                start_time = time.time()
+                while count:
+                    if time.time() > start_time + last_connection_timeout:
+                        return
+                    else:
+                        try:
+                            r = get(self._api + quote(doi), headers=self._headers, timeout=connection_timeout)
+                            if r.status_code == 200:
+                                r.encoding = "utf-8"
+                                return r.json().get("message")
+                            else:
+                                return
+                        except:
+                            time.sleep(1)
+                            count -= 1
+                return
+

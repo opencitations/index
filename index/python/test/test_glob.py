@@ -245,6 +245,9 @@ class GlobTest(unittest.TestCase):
                 os.remove(path)
 
     def test_noci_process_doi_orcid_map(self):
+        doi_orcid_decompr_dir = join(
+            self.test_dir, "noci_id_orcid_map_zip", "doi_orcid_mapping.zipdecompr_zip_dir"
+        )
         for files in os.listdir(self.out_noci):
             path = os.path.join(self.out_noci, files)
             try:
@@ -254,7 +257,8 @@ class GlobTest(unittest.TestCase):
 
         # try with doi_orcid mapping folder
 
-        process_noci(self.inp_noci_map, self.out_noci, 2, self.id_orcid_map)
+        process_noci(self.inp_noci_map, self.out_noci, 2, id_orcid_dir=self.id_orcid_map)
+        self.assertTrue(len(os.listdir(doi_orcid_decompr_dir)) == 3)
         noci_datasource_m = CSVDataSource("NOCI")
         self.assertEqual({'0000-0001-8665-095X', '0000-0003-0530-4305', '0000-0001-5486-7070'}, noci_datasource_m.get("pmid:1000000001")["orcid"])
         self.assertEqual({'0000-0001-5366-5194', '0000-0001-5439-4576'}, noci_datasource_m.get("pmid:1000000002")["orcid"])
@@ -267,6 +271,12 @@ class GlobTest(unittest.TestCase):
                 shutil.rmtree(path)
             except OSError:
                 os.remove(path)
+
+        try:
+            rmtree(doi_orcid_decompr_dir)
+        except:
+            os.remove(doi_orcid_decompr_dir)
+
 
 
 if __name__ == "__main__":
