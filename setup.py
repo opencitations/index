@@ -42,7 +42,8 @@ setup(
         "pandas",
         "lxml",
         "regex",
-        "zstandard"
+        "zstandard",
+        "oc-idmanager"
     ],
     packages=[
         f"oc.index.{mod}"

@@ -164,7 +164,7 @@ def get_all_files_noci(i_dir):
     opener = None
     if i_dir.endswith(".zip"):
         with ZipFile(i_dir, 'r') as zip_ref:
-            dest_dir = i_dir + "decompr_zip_dir"
+            dest_dir = i_dir.split(".")[0] + "_decompr_zip_dir"
             if not exists(dest_dir):
                 makedirs(dest_dir)
             zip_ref.extractall(dest_dir)
@@ -192,13 +192,19 @@ def process_noci(
     input_dir,
     output_dir,
     n,
-    use_api=True,
+    process_type,
+    use_api="True",
     id_orcid_dir=None,
     orcid_client_id=None,
     orcid_client_secret=None,
 
 ):
-
+    use_api = use_api.strip()
+    if use_api == "True":
+        use_api = True
+    elif use_api == "False":
+        use_api = False
+        
     start = timer()
     if not exists(output_dir):
         makedirs(output_dir)
@@ -213,12 +219,23 @@ def process_noci(
     orcid_manager = ORCIDManager()
     pmid_manager = PMIDManager()
     config = get_config()
-    service_ds = config.get("NOCI", "datasource")
+    if process_type == "process":
+        service_ds = config.get("NOCI", "datasource")
+    else:
+        service_ds = config.get("NOCI_T", "datasource")
+
     svc_datasource = None
+    
     if service_ds == "redis":
-        svc_datasource = RedisDataSource("NOCI")
+        if process_type == "process":
+            svc_datasource = RedisDataSource("NOCI")
+        else:
+            svc_datasource = RedisDataSource("NOCI_T")
     elif service_ds == "csv":
-        svc_datasource = CSVDataSource("NOCI")
+        if process_type == "process":
+            svc_datasource = CSVDataSource("NOCI")
+        else:
+            svc_datasource = CSVDataSource("NOCI_T")
     else:
         raise Exception(service_ds + " is not a valid data source")
 
@@ -469,7 +486,15 @@ def main():
         required=True,
         help="Interval of processed entities after which the issn data are saved to the cache file.",
     )
-
+    arg_parser.add_argument(
+        "-p",
+        "--process_type",
+        dest="process_type",
+        required=True,
+        choices=['process', 'test'],
+        help="scope of the process to be run, either 'process' or 'test'. Choose 'test' in case the script is run for"
+             "testing purposes and 'process' if the script is run for processing the full glob.",
+    )
     arg_parser.add_argument(
         "-api",
         "--use_api",
@@ -517,6 +542,7 @@ def main():
         args.input,
         args.output,
         args.entities,
+        args.process_type,
         args.use_api,
         args.orcid,
         args.orcid_client_id,

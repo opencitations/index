@@ -8,3 +8,4 @@ beautifulsoup4
 pandas
 lxml
 regex
+oc-idmanager

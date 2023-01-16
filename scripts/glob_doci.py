@@ -30,7 +30,6 @@ from oc.index.glob.redis import RedisDataSource
 from oc.index.utils.config import get_config
 from oc.index.finder.datacite import DataCiteResourceFinder
 
-
 def get_all_files(i_dir_or_compr, req_type):
     result = []
     targz_fd = None
@@ -48,7 +47,8 @@ def get_all_files(i_dir_or_compr, req_type):
                 result.append(cur_file)
     elif i_dir_or_compr.endswith("zip"):
         with zipfile.ZipFile(i_dir_or_compr, 'r') as zip_ref:
-            dest_dir = i_dir_or_compr + "decompr_zip_dir"
+            dest_dir = i_dir_or_compr.split(".")[0] + "_decompr_zip_dir"
+
             if not exists(dest_dir):
                 makedirs(dest_dir)
             zip_ref.extractall(dest_dir)
@@ -59,7 +59,7 @@ def get_all_files(i_dir_or_compr, req_type):
 
     elif i_dir_or_compr.endswith("zst"):
         input_file = pathlib.Path(i_dir_or_compr)
-        dest_dir = i_dir_or_compr.split(".")[0] + "decompr_zst_dir"
+        dest_dir = i_dir_or_compr.split(".")[0] + "_decompr_zst_dir"
         with open(input_file, 'rb') as compressed:
             decomp = zstd.ZstdDecompressor()
             if not exists(dest_dir):
@@ -101,17 +101,26 @@ def load_json_doci(file, targz_fd, file_idx, len_all_files):
 
     return result
 
-def process_doci(input_dir):
+def process_doci(input_dir, process_type):
     start = timer()
 
     doi_manager = DOIManager()
 
     config = get_config()
-    service_ds = config.get("DOCI", "datasource")
+    if process_type == "process":
+        service_ds = config.get("DOCI", "datasource")
+    else:
+        service_ds = config.get("DOCI_T", "datasource")
     if service_ds == "redis":
-        svc_datasource = RedisDataSource("DOCI")
+        if process_type == "process":
+            svc_datasource = RedisDataSource("DOCI")
+        else:
+            svc_datasource = RedisDataSource("DOCI_T")
     elif service_ds == "csv":
-        svc_datasource = CSVDataSource("DOCI")
+        if process_type == "process":
+            svc_datasource = CSVDataSource("DOCI")
+        else:
+            svc_datasource = CSVDataSource("DOCI_T")
     else:
         raise Exception(service_ds + " is not a valid data source")
     dcrf = DataCiteResourceFinder()
@@ -220,8 +229,16 @@ def main():
         dest="input",
         required=True,
         help="Either the directory or the zip file that contains the DataCite data dump "
-             "of JSON files.",
+             "of JSON files.")
+    arg_parser.add_argument(
+        "-p",
+        "--process_type",
+        dest="process_type",
+        required=True,
+        choices=['process', 'test'],
+        help="scope of the process to be run, either 'process' or 'test'. Choose 'test' in case the script is run for"
+             "testing purposes and 'process' if the script is run for processing the full glob.",
     )
 
     args = arg_parser.parse_args()
-    process_doci(args.input)
+    process_doci(args.input, args.process_type)

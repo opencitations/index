@@ -16,7 +16,7 @@
 import unittest
 from os.path import join, exists
 import os.path
-from oc.index.preprocessing.nih_pp import NIHPreProcessing
+from oc.index.preprocessing.pubmed import NIHPreProcessing
 import shutil
 import csv
 import os
@@ -25,12 +25,11 @@ import pandas as pd
 import glob
 
 
-
-class NOCIPPTest(unittest.TestCase):
+class PubMedPPTest(unittest.TestCase):
     """This class aims at testing the methods of the classes NIHPreProcessing and ICiteMDPreProcessing."""
 
     def setUp(self):
-        self.test_dir = join("index", "python", "test", "data")
+        self.test_dir = join("index", "python","test", "data", "preprocess")
         self.req_type = ".csv"
         self.num_0 = 356
         self.num_1 = 8
@@ -38,19 +37,19 @@ class NOCIPPTest(unittest.TestCase):
         self.num_3 = 300
         self.num_4 = 4
 
-        # NIH-OCC data, for NOCI parser
+        # NIH-OCC data, for POCI parser
         self.input_type = "occ"
-        self.input_dir = join(self.test_dir, "noci_pp_dump_input")
-        self.input_dir_red = join(self.test_dir, "noci_pp_dump_input_reduced")
-        self.output_dir = self.__get_output_directory("noci_pp_dump_output")
-        self.output_dir_broken = join(self.test_dir, "noci_index_dump_output_broken")
-        self._out_dir_dupl_check = "index/python/test/data/preprocess/nih_csv_duplicate_check"
+        self.input_dir = join(self.test_dir, "poci_pp_dump_input")
+        self.input_dir_red = join(self.test_dir, "poci_pp_dump_input_reduced")
+        self.output_dir = self.__get_output_directory("poci_pp_dump_output")
+        self.output_dir_broken = join(self.test_dir, "poci_index_dump_output_broken")
+        self._out_dir_dupl_check = join(self.test_dir, "poci_csv_duplicate_check")
 
-        # iCite Metadata, for NOCI glob
+        # iCite Metadata, for POCI glob
         self.input_type_md = "icmd"
-        self.input_md_dir = join(self.test_dir, "noci_md_pp_dump_input")
-        self.output_md_dir = self.__get_output_directory("noci_md_pp_dump_output")
-        self.output_md_dir_broken = join(self.test_dir, "noci_glob_dump_output_broken")
+        self.input_md_dir = join(self.test_dir, "poci_md_pp_dump_input")
+        self.output_md_dir = self.__get_output_directory("poci_md_pp_dump_output")
+        self.output_md_dir_broken = join(self.test_dir, "poci_glob_dump_output_broken")
 
     def __get_output_directory(self, directory):
         directory = join(".", "tmp", directory)
@@ -105,7 +104,7 @@ class NOCIPPTest(unittest.TestCase):
         # checks that the number of filtered lines is equal to the number of lines in input - the number of discarded lines
         input_files, targz_fd = self.NIHPPmd.get_all_files(self.input_md_dir, self.req_type)
         len_discarded_lines = 0
-        len_total_lines = 0 
+        len_total_lines = 0
         for idx, file in enumerate(input_files):
             df = pd.read_csv(file, usecols=self.NIHPPmd._filter, low_memory=True)
             df.fillna("", inplace=True)
@@ -113,7 +112,9 @@ class NOCIPPTest(unittest.TestCase):
             len_total_lines += len(df_dict_list)
             len_discarded_lines += len([d for d in df_dict_list if not (d.get("cited_by") or d.get("references"))])
 
-        expected_num_files = (len_total_lines - len_discarded_lines) // self.num_3 if (len_total_lines - len_discarded_lines) % self.num_3 == 0 else (len_total_lines - len_discarded_lines) // self.num_3 + 1
+        expected_num_files = (len_total_lines - len_discarded_lines) // self.num_3 if (
+                                                                                                  len_total_lines - len_discarded_lines) % self.num_3 == 0 else (
+                                                                                                                                                                            len_total_lines - len_discarded_lines) // self.num_3 + 1
         files, targz_fd = self.NIHPPmd.get_all_files(self.output_md_dir, self.req_type)
         len_files = len(files)
         self.assertEqual(len_files, expected_num_files)
@@ -124,7 +125,7 @@ class NOCIPPTest(unittest.TestCase):
                 reader = csv.reader(op_file, delimiter=",")
                 next(reader, None)
                 len_filtered_lines += len(list(reader))
-                
+
         self.assertEqual(len_filtered_lines, len_total_lines - len_discarded_lines)
 
     def test_continue_broken_process_glob(self):

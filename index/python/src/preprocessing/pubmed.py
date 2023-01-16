@@ -7,7 +7,7 @@ import pandas as pd
 from oc.index.preprocessing.base import Preprocessing
 from argparse import ArgumentParser
 from datetime import datetime
-
+from tqdm import tqdm
 
 
 class NIHPreProcessing(Preprocessing):
@@ -15,10 +15,7 @@ class NIHPreProcessing(Preprocessing):
     Citation Collection + ICite Metadata), available at:
     https://nih.figshare.com/search?q=iCite+Database+Snapshot. In particular,
     NIHPreProcessing splits the original CSV file in many lighter CSV files,
-    each one containing the number of entities specified in input by the user.
-    Further, in processing iCiteMetadata Dump, the entities which are not involved
-    in citations are discarded"""
-
+    each one containing the number of entities specified in input by the user"""
     def __init__(self, input_dir, output_dir, interval, input_type):
         self._req_type = ".csv"
         self._input_dir = input_dir
@@ -52,6 +49,7 @@ class NIHPreProcessing(Preprocessing):
         else:
             return lines
 
+
     def split_input(self):
         # restart from the last processed line, in case of previous process interruption
         out_dir = listdir(self._output_dir)
@@ -79,7 +77,7 @@ class NIHPreProcessing(Preprocessing):
         all_files, targz_fd = self.get_all_files(self._input_dir, self._req_type)
         count = 0
         lines = []
-        for file_idx, file in enumerate(all_files, 1):
+        for file_idx, file in enumerate(tqdm(all_files), 1):
             chunksize = 100000
             with pd.read_csv(file,  usecols=self._filter, chunksize=chunksize) as reader:
                 for chunk in reader:
@@ -123,3 +121,4 @@ if __name__ == '__main__':
 
     nihpp = NIHPreProcessing(input_dir=args.input, output_dir=args.output, interval=args.number, input_type=args.input_type)
     nihpp.split_input()
+
