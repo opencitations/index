@@ -196,9 +196,7 @@ def process_noci(
     use_api="True",
     id_orcid_dir=None,
     orcid_client_id=None,
-    orcid_client_secret=None,
-
-):
+    orcid_client_secret=None,):
     use_api = use_api.strip()
     if use_api == "True":
         use_api = True
