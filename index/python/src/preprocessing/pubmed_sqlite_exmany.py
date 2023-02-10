@@ -70,7 +70,6 @@ class NIHPreProcessing(Preprocessing):
         if int(cur_n) != 0 and int(cur_n) % int(self._interval) == 0:
             # to be logged: print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // self._interval)
             filename = "CSVFile_" + str(cur_n // self._interval) + self._req_type
-            print("DONE", filename)
             if exists(os.path.join(self._output_dir, filename)):
                 cur_datetime = datetime.now()
                 dt_string = cur_datetime.strftime("%d%m%Y_%H%M%S")
@@ -88,6 +87,8 @@ class NIHPreProcessing(Preprocessing):
 
 
     def split_input(self):
+        to_be_inserted = []
+        appended_counter = 0
         # restart from the last processed line, in case of previous process interruption
         out_dir = listdir(self._output_dir)
         # Checking if the list is empty or not
@@ -104,16 +105,26 @@ class NIHPreProcessing(Preprocessing):
                         csv_reader = csv.reader(read_obj)
                         next(csv_reader)
                         for x in csv_reader:
-                            if not self.is_in_db([x[0]]):
-                                self.insert_in_db([x[0]])
+                            if x:
+                                if not self.is_in_db(x[0]) and x[0] not in to_be_inserted:
+                                    to_be_inserted.append(x[0])
+                                    appended_counter += 1
+                                    if appended_counter == 1000:
+                                        to_be_inserted = self.insert_many_in_db(to_be_inserted)
+                                    #self.insert_in_db([x[0]])
             elif self._input_type == "occ":
                 for file in list_of_files:
                     with open(file, 'r') as read_obj:
                         csv_reader = csv.reader(read_obj)
                         next(csv_reader)
                         for x in csv_reader:
-                            if not self.is_in_db(x):
-                                self.insert_in_db(x)
+                            if x[0] and x[1]:
+                                if not self.is_in_db(x) and x not in to_be_inserted:
+                                    to_be_inserted.append(x)
+                                    appended_counter += 1
+                                    if appended_counter == 1000:
+                                        to_be_inserted = self.insert_many_in_db(to_be_inserted)
+                                #self.insert_in_db(x)
 
                         #citations = [tuple(x) for x in csv_reader]
                         #processed_citations.update(citations)
@@ -136,21 +147,36 @@ class NIHPreProcessing(Preprocessing):
                         filt_values = [list(d.values()) for d in df_dict_list]
 
                     for line in filt_values:
-                        if self._input_type == "occ":
-                            if not self.is_in_db(line):
-                                count += 1
-                                lines.append(line)
-                                self.insert_in_db(line)
-                                if int(count) != 0 and int(count) % int(self._interval) == 0:
-                                    lines = self.splitted_to_file(count, lines)
-                        elif self._input_type == "icmd":
-                            if not self.is_in_db([line[0]]):
-                                count += 1
-                                lines.append(line)
-                                self.insert_in_db([line[0]])
-                                if int(count) != 0 and int(count) % int(self._interval) == 0:
-                                    lines = self.splitted_to_file(count, lines)
-
+                        if line:
+                            if self._input_type == "occ":
+                                if line[0] and line[1]:
+                                    if not self.is_in_db(line) and line not in to_be_inserted:
+        
+                                        count += 1
+                                        lines.append(line)
+                                        if int(count) != 0 and int(count) % int(self._interval) == 0:
+                                            lines = self.splitted_to_file(count, lines)
+        
+                                        to_be_inserted.append(line)
+                                        appended_counter += 1
+                                        if appended_counter == 1000:
+                                            to_be_inserted = self.insert_many_in_db(to_be_inserted)
+                                    #self.insert_in_db(line)
+    
+                            elif self._input_type == "icmd":
+                                if not self.is_in_db(line[0]) and line[0] not in to_be_inserted:
+                                    count += 1
+                                    lines.append(line)
+                                    #self.insert_in_db([line[0]])
+                                    if int(count) != 0 and int(count) % int(self._interval) == 0:
+                                        lines = self.splitted_to_file(count, lines)
+                                    to_be_inserted.append(line[0])
+                                    appended_counter += 1
+                                    if appended_counter == 1000:
+                                        to_be_inserted = self.insert_many_in_db(to_be_inserted)
+        if len(to_be_inserted) > 0:
+            self.insert_many_in_db(to_be_inserted)
+            
         if len(lines) > 0:
             count = count + (self._interval - (int(count) % int(self._interval)))
             self.splitted_to_file(count, lines)
@@ -163,8 +189,20 @@ class NIHPreProcessing(Preprocessing):
                 self._db_cur.execute(self._sql_insert_cit, (el[0], el[1]))
         elif self._input_type == "icmd":
             with self._db_conn:
-                self._db_cur.execute(self._sql_insert_id, (el[0],))
+                self._db_cur.execute(self._sql_insert_id, (el,))
 
+    def insert_many_in_db(self, data):
+        empt_data = []
+        if data:
+            if self._input_type == "occ":
+                data_to_tuples = [(i[0], i[1]) for i in data]
+                with self._db_conn:
+                    self._db_cur.executemany(self._sql_insert_cit, data_to_tuples)
+            elif self._input_type == "icmd":
+                data_to_tuples = [(i,) for i in data]
+                with self._db_conn:
+                    self._db_cur.executemany(self._sql_insert_id, data_to_tuples)
+        return empt_data
 
     def is_in_db(self, el):
         if self._input_type == "occ":
@@ -175,7 +213,7 @@ class NIHPreProcessing(Preprocessing):
             else:
                 return True
         elif self._input_type == "icmd":
-            self._db_cur.execute("SELECT * FROM index_db WHERE id=?", (el[0],))
+            self._db_cur.execute("SELECT * FROM index_db WHERE id=?", (el,))
             res = self._db_cur.fetchone()
             if not res:
                 return False
@@ -208,7 +246,3 @@ if __name__ == '__main__':
 
     nihpp = NIHPreProcessing(input_dir=args.input, output_dir=args.output, interval=args.number, input_type=args.input_type, db=args.database, testing=args.testing)
     nihpp.split_input()
-
-
-
-
