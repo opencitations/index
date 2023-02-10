@@ -38,7 +38,7 @@ from oc.index.glob.csv import CSVDataSource
 _config = get_config()
 
 
-def cnc(service, file, parser, ds, multiprocess):
+def cnc(service, file, parser, ds, multiprocess, unified_index = False):
     global _config
 
     oci_manager = OCIManager(
@@ -94,7 +94,7 @@ def cnc(service, file, parser, ds, multiprocess):
     rf_handler = ResourceFinderHandler(
         [
             crossref_rc,
-            ORCIDResourceFinder(resources, use_api, _config.get("cnc", "orcid")),
+            ORCIDResourceFinder(resources, use_api,_config.get("cnc", "orcid")),
             DataCiteResourceFinder(resources, use_api),
         ]
     )
@@ -103,12 +103,21 @@ def cnc(service, file, parser, ds, multiprocess):
         f"Working on {len(citation_data_list)} citation data with related support information"
     )
     citations_created = 0
+
     idbase_url = _config.get(service, "idbaseurl")
     prefix = _config.get(service, "prefix")
     agent = _config.get(service, "agent")
     source = _config.get(service, "source")
     service_name = _config.get(service, "service")
     citations = []
+
+    unified_idbase_url = _config.get("INDEX", "idbaseurl")
+    unified_prefix = _config.get("INDEX", "prefix")
+    unified_agent = _config.get("INDEX", "agent")
+    unified_source = _config.get("INDEX", "source")
+    unified_service_name = _config.get("INDEX", "service")
+    unified_identifier = _config.get("INDEX", "identifier")
+    unified_citations = []
     for citation_data in tqdm(citation_data_list, disable=multiprocess):
         (
             citing,
@@ -124,37 +133,22 @@ def cnc(service, file, parser, ds, multiprocess):
         citing_orcid = []
         cited_orcid = []
         if crossref_rc.is_valid(citing) and crossref_rc.is_valid(cited):
-            if citing_date is None:
+            # Always take the values from rf_handler if unified_index=True
+            if citing_date is None or unified_index:
                 citing_date = rf_handler.get_date(citing)
 
-            if cited_date is None:
+            if cited_date is None or unified_index:
                 cited_date = rf_handler.get_date(cited)
 
-            if journal_sc is None or type(journal_sc) is not bool:
+            if journal_sc is None or type(journal_sc) is not bool or unified_index:
                 journal_sc, citing_issn, cited_issn = rf_handler.share_issn(
                     citing, cited
                 )
 
-            if author_sc is None or type(author_sc) is not bool:
+            if author_sc is None or type(author_sc) is not bool or unified_index:
                 author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(
                     citing, cited
                 )
-
-            # Update support data if the resources were not found in the datasource
-            if resources[citing] is None:
-                row = ds.new()
-                row["valid"] = True
-                row["date"] = citing_date
-                row["issn"] = list(citing_issn)
-                row["orcid"] = list(citing_orcid)
-                ds.set(citing, row)
-            if resources[cited] is None:
-                row = ds.new()
-                row["valid"] = True
-                row["date"] = cited_date
-                row["issn"] = list(cited_issn)
-                row["orcid"] = list(cited_orcid)
-                ds.set(cited, row)
 
             citations.append(
                 Citation(
@@ -181,29 +175,51 @@ def cnc(service, file, parser, ds, multiprocess):
                 )
             )
 
+            # in case we want to create the unified citations as well (based on OMID)
+            if unified_index:
+
+                citing_omid = rf_handler.get_omid(citing)
+                cited_omid = rf_handler.get_omid(cited)
+
+                unified_citations.append(
+                    Citation(
+                        "oci:%s%s-%s%s" % (prefix,citing_omid,prefix,cited_omid,),
+                        unified_idbase_url + quote(citing_omid),
+                        citing_date,
+                        unified_idbase_url + quote(cited_omid),
+                        cited_date,
+                        None,
+                        None,
+                        1,
+                        unified_agent,
+                        unified_source,
+                        datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                        unified_service_name,
+                        unified_identifier,
+                        unified_idbase_url + "([[XXX__decode]])",
+                        "reference",
+                        journal_sc,
+                        author_sc,
+                        None,
+                        "Creation of the citation",
+                        None,
+                    )
+                )
+
             citations_created += 1
-        else:
-            if citing is resources:
-                if resources[citing] is None:
-                    row = ds.new()
-                    row["valid"] = False
-                    ds.set(citing, row)
-            if cited is resources:
-                if (not cited in resources) or resources[cited] is None:
-                    row = ds.new()
-                    row["valid"] = False
-                    ds.set(cited, row)
+
     logger.info(f"{citations_created}/{len(citation_data_list)} Citations created")
-    return citations
+    return (citations,unified_citations)
 
 
 def worker_body(input_files, output, service, tid, multiprocess):
     global _config
 
     service_ds = _config.get(service, "datasource")
+    unified_index = _config.getboolean("cnc", "unified_index")
     ds = None
     if service_ds == "redis":
-        ds = RedisDataSource(service)
+        ds = RedisDataSource(service, unified_index)
     elif service_ds == "csv":
         ds = CSVDataSource(service)
     else:
@@ -211,19 +227,27 @@ def worker_body(input_files, output, service, tid, multiprocess):
 
     logger = get_logger()
     parser = CitationParser.get_parser(service)
-    baseurl = baseurl = _config.get(service, "baseurl")
+    baseurl = _config.get(service, "baseurl")
     storer = CitationStorer(
         output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
+    )
+    index_storer = CitationStorer(
+        output + "/index", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
     )
 
     logger.info("Working on " + str(len(input_files)) + " files")
 
     for file in input_files:
-        citations = cnc(service, file, parser, ds, multiprocess)
+        citations,unified_citations = cnc(service, file, parser, ds, multiprocess, unified_index)
 
         logger.info("Saving citations...")
         for citation in tqdm(citations, disable=multiprocess):
             storer.store_citation(citation)
+
+        if len(unified_citations) > 0:
+            logger.info("Saving unified citations...")
+            for citation in tqdm(unified_citations, disable=multiprocess):
+                index_storer.store_citation(citation)
 
         logger.info(f"{len(citations)} citations saved")
 
@@ -298,7 +322,7 @@ def main():
             process = multiprocessing.Process(
                 target=worker_body,
                 args=(
-                    input_files[last_index : (last_index + chunk_size)],
+                    input_files[last_index: (last_index + chunk_size)],
                     output,
                     service,
                     tid + 1,
@@ -313,7 +337,8 @@ def main():
 
     # No active wait also the main thread work on processing file
     worker_body(
-        input_files[last_index : len(input_files)], output, service, 0, multiprocess
+        input_files[last_index: len(
+            input_files)], output, service, 0, multiprocess
     )
     if multiprocess:
         for worker in workers_list:

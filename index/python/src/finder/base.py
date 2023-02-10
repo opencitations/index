@@ -72,6 +72,15 @@ class ResourceFinder(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def get_unified_id(self, id_string):
+        """Returns the omid associated to a specific id.
+
+        Args:
+            id_string (str): id
+        """
+        pass
+
+    @abstractmethod
     def get_container_issn(self, id_string):
         """It returns the container issn.
 
@@ -175,6 +184,20 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         else:
             return self._data[id_string]["date"]
 
+    def get_unified_id(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return None
+        else:
+            return self._data[id_string]["omid"]
+
     def get_container_issn(self, id_string):
         """_summary_
 
@@ -272,6 +295,29 @@ class ResourceFinderHandler(object):
         #     for finder in self.resource_finders:
         #         if finder.is_valid(id_string):
         #             finder.date.add_value(finder.normalise(id_string), "")
+
+        return result
+
+    def get_omid(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        result = None
+        finders = deque(self.resource_finders)
+
+        while result is None and finders:
+            finder = finders.popleft()
+            result_set = finder.get_unified_id(id_string)
+            if result_set:
+                if isinstance(result_set, list):
+                    result = result_set.pop()
+                else:
+                    result = result_set
 
         return result
 
