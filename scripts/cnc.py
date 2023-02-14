@@ -157,6 +157,7 @@ def cnc(service, file, parser, ds, multiprocess, unified_index = False):
             # change citing and cited entites when using a unified INDEX
             if unified_index:
                 citing = rf_handler.get_omid(citing)
+                print(citing)
                 if citing != None: citing = citing.replace("meta:br/","")
                 cited = rf_handler.get_omid(cited)
                 if cited != None: cited = cited.replace("meta:br/","")
