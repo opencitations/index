@@ -70,7 +70,6 @@ class NIHPreProcessing(Preprocessing):
         if int(cur_n) != 0 and int(cur_n) % int(self._interval) == 0:
             # to be logged: print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // self._interval)
             filename = "CSVFile_" + str(cur_n // self._interval) + self._req_type
-            print("DONE", filename)
             if exists(os.path.join(self._output_dir, filename)):
                 cur_datetime = datetime.now()
                 dt_string = cur_datetime.strftime("%d%m%Y_%H%M%S")
