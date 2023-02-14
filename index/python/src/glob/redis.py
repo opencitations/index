@@ -59,8 +59,7 @@ class RedisDataSource(DataSource):
         org_resources_id = resources_id
         # get the OMIDs of the original IDs in case we use the unified_index
         if self._unifed_index:
-            resources_id = self._rid.mget(resources_id)
-        print(resources_id)
+            resources_id = [a for a in self._rid.mget(resources_id) if a != None]
         return {
             org_resources_id[i]: json.loads(v) | {"omid":resources_id[i] if resources_id[i] != org_resources_id[i] else None} if v is not None else None
             for i, v in enumerate(self._rdata.mget(resources_id))
