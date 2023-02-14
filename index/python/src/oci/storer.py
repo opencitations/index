@@ -518,7 +518,7 @@ class CitationStorer(object):
 
                 yield c
 
-    def store_citation(self, citation):
+    def store_citation(self, citation, store_as=["csv_data","csv_prov","rdf_data","rdf_prov","scholix_data"]):
         """It stores the citation in csv, rdf and scholix.
 
         Args:
@@ -530,36 +530,43 @@ class CitationStorer(object):
         data_csv_f_path = self.data_csv_dir + csv_filename
         prov_csv_f_path = self.prov_csv_dir + csv_filename
 
-        CitationStorer.__store_csv_on_file(
-            data_csv_f_path,
-            Citation.header_citation_data,
-            loads(citation.get_citation_json()),
-        )
-        CitationStorer.__store_csv_on_file(
-            prov_csv_f_path,
-            Citation.header_provenance_data,
-            loads(citation.get_citation_prov_json()),
-        )
+        if "csv_data" in store_as:
+            CitationStorer.__store_csv_on_file(
+                data_csv_f_path,
+                Citation.header_citation_data,
+                loads(citation.get_citation_json()),
+            )
+
+        if "csv_prov" in store_as:
+            CitationStorer.__store_csv_on_file(
+                prov_csv_f_path,
+                Citation.header_provenance_data,
+                loads(citation.get_citation_prov_json()),
+            )
 
         # Store data in RDF
         rdf_filename = self.get_rdf_filename(True)
         data_rdf_f_path = self.data_rdf_dir + rdf_filename
         prov_rdf_f_path = self.prov_rdf_dir + rdf_filename
 
-        CitationStorer.__store_rdf_on_file(
-            data_rdf_f_path,
-            citation.get_citation_rdf(self.rdf_resource_base, False, False, False),
-        )
-        CitationStorer.__store_rdf_on_file(
-            prov_rdf_f_path,
-            citation.get_citation_prov_rdf(self.rdf_resource_base),
-            "nq",
-        )
+        if "rdf_data" in store_as:
+            CitationStorer.__store_rdf_on_file(
+                data_rdf_f_path,
+                citation.get_citation_rdf(self.rdf_resource_base, False, False, False),
+            )
+
+        if "rdf_prov" in store_as:
+            CitationStorer.__store_rdf_on_file(
+                prov_rdf_f_path,
+                citation.get_citation_prov_rdf(self.rdf_resource_base),
+                "nq",
+            )
 
         # Store data in Scholix
         slx_filename = self.get_slx_filename(True)
         data_slx_f_path = self.data_slx_dir + slx_filename
 
-        CitationStorer.__store_slx_on_file(
-            data_slx_f_path, citation.get_citation_scholix()
-        )
+        if "scholix_data" in store_as:
+            CitationStorer.__store_slx_on_file(
+                data_slx_f_path, citation.get_citation_scholix()
+            )

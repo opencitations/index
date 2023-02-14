@@ -111,12 +111,14 @@ def cnc(service, file, parser, ds, multiprocess, unified_index = False):
     service_name = _config.get(service, "service")
     citations = []
 
-    unified_idbase_url = _config.get("INDEX", "idbaseurl")
-    unified_prefix = _config.get("INDEX", "prefix")
-    unified_agent = _config.get("INDEX", "agent")
-    unified_source = _config.get("INDEX", "source")
-    unified_service_name = _config.get("INDEX", "service")
-    unified_identifier = _config.get("INDEX", "identifier")
+    # when using the unified INDEX change variables
+    if unified_index:
+        idbase_url = _config.get("INDEX", "idbaseurl")
+        prefix = _config.get("INDEX", "prefix")
+        agent = _config.get("INDEX", "agent")
+        service_name = _config.get("INDEX", "service")
+        identifier = _config.get("INDEX", "identifier")
+
     unified_citations = []
     for citation_data in tqdm(citation_data_list, disable=multiprocess):
         (
@@ -150,59 +152,58 @@ def cnc(service, file, parser, ds, multiprocess, unified_index = False):
                     citing, cited
                 )
 
-            citations.append(
-                Citation(
-                    oci_manager.get_oci(citing, cited, prefix),
-                    idbase_url + quote(citing),
-                    citing_date,
-                    idbase_url + quote(cited),
-                    cited_date,
-                    None,
-                    None,
-                    1,
-                    agent,
-                    source,
-                    datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                    service_name,
-                    identifier,
-                    idbase_url + "([[XXX__decode]])",
-                    "reference",
-                    journal_sc,
-                    author_sc,
-                    None,
-                    "Creation of the citation",
-                    None,
-                )
-            )
+            oci_val = oci_manager.get_oci(citing, cited, prefix)
 
-            # in case we want to create the unified citations as well (based on OMID)
+            # change citing and cited entites when using a unified INDEX
             if unified_index:
+                citing = rf_handler.get_omid(citing)
+                if citing != None: citing = citing.replace("meta:br/","")
+                cited = rf_handler.get_omid(cited)
+                if cited != None: cited = cited.replace("meta:br/","")
+                oci_val = "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,)
 
-                citing_omid = rf_handler.get_omid(citing)
-                cited_omid = rf_handler.get_omid(cited)
-
-                unified_citations.append(
+            if citing != None and cited != None:
+                citations.append(
                     Citation(
-                        "oci:%s%s-%s%s" % (prefix,citing_omid,prefix,cited_omid,),
-                        unified_idbase_url + quote(citing_omid),
+                        oci_val,
+                        idbase_url + quote(citing),
                         citing_date,
-                        unified_idbase_url + quote(cited_omid),
+                        idbase_url + quote(cited),
                         cited_date,
                         None,
                         None,
                         1,
-                        unified_agent,
-                        unified_source,
+                        agent,
+                        source,
                         datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                        unified_service_name,
-                        unified_identifier,
-                        unified_idbase_url + "([[XXX__decode]])",
+                        service_name,
+                        identifier,
+                        idbase_url + "([[XXX__decode]])",
                         "reference",
                         journal_sc,
                         author_sc,
                         None,
                         "Creation of the citation",
                         None,
+                    )
+                )
+                unified_citations.append(
+                    Citation(
+                        oci_val,
+                        idbase_url + quote(citing),
+                        None,
+                        idbase_url + quote(cited),
+                        None,
+                        None,
+                        None,
+                        1,
+                        agent,
+                        source,
+                        datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                        service_name,
+                        identifier,
+                        idbase_url + "([[XXX__decode]])",
+                        "reference",
                     )
                 )
 
@@ -228,11 +229,12 @@ def worker_body(input_files, output, service, tid, multiprocess):
     logger = get_logger()
     parser = CitationParser.get_parser(service)
     baseurl = _config.get(service, "baseurl")
+    unified_baseurl = _config.get("INDEX", "baseurl")
     storer = CitationStorer(
         output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
     )
     index_storer = CitationStorer(
-        output + "/index", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
+        output + "/index-rdf", unified_baseurl + "/" if not unified_baseurl.endswith("/") else unified_baseurl, suffix=str(tid)
     )
 
     logger.info("Working on " + str(len(input_files)) + " files")
@@ -245,9 +247,9 @@ def worker_body(input_files, output, service, tid, multiprocess):
             storer.store_citation(citation)
 
         if len(unified_citations) > 0:
-            logger.info("Saving unified citations...")
+            logger.info("Preparing RDF data to load into INDEX ...")
             for citation in tqdm(unified_citations, disable=multiprocess):
-                index_storer.store_citation(citation)
+                index_storer.store_citation(citation,store_as=["rdf_data"])
 
         logger.info(f"{len(citations)} citations saved")
 
