@@ -21,7 +21,7 @@ from oc.index.glob.datasource import DataSource
 
 
 class RedisDataSource(DataSource):
-    def __init__(self, service, unified_index):
+    def __init__(self, service, unified_index = False):
         super().__init__(service)
         self._rid = None
 

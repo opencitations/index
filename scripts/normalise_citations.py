@@ -163,7 +163,8 @@ def worker_body(input_files, output, service, tid, multiprocess):
     service_ds = _config.get(service, "datasource")
     ds = None
     if service_ds == "redis":
-        ds = RedisDataSource(service)
+        #set redis to use the unified index in redis, i.e., META 
+        ds = RedisDataSource(service, True)
     elif service_ds == "csv":
         ds = CSVDataSource(service)
     else:
