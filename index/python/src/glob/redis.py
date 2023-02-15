@@ -21,28 +21,51 @@ from oc.index.glob.datasource import DataSource
 
 
 class RedisDataSource(DataSource):
-    def __init__(self, service):
+    def __init__(self, service, unified_index):
         super().__init__(service)
-        self._r = redis.Redis(
+        self._rid = None
+
+        _db = get_config().get(service, "db")
+        # in case we wanto to use the unified INDEX
+        # > the DB storing the data is the one of INDEX
+        # > the original id should be mapped to the corrisponding OMID using the "db_index" DB
+        if unified_index:
+            _db = get_config().get("INDEX", "db")
+            self._rid = redis.Redis(
+                host=get_config().get("redis", "host"),
+                port=get_config().get("redis", "port"),
+                db=get_config().get("cnc", "db_index")
+            )
+
+        self._rdata = redis.Redis(
             host=get_config().get("redis", "host"),
             port=get_config().get("redis", "port"),
-            db=get_config().get(service, "db"),
+            db=_db
         )
 
     def get(self, resource_id):
-        redis_data = self._r.get(resource_id)
-        if redis_data != None:
-            redis_data = json.loads(redis_data)
-        return redis_data
+        org_resource_id = resource_id
+        if self._rid != None:
+            resource_id = self._rid.get(resource_id)
+        if resource_id is not None:
+            redis_data = self._rdata.get(resource_id)
+            if redis_data is not None:
+                # include the resource id in the data
+                redis_data["omid"] = resource_id if resources_id != org_resource_id else None
+                return json.loads(redis_data)
+        return None
 
     def mget(self, resources_id):
+        org_resources_id = resources_id
+        if self._rid != None:
+            resources_id = [a for a in self._rid.mget(resources_id) if a != None]
         return {
-            resources_id[i]: json.loads(v) if not v is None else None
-            for i, v in enumerate(self._r.mget(resources_id))
+            org_resources_id[i]: json.loads(v) | {"omid":resources_id[i] if resources_id[i] != org_resources_id[i] else None} if v is not None else None
+            for i, v in enumerate(self._rdata.mget(resources_id))
         }
 
     def set(self, resource_id, value):
-        return self._r.set(resource_id, json.dumps(value))
+        return self._rdata.set(resource_id, json.dumps(value))
 
     def mset(self, resources):
-        return self._r.mset({k: json.dumps(v) for k, v in resources.items()})
+        return self._rdata.mset({k: json.dumps(v) for k, v in resources.items()})
