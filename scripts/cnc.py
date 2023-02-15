@@ -38,7 +38,7 @@ from oc.index.glob.csv import CSVDataSource
 _config = get_config()
 
 
-def cnc(service, file, parser, ds, multiprocess, unified_index = False):
+def cnc(service, file, parser, ds, multiprocess):
     global _config
 
     oci_manager = OCIManager(
@@ -110,16 +110,8 @@ def cnc(service, file, parser, ds, multiprocess, unified_index = False):
     source = _config.get(service, "source")
     service_name = _config.get(service, "service")
     citations = []
-
-    # when using the unified INDEX change variables
-    if unified_index:
-        idbase_url = _config.get("INDEX", "idbaseurl")
-        prefix = _config.get("INDEX", "prefix")
-        agent = _config.get("INDEX", "agent")
-        service_name = _config.get("INDEX", "service")
-        identifier = _config.get("INDEX", "identifier")
-
     unified_citations = []
+
     for citation_data in tqdm(citation_data_list, disable=multiprocess):
         (
             citing,
@@ -135,33 +127,25 @@ def cnc(service, file, parser, ds, multiprocess, unified_index = False):
         citing_orcid = []
         cited_orcid = []
         if crossref_rc.is_valid(citing) and crossref_rc.is_valid(cited):
-            # Always take the values from rf_handler if unified_index=True
-            if citing_date is None or unified_index:
+
+            if citing_date is None:
                 citing_date = rf_handler.get_date(citing)
 
-            if cited_date is None or unified_index:
+            if cited_date is None:
                 cited_date = rf_handler.get_date(cited)
 
-            if journal_sc is None or type(journal_sc) is not bool or unified_index:
+            if journal_sc is None or type(journal_sc) is not bool:
                 journal_sc, citing_issn, cited_issn = rf_handler.share_issn(
                     citing, cited
                 )
 
-            if author_sc is None or type(author_sc) is not bool or unified_index:
+            if author_sc is None or type(author_sc) is not bool:
                 author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(
                     citing, cited
                 )
 
-            oci_val = oci_manager.get_oci(citing, cited, prefix)
-
-            # change citing and cited entites when using a unified INDEX
-            if unified_index:
-                citing = rf_handler.get_omid(citing)
-                print(citing)
-                if citing != None: citing = citing.replace("meta:br/","")
-                cited = rf_handler.get_omid(cited)
-                if cited != None: cited = cited.replace("meta:br/","")
-                oci_val = "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,)
+            # oci_val = oci_manager.get_oci(citing, cited, prefix)
+            oci_val = "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,)
 
             if citing != None and cited != None:
                 citations.append(
@@ -218,10 +202,9 @@ def worker_body(input_files, output, service, tid, multiprocess):
     global _config
 
     service_ds = _config.get(service, "datasource")
-    unified_index = _config.getboolean("cnc", "unified_index")
     ds = None
     if service_ds == "redis":
-        ds = RedisDataSource(service, unified_index)
+        ds = RedisDataSource(service)
     elif service_ds == "csv":
         ds = CSVDataSource(service)
     else:
@@ -241,14 +224,14 @@ def worker_body(input_files, output, service, tid, multiprocess):
     logger.info("Working on " + str(len(input_files)) + " files")
 
     for file in input_files:
-        citations,unified_citations = cnc(service, file, parser, ds, multiprocess, unified_index)
+        citations,unified_citations = cnc(service, file, parser, ds, multiprocess)
 
         logger.info("Saving citations...")
         for citation in tqdm(citations, disable=multiprocess):
             storer.store_citation(citation)
 
         if len(unified_citations) > 0:
-            logger.info("Preparing RDF data to load into INDEX ...")
+            logger.info("Saving RDF data to be loaded into INDEX triplestore...")
             for citation in tqdm(unified_citations, disable=multiprocess):
                 index_storer.store_citation(citation,store_as=["rdf_data"])
 
