@@ -36,6 +36,22 @@ class OMIDManager(IdentifierManager):
         self._p = "omid:"
         self._data = data
 
+    def is_valid(self, omid):
+        """Check if a omid is valid.
+
+        Args:
+            id_string (str): the omid to check
+
+        Returns:
+            bool: true if the doi is valid, false otherwise.
+        """
+        omid = self.normalise(omid, include_prefix=False)
+
+        if omid is None or match("^omid:[1-9]\d*$", omid) is None:
+            return False
+        else:
+            return self._data[omid].get("valid")
+
     def normalise(self, id_string, include_prefix=False):
         """It returns the omid normalized.
 
@@ -47,4 +63,8 @@ class OMIDManager(IdentifierManager):
             str: the normalized omid
         """
         id_string = str(id_string)
-        return id_string
+        try:
+            omid_string = sub("^0+", "", sub("\0+", "", (sub("[^\d+]", "", id_string))))
+            return "%s%s" % (self._p if include_prefix else "", omid_string)
+        except:
+            return None
