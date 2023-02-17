@@ -131,9 +131,9 @@ def normalise_cits(service, file, parser, ds, multiprocess):
                     (citing,cited),
                     Citation(
                         "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,),
+                        idbase_url + quote(citing),
                         None,
-                        None,
-                        None,
+                        idbase_url + quote(cited),
                         None,
                         None,
                         None,
