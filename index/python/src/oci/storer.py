@@ -57,7 +57,7 @@ class CitationStorer(object):
             suffix (str, optional): suffix, defaults to "".
             store_as (list, optional): which formats to store the citations with
         """
-        self.store_as = store_as=["csv_data","csv_prov","rdf_data","rdf_prov","scholix_data"]
+        self.store_as = store_as
         self.cur_time = datetime.now().strftime("%Y-%m-%dT%H%M%S")
         self.citation_dir_data_path = dir_data_path + sep + "data" + sep
         self.citation_dir_prov_path = dir_data_path + sep + "prov" + sep
