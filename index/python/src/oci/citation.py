@@ -343,9 +343,6 @@ class Citation(object):
             prov_entity,
         ) = self.__get_citation_rdf_entity(baseurl)
 
-        citing_br = URIRef(self.citing_url)
-        cited_br = URIRef(self.cited_url)
-
         if include_label:
             citation_graph.add(
                 (
@@ -361,9 +358,11 @@ class Citation(object):
             citation_graph.add((citation, RDF.type, self.journal_self_citation))
 
         if self.has_citing_entity is not None:
+            citing_br = URIRef(self.citing_url)
             citation_graph.add((citation, self.has_citing_entity, citing_br))
 
         if self.has_cited_entity is not None:
+            cited_br = URIRef(self.cited_url)
             citation_graph.add((citation, self.has_cited_entity, cited_br))
 
         if self.creation_date is not None:
