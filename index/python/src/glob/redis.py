@@ -51,7 +51,7 @@ class RedisDataSource(DataSource):
             redis_data = self._rdata.get(resource_id)
             if redis_data is not None:
                 # include the resource id in the data
-                redis_data["omid"] = resource_id if resources_id != org_resource_id else None
+                redis_data["omid"] = resource_id.decode("utf-8") if resources_id != org_resource_id else None
                 return json.loads(redis_data)
         return None
 
@@ -60,7 +60,7 @@ class RedisDataSource(DataSource):
         if self._rid != None:
             resources_id = [a for a in self._rid.mget(resources_id) if a != None]
         return {
-            org_resources_id[i]: json.loads(v) | {"omid":resources_id[i] if resources_id[i] != org_resources_id[i] else None} if v is not None else None
+            org_resources_id[i]: json.loads(v) | {"omid":resources_id[i].decode("utf-8") if resources_id[i] != org_resources_id[i] else None} if v is not None else None
             for i, v in enumerate(self._rdata.mget(resources_id))
         }
 
