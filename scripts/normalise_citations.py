@@ -124,8 +124,8 @@ def normalise_cits(service, file, parser, ds, multiprocess):
 
         if crossref_rc.is_valid(citing) and crossref_rc.is_valid(cited):
 
-            citing = rf_handler.get_omid(citing).replace("omid","")
-            cited = rf_handler.get_omid(cited).replace("omid","")
+            citing = rf_handler.get_omid(citing).replace("omid:","")
+            cited = rf_handler.get_omid(cited).replace("omid:","")
             if citing != None and cited != None:
                 citations.append([
                     (citing,cited),
