@@ -44,6 +44,7 @@ class CitationStorer(object):
         n_citations_rdf_file=1000000,
         n_citations_slx_file=5000000,
         suffix="",
+        store_as=["csv_data","csv_prov","rdf_data","rdf_prov","scholix_data"],
     ):
         """CitationStorer constructor.
 
@@ -54,7 +55,9 @@ class CitationStorer(object):
             n_citations_rdf_file (int, optional): number of ciitations in rdf file. Defaults to 1000000.
             n_citations_slx_file (int, optional): number of ciitations in slx file. Defaults to 5000000.
             suffix (str, optional): suffix, defaults to "".
+            store_as (list, optional): which formats to store the citations with
         """
+        self.store_as = store_as=["csv_data","csv_prov","rdf_data","rdf_prov","scholix_data"]
         self.cur_time = datetime.now().strftime("%Y-%m-%dT%H%M%S")
         self.citation_dir_data_path = dir_data_path + sep + "data" + sep
         self.citation_dir_prov_path = dir_data_path + sep + "prov" + sep
@@ -80,15 +83,15 @@ class CitationStorer(object):
             self.suffix = ""
 
         try:
-            if not exists(self.data_csv_dir):
+            if not exists(self.data_csv_dir) and "csv_data" in self.store_as:
                 makedirs(self.data_csv_dir)
-            if not exists(self.data_rdf_dir):
+            if not exists(self.data_rdf_dir) and "rdf_data" in self.store_as:
                 makedirs(self.data_rdf_dir)
-            if not exists(self.data_slx_dir):
+            if not exists(self.data_slx_dir) and "scholix_data" in self.store_as:
                 makedirs(self.data_slx_dir)
-            if not exists(self.prov_csv_dir):
+            if not exists(self.prov_csv_dir) and "csv_prov" in self.store_as:
                 makedirs(self.prov_csv_dir)
-            if not exists(self.prov_rdf_dir):
+            if not exists(self.prov_rdf_dir) and "rdf_prov" in self.store_as:
                 makedirs(self.prov_rdf_dir)
         except FileExistsError:
             pass
@@ -518,7 +521,7 @@ class CitationStorer(object):
 
                 yield c
 
-    def store_citation(self, citation, store_as=["csv_data","csv_prov","rdf_data","rdf_prov","scholix_data"]):
+    def store_citation(self, citation):
         """It stores the citation in csv, rdf and scholix.
 
         Args:
@@ -530,14 +533,14 @@ class CitationStorer(object):
         data_csv_f_path = self.data_csv_dir + csv_filename
         prov_csv_f_path = self.prov_csv_dir + csv_filename
 
-        if "csv_data" in store_as:
+        if "csv_data" in self.store_as:
             CitationStorer.__store_csv_on_file(
                 data_csv_f_path,
                 Citation.header_citation_data,
                 loads(citation.get_citation_json()),
             )
 
-        if "csv_prov" in store_as:
+        if "csv_prov" in self.store_as:
             CitationStorer.__store_csv_on_file(
                 prov_csv_f_path,
                 Citation.header_provenance_data,
@@ -549,13 +552,13 @@ class CitationStorer(object):
         data_rdf_f_path = self.data_rdf_dir + rdf_filename
         prov_rdf_f_path = self.prov_rdf_dir + rdf_filename
 
-        if "rdf_data" in store_as:
+        if "rdf_data" in self.store_as:
             CitationStorer.__store_rdf_on_file(
                 data_rdf_f_path,
                 citation.get_citation_rdf(self.rdf_resource_base, False, False, False),
             )
 
-        if "rdf_prov" in store_as:
+        if "rdf_prov" in self.store_as:
             CitationStorer.__store_rdf_on_file(
                 prov_rdf_f_path,
                 citation.get_citation_prov_rdf(self.rdf_resource_base),
@@ -566,7 +569,7 @@ class CitationStorer(object):
         slx_filename = self.get_slx_filename(True)
         data_slx_f_path = self.data_slx_dir + slx_filename
 
-        if "scholix_data" in store_as:
+        if "scholix_data" in self.store_as:
             CitationStorer.__store_slx_on_file(
                 data_slx_f_path, citation.get_citation_scholix()
             )

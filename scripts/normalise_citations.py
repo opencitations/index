@@ -124,8 +124,8 @@ def normalise_cits(service, file, parser, ds, multiprocess):
 
         if crossref_rc.is_valid(citing) and crossref_rc.is_valid(cited):
 
-            citing = rf_handler.get_omid(citing)
-            cited = rf_handler.get_omid(cited)
+            citing = rf_handler.get_omid(citing).replace("omid","")
+            cited = rf_handler.get_omid(cited).replace("omid","")
             if citing != None and cited != None:
                 citations.append([
                     (citing,cited),
@@ -177,11 +177,8 @@ def worker_body(input_files, output, service, tid, multiprocess):
     parser = CitationParser.get_parser(service)
     baseurl = _config.get(service, "baseurl")
     unified_baseurl = _config.get("INDEX", "baseurl")
-    storer = CitationStorer(
-        output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
-    )
     index_storer = CitationStorer(
-        output + "/service-rdf", unified_baseurl + "/" if not unified_baseurl.endswith("/") else unified_baseurl, suffix=str(tid)
+        output + "/service-rdf", unified_baseurl + "/" if not unified_baseurl.endswith("/") else unified_baseurl, suffix=str(tid), store_as=["rdf_data"]
     )
 
     logger.info("Working on " + str(len(input_files)) + " files")
@@ -201,7 +198,7 @@ def worker_body(input_files, output, service, tid, multiprocess):
 
             logger.info("Saving RDF data to be loaded into INDEX triplestore...")
             for citation in tqdm(citations, disable=multiprocess):
-                index_storer.store_citation(citation[1],store_as=["rdf_data"])
+                index_storer.store_citation(citation[1])
 
         logger.info(f"{len(citations)} citations saved")
 
