@@ -360,8 +360,11 @@ class Citation(object):
         if self.journal_sc == "yes":
             citation_graph.add((citation, RDF.type, self.journal_self_citation))
 
-        citation_graph.add((citation, self.has_citing_entity, citing_br))
-        citation_graph.add((citation, self.has_cited_entity, cited_br))
+        if self.has_citing_entity is not None:
+            citation_graph.add((citation, self.has_citing_entity, citing_br))
+
+        if self.has_cited_entity is not None:
+            citation_graph.add((citation, self.has_cited_entity, cited_br))
 
         if self.creation_date is not None:
             if Citation.contains_days(self.creation_date):
