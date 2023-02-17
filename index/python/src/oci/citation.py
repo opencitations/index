@@ -357,6 +357,7 @@ class Citation(object):
         if self.journal_sc == "yes":
             citation_graph.add((citation, RDF.type, self.journal_self_citation))
 
+        print(self.has_citing_entity,self.has_cited_entity)
         if self.has_citing_entity is not None:
             citing_br = URIRef(self.citing_url)
             citation_graph.add((citation, self.has_citing_entity, citing_br))
