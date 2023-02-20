@@ -188,7 +188,7 @@ def worker_body(input_files, output, service, tid, multiprocess):
 
         if len(citations) > 0:
             logger.info("Saving normalised citations into CSV...")
-            out_path = output + "/omid2omid-csv"
+            out_path = output + "/omid2omid-csv/"
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
             output_norm_file = out_path+".".join(file.split('/')[-1].split(".")[:-1])+".csv"
