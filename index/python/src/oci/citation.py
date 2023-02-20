@@ -779,6 +779,7 @@ class OCIManager(object):
         doi_1=None,
         doi_2=None,
         prefix="",
+        is_index=False,
     ):
         """OCI manager constructor.
 
@@ -789,7 +790,9 @@ class OCIManager(object):
             doi_1 (str, optional): _description_. Defaults to None.
             doi_2 (str, optional): _description_. Defaults to None.
             prefix (str, optional): prefix to use. Defaults to "".
+            is_index (bool, optional): True if the citing and cited entities are OMID identifiers
         """
+        self.is_index = is_index
         self.is_valid = None
         self.messages = []
         self.f = {
@@ -909,11 +912,16 @@ class OCIManager(object):
         Returns:
             str: the oci
         """
+        _citing = self.__decode_inverse(doi_1),
+        _cited = self.__decode_inverse(doi_2),
+        if self.is_index:
+            _citing = doi_1.replace("omid:","")
+            _cited = doi_2.replace("omid:","")
         self.oci = "oci:%s%s-%s%s" % (
             prefix,
-            self.__decode_inverse(doi_1),
+            _citing,
             prefix,
-            self.__decode_inverse(doi_2),
+            _cited,
         )
         return self.oci
 

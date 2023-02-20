@@ -42,7 +42,8 @@ def cnc(service, file, parser, ds, multiprocess):
     global _config
 
     oci_manager = OCIManager(
-        lookup_file=os.path.expanduser(_config.get("cnc", "lookup"))
+        lookup_file=os.path.expanduser(_config.get("cnc", "lookup")),
+        is_index = service == "INDEX",
     )
     logger = get_logger()
 
@@ -144,8 +145,8 @@ def cnc(service, file, parser, ds, multiprocess):
                     citing, cited
                 )
 
-            # oci_val = oci_manager.get_oci(citing, cited, prefix)
-            oci_val = "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,)
+            oci_val = oci_manager.get_oci(citing, cited, prefix)
+            #oci_val = "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,)
 
             if citing != None and cited != None:
                 citations.append(
