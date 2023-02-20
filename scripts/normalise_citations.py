@@ -194,6 +194,7 @@ def worker_body(input_files, output, service, tid, multiprocess):
             output_norm_file = out_path+".".join(file.split('/')[-1].split(".")[:-1])+".csv"
             with open(output_norm_file,'w+') as f:
                 csv_out = csv.writer(f)
+                csv_out.writerow(["citing","cited"])
                 for citation in tqdm(citations, disable=multiprocess):
                     csv_out.writerow(citation[0])
 
