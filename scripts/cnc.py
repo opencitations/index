@@ -147,11 +147,10 @@ def cnc(service, file, parser, ds, multiprocess):
 
             oci_val = oci_manager.get_oci(citing, cited, prefix)
             #oci_val = "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,)
-
+            print(oci_val, citing, cited)
             if citing != None and cited != None:
                 citing = citing if service != "INDEX" else citing.replace("omid:","")
                 cited = cited if service != "INDEX" else cited.replace("omid:","")
-                print(oci_val, citing, cited)
                 citations.append(
                     Citation(
                         oci_val,
