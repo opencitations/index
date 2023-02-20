@@ -218,7 +218,7 @@ def worker_body(input_files, output, service, tid, multiprocess):
         output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
     )
     index_storer = CitationStorer(
-        output + "/index-rdf", unified_baseurl + "/" if not unified_baseurl.endswith("/") else unified_baseurl, suffix=str(tid)
+        output + "/index-rdf", unified_baseurl + "/" if not unified_baseurl.endswith("/") else unified_baseurl, suffix=str(tid), store_as=["rdf_data"]
     )
 
     logger.info("Working on " + str(len(input_files)) + " files")
@@ -233,7 +233,7 @@ def worker_body(input_files, output, service, tid, multiprocess):
         if len(unified_citations) > 0:
             logger.info("Saving RDF data to be loaded into INDEX triplestore...")
             for citation in tqdm(unified_citations, disable=multiprocess):
-                index_storer.store_citation(citation,store_as=["rdf_data"])
+                index_storer.store_citation(citation)
 
         logger.info(f"{len(citations)} citations saved")
 

@@ -45,6 +45,7 @@ class INDEXParser(CitationParser):
         cited = self._omid_manager.normalise(str(row.get("cited")))
 
         if citing is not None and cited is not None:
+            print(citing,cited)
             return citing, cited, None, None, None, None
 
         return self.get_next_citation_data()
