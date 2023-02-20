@@ -43,7 +43,7 @@ class INDEXParser(CitationParser):
         self._current_item += 1
         citing = self._omid_manager.normalise(str(row.get("citing")), include_prefix=True)
         cited = self._omid_manager.normalise(str(row.get("cited")), include_prefix=True)
-
+        print(citing,cited)
         if citing is not None and cited is not None:
             return citing, cited, None, None, None, None
 
