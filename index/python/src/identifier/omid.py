@@ -64,7 +64,7 @@ class OMIDManager(IdentifierManager):
         """
         id_string = str(id_string)
         try:
-            omid_string = sub("^0+", "", sub("\0+", "", (sub("[^\d+]", "", id_string))))
+            omid_string = id_string
             return "%s%s" % (self._p if include_prefix else "", omid_string)
         except:
             return None
