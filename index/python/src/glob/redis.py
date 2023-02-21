@@ -64,7 +64,7 @@ class RedisDataSource(DataSource):
             for a,i in enumerate(self._rid.mget(org_resources_id)):
                 if a != None:
                     resources_id.append(a)
-                    del org_resource_id[i]
+                    del org_resources_id[i]
 
         print(org_resources_id,resources_id)
         return {
