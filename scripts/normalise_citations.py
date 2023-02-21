@@ -91,6 +91,7 @@ def normalise_cits(service, file, parser, ds, multiprocess):
     pbar.close()
     logger.info("Information retrivied")
     use_api = False
+    print(resources)
     crossref_rc = CrossrefResourceFinder(resources, use_api)
     rf_handler = ResourceFinderHandler(
         [
