@@ -60,13 +60,13 @@ class RedisDataSource(DataSource):
 
         if self._rid != None:
             # build IDs if we are using unified index
-            __org_resources_id = []
+            tmp_org_resources_id = []
             resources_id = []
             for i, v in enumerate(self._rid.mget(org_resources_id)):
                 if v != None:
                     resources_id.append(v)
-                    __org_resources_id.append(v)
-            org_resources_id = __org_resources_id
+                    tmp_org_resources_id.append(org_resources_id[i])
+            org_resources_id = tmp_org_resources_id
 
         print(org_resources_id,resources_id)
         return {
