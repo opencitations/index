@@ -57,14 +57,8 @@ class RedisDataSource(DataSource):
 
     def mget(self, resources_id):
         org_resources_id = resources_id
-
         if self._rid != None:
-            # get the unified index
-            resources_id = []
-            for i, v in enumerate(self._rid.mget(org_resources_id)):
-                if v != None:
-                    resources_id.append(v)
-                    del org_resources_id[i]
+            resources_id = [a for a in self._rid.mget(resources_id)]
 
         print(org_resources_id,resources_id)
         return {
