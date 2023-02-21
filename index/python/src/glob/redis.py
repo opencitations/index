@@ -68,7 +68,6 @@ class RedisDataSource(DataSource):
                     tmp_org_resources_id.append(org_resources_id[i])
             org_resources_id = tmp_org_resources_id
 
-        print(org_resources_id,resources_id)
         return {
             org_resources_id[i]: json.loads(v) | {"omid":resources_id[i].decode("utf-8") if resources_id[i] != org_resources_id[i] else None} if v is not None else None
             for i, v in enumerate(self._rdata.mget(resources_id))
