@@ -57,8 +57,15 @@ class RedisDataSource(DataSource):
 
     def mget(self, resources_id):
         org_resources_id = resources_id
+
         if self._rid != None:
-            resources_id = [a for a in self._rid.mget(resources_id) if a != None]
+            # get the unified index
+            resources_id = []
+            for a,i in enumerate(self._rid.mget(resources_id)):
+                if a != None:
+                    resources_id.append(a)
+                    del org_resource_id[i]
+
         print(org_resources_id,resources_id)
         return {
             org_resources_id[i]: json.loads(v) | {"omid":resources_id[i].decode("utf-8") if resources_id[i] != org_resources_id[i] else None} if v is not None else None
