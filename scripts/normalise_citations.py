@@ -73,7 +73,6 @@ def normalise_cits(service, file, parser, ds, multiprocess):
         pbar.update(parser.current_item - pbar.n)
         citation_data = parser.get_next_citation_data()
     pbar.close()
-    
 
     ids = list(set(ids))
 
