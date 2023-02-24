@@ -101,7 +101,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                             count_ra += 1
 
                             #update redis DBs
-                            if rconn_db_br.set_data(db_metadata_buffer) > 0:
+                            if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
                                 db_metadata_buffer = []
 
                             if rconn_db_br.set_data(db_br_buffer) > 0:
