@@ -30,12 +30,25 @@ from oc.index.utils.config import get_config
 _config = get_config()
 csv.field_size_limit(sys.maxsize)
 
+class RedisDB(object):
+
+    def __init__(self, redishost, redisport, redisbatchsize, _db):
+        self.redisbatchsize = int(redisbatchsize)
+        self.rconn = Redis(host=redishost, port=redisport, db=_db)
+
+    def set_data(self, data, force=False):
+        if len(db_metadata_buffer) >= self.redisbatchsize or force:
+            for item in data:
+                self.rconn.set(item[0], item[1])
+            return len(data)
+        return 0
+
 
 def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_br="10", db_ra="11", db_metadata="12"):
 
-    rconn_db_br = Redis(host=redishost, port=redisport, db=db_br)
-    rconn_db_ra = Redis(host=redishost, port=redisport, db=db_ra)
-    rconn_db_metadata = Redis(host=redishost, port=redisport,db=db_metadata)
+    rconn_db_br =  RedisDB(redishost, redisport, redisbatchsize, db_br)
+    rconn_db_ra = RedisDB(redishost, redisport, redisbatchsize, db_ra)
+    rconn_db_metadata = RedisDB(redishost, redisport, redisbatchsize, db_metadata)
 
     # set buffers
     db_br_buffer = []
@@ -88,20 +101,19 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                             count_ra += 1
 
                             #update redis DBs
-                            if len(db_metadata_buffer) >= int(redisbatchsize):
-                                for item in db_metadata_buffer:
-                                    rconn_db_metadata.set(item[0], item[1])
+                            if rconn_db_br.set_data(db_metadata_buffer) > 0:
                                 db_metadata_buffer = []
 
-                            if len(db_br_buffer) >= int(redisbatchsize):
-                                for item in db_br_buffer:
-                                    rconn_db_br.set(item[0], item[1])
+                            if rconn_db_br.set_data(db_br_buffer) > 0:
                                 db_br_buffer = []
 
-                            if len(db_ra_buffer) >= int(redisbatchsize):
-                                for item in db_ra_buffer:
-                                    rconn_db_ra.set(item[0], item[1])
+                            if rconn_db_ra.set_data(db_ra_buffer) > 0:
                                 db_ra_buffer = []
+
+    # Set last data in Redis
+    rconn_db_br.set_data(db_metadata_buffer, True)
+    rconn_db_br.set_data(db_br_buffer, True)
+    rconn_db_ra.set_data(db_ra_buffer, True)
 
     return (count_br, count_ra)
 
