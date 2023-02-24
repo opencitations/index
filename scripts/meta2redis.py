@@ -37,7 +37,7 @@ class RedisDB(object):
         self.rconn = Redis(host=redishost, port=redisport, db=_db)
 
     def set_data(self, data, force=False):
-        if len(db_metadata_buffer) >= self.redisbatchsize or force:
+        if len(data) >= self.redisbatchsize or force:
             for item in data:
                 self.rconn.set(item[0], item[1])
             return len(data)
