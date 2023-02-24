@@ -72,7 +72,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                         # elaborate each citation in the DUMP
                         for o_row in l_cits:
                             #check BRs
-                            for col in ["id","publisher"]:
+                            for col in ["id","venue"]:
                                 re_id = re.search("(meta\:br\S[^\]\s]+)", o_row[col])
                                 if re_id:
                                     meta_id = re_id.group(1).replace("meta:br/","omid:")
@@ -90,7 +90,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                         count_br += 1
 
                             #check RAs
-                            for col in ["author","editor"]:
+                            for col in ["author","publisher","editor"]:
                                 for item in o_row[col].split(";"):
                                     re_id = re.search("(meta\:ra\S[^\]\s]+)", item)
                                     if re_id:
