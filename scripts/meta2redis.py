@@ -89,7 +89,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                     other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\]\s]+)", o_row[col])
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid[0],omid_br) )
-                                        db_meta_buffer.append( ("br/"+omid_br,oid[0]) )
+                                        db_meta_buffer.append( (omid_br.replace("omid:","br/"),oid[0]) )
                                         count_br += 1
 
                             #check RAs
@@ -101,7 +101,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                         other_ids = re.findall("(("+"|".join(ra_ids)+")\:\S[^\]\s]+)", item)
                                         for oid in other_ids:
                                             db_ra_buffer.append( (oid[0],omid_ra) )
-                                            db_meta_buffer.append( ("ra/"+omid_ra,oid[0]) )
+                                            db_meta_buffer.append( (omid_ra.replace("omid:","ra/"),oid[0]) )
                                             count_ra += 1
 
                             #update redis DBs
