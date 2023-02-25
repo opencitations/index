@@ -44,13 +44,15 @@ class RedisDB(object):
         return 0
 
 
-def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_br="10", db_ra="11", db_metadata="12"):
+def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_meta="9", db_br="10", db_ra="11", db_metadata="12"):
 
     rconn_db_br =  RedisDB(redishost, redisport, redisbatchsize, db_br)
     rconn_db_ra = RedisDB(redishost, redisport, redisbatchsize, db_ra)
     rconn_db_metadata = RedisDB(redishost, redisport, redisbatchsize, db_metadata)
+    rconn_db_meta =  RedisDB(redishost, redisport, redisbatchsize, db_meta)
 
     # set buffers
+    db_meta_buffer = []
     db_br_buffer = []
     db_ra_buffer = []
     db_metadata_buffer = []
@@ -75,18 +77,19 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                             for col in ["id","venue"]:
                                 re_id = re.search("(meta\:br\S[^\]\s]+)", o_row[col])
                                 if re_id:
-                                    meta_id = re_id.group(1).replace("meta:br/","omid:")
+                                    omid_br = re_id.group(1).replace("meta:br/","omid:")
                                     entity_value = {
                                         "date": str(o_row["pub_date"]),
                                         "valid": True,
                                         "orcid": re.findall("orcid\:(\S[^\]\s]+)", o_row["author"]),
                                         "issn": re.findall("issn\:(\S[^\]\s]+)", o_row["venue"])
                                     }
-                                    db_metadata_buffer.append( (meta_id,json.dumps(entity_value)) )
+                                    db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
 
                                     other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\]\s]+)", o_row[col])
                                     for oid in other_ids:
-                                        db_br_buffer.append( (oid[0],meta_id) )
+                                        db_br_buffer.append( (oid[0],omid_br) )
+                                        db_meta_buffer.append( ("br/"+omid_br,oid[0]) )
                                         count_br += 1
 
                             #check RAs
@@ -94,13 +97,17 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                 for item in o_row[col].split(";"):
                                     re_id = re.search("(meta\:ra\S[^\]\s]+)", item)
                                     if re_id:
-                                        meta_id = re_id.group(1).replace("meta:ra/","omid:")
+                                        omid_ra = re_id.group(1).replace("meta:ra/","omid:")
                                         other_ids = re.findall("(("+"|".join(ra_ids)+")\:\S[^\]\s]+)", item)
                                         for oid in other_ids:
-                                            db_ra_buffer.append( (oid[0],meta_id) )
+                                            db_ra_buffer.append( (oid[0],omid_ra) )
+                                            db_meta_buffer.append( ("ra/"+omid_ra,oid[0]) )
                                             count_ra += 1
 
                             #update redis DBs
+                            if rconn_db_meta.set_data(db_meta_buffer) > 0:
+                                db_meta_buffer = []
+
                             if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
                                 db_metadata_buffer = []
 
@@ -111,6 +118,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                 db_ra_buffer = []
 
     # Set last data in Redis
+    rconn_db_meta.set_data(db_meta_buffer, True)
     rconn_db_br.set_data(db_metadata_buffer, True)
     rconn_db_br.set_data(db_br_buffer, True)
     rconn_db_ra.set_data(db_ra_buffer, True)
@@ -137,6 +145,7 @@ def main():
         redisbatchsize = _config.get("redis", "batch_size"),
         br_ids = _config.get("cnc", "br_ids").split(","),
         ra_ids = _config.get("cnc", "ra_ids").split(","),
+        db_meta = _config.get("cnc", "db_meta"),
         db_br = _config.get("cnc", "db_br"),
         db_ra = _config.get("cnc", "db_ra"),
         db_metadata = _config.get("INDEX", "db")
