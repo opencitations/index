@@ -77,19 +77,22 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                             for col in ["id","venue"]:
                                 re_id = re.search("(meta\:br\S[^\]\s]+)", o_row[col])
                                 if re_id:
-                                    omid_br = re_id.group(1).replace("meta:br/","omid:")
-                                    entity_value = {
-                                        "date": str(o_row["pub_date"]),
-                                        "valid": True,
-                                        "orcid": re.findall("orcid\:(\S[^\]\s]+)", o_row["author"]),
-                                        "issn": re.findall("issn\:(\S[^\]\s]+)", o_row["venue"])
-                                    }
-                                    db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
+                                    omid_br = re_id.group(1).replace("meta:br/","br/")
+
+                                    # add metadata only if the BR entity is in the ID column
+                                    if col = "id":
+                                        entity_value = {
+                                            "date": str(o_row["pub_date"]),
+                                            "valid": True,
+                                            "orcid": re.findall("orcid\:(\S[^\]\s]+)", o_row["author"]),
+                                            "issn": re.findall("issn\:(\S[^\]\s]+)", o_row["venue"])
+                                        }
+                                        db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
 
                                     other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\]\s]+)", o_row[col])
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid[0],omid_br) )
-                                        db_meta_buffer.append( (omid_br.replace("omid:","br/"),oid[0]) )
+                                        db_meta_buffer.append( (omid_br,oid[0]) )
                                         count_br += 1
 
                             #check RAs
@@ -97,11 +100,11 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                 for item in o_row[col].split(";"):
                                     re_id = re.search("(meta\:ra\S[^\]\s]+)", item)
                                     if re_id:
-                                        omid_ra = re_id.group(1).replace("meta:ra/","omid:")
+                                        omid_ra = re_id.group(1).replace("meta:ra/","ra/")
                                         other_ids = re.findall("(("+"|".join(ra_ids)+")\:\S[^\]\s]+)", item)
                                         for oid in other_ids:
                                             db_ra_buffer.append( (oid[0],omid_ra) )
-                                            db_meta_buffer.append( (omid_ra.replace("omid:","ra/"),oid[0]) )
+                                            db_meta_buffer.append( (omid_ra,oid[0]) )
                                             count_ra += 1
 
                             #update redis DBs
