@@ -42,8 +42,7 @@ def cnc(service, file, parser, ds, multiprocess):
     global _config
 
     oci_manager = OCIManager(
-        lookup_file=os.path.expanduser(_config.get("cnc", "lookup")),
-        is_index = service == "INDEX",
+        lookup_file=os.path.expanduser(_config.get("cnc", "lookup"))
     )
     logger = get_logger()
 

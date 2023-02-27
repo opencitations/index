@@ -28,13 +28,13 @@ class RedisDataSource(DataSource):
         _db = get_config().get(service, "db")
         # in case we wanto to use the unified INDEX
         # > the DB storing the data is the one of INDEX
-        # > the original id should be mapped to the corrisponding OMID using the "db_index" DB
+        # > the original id should be mapped to the corrisponding OMID using the "db_br" DB
         if unified_index:
             _db = get_config().get("INDEX", "db")
             self._rid = redis.Redis(
                 host=get_config().get("redis", "host"),
                 port=get_config().get("redis", "port"),
-                db=get_config().get("cnc", "db_index")
+                db=get_config().get("cnc", "db_br")
             )
 
         self._rdata = redis.Redis(
