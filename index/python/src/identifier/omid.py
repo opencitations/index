@@ -47,7 +47,7 @@ class OMIDManager(IdentifierManager):
         """
         omid = self.normalise(omid, include_prefix=False)
 
-        if omid is None or match("^omid:[1-9]\d*$", omid) is None:
+        if omid is None or match("^br\/[1-9]\d*$", omid) is None:
             return False
         else:
             return self._data[omid].get("valid")
