@@ -140,6 +140,7 @@ def main():
     args = parser.parse_args()
     logger = get_logger()
 
+    logger.info("Start uploading data to Redis.")
 
     res = upload2redis(
         dump_path = args.dump,
