@@ -80,7 +80,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                     omid_br = re_id.group(1).replace("meta:br/","br/")
 
                                     # add metadata only if the BR entity is in the ID column
-                                    if col = "id":
+                                    if col == "id":
                                         entity_value = {
                                             "date": str(o_row["pub_date"]),
                                             "valid": True,
