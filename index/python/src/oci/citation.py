@@ -793,7 +793,6 @@ class OCIManager(object):
             entity_identifier (str, optional): the identifier of the entities. Default to "doi".
         """
         self.entity_identifier = entity_identifier
-        self.is_index = is_index
         self.is_valid = None
         self.messages = []
         self.f = {
