@@ -20,6 +20,8 @@ import csv
 from tqdm import tqdm
 
 from oc.index.validate.base import CitationValidator
+from oc.index.oci.citation import OCIManager
+from oc.index.utils.config import get_config
 from oc.index.identifier.omid import OMIDManager
 from oc.index.utils.logging import get_logger
 
