@@ -44,7 +44,7 @@ class INDEXValidator(CitationValidator):
         query = []
 
         df = pd.DataFrame()
-        for chunk in pd.read_csv(input_file, chunksize=1000):
+        for chunk in pd.read_csv(input_file, chunksize=1000, dtype=str):
             f = pd.concat([df, chunk], ignore_index=True)
             f.fillna("", inplace=True)
             csv_content = f.to_dict("records")
