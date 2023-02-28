@@ -94,6 +94,7 @@ class INDEXValidator(CitationValidator):
                     for oci in query:
                         f.write(oci + "\n")
 
+                print(result_map)
                 # Remove the processed citations
                 self._logger.info("Remove duplicates and existiting citations")
                 duplicated = 0
