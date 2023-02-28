@@ -40,6 +40,7 @@ def worker_body(input_files, service, oci_dir, moph_dir, queue, pid, multiproces
                 ],
             ).split()[0]
         )
+        print(query_result)
         query_result = query_result[1:].replace("'", "")
         i = 0
         for result in query_result.split(","):
