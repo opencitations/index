@@ -83,7 +83,7 @@ class INDEXValidator(CitationValidator):
                         citing = self._omid_manager.normalise(row.get("citing"))
                         cited = self._omid_manager.normalise(row.get("cited"))
                         if citing is not None and cited is not None:
-                            print(citing,cited)
+                            print(row.get("citing"),citing)
                             oci = self._oci_manager.get_oci(
                                 citing, cited, prefix=self._prefix
                             ).replace("oci:", "")
