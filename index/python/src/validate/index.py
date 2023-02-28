@@ -106,11 +106,11 @@ class INDEXValidator(CitationValidator):
                             citing, cited, prefix=self._prefix
                         ).replace("oci:", "")
                         if oci in result_map and not result_map[oci]:
-                            print(oci)
                             # Set result map true for the oci to avoid duplicates
                             result_map[oci] = True
                             items.append(row)
                         else:
+                            print(oci)
                             duplicated += 1
 
                 # Save validated citations
