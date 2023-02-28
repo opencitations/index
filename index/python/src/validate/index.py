@@ -87,6 +87,7 @@ class INDEXValidator(CitationValidator):
                             # Add oci only if has not been processed in the past
                             # in the case this is a duplicate.
                             if oci not in result_map:
+                                print(oci)
                                 query.append(oci)
 
                 # Create input file
@@ -111,7 +112,6 @@ class INDEXValidator(CitationValidator):
                             result_map[oci] = True
                             items.append(row)
                         else:
-                            print(oci)
                             duplicated += 1
 
                 # Save validated citations
