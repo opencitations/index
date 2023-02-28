@@ -776,10 +776,10 @@ class OCIManager(object):
         oci_string=None,
         lookup_file=None,
         conf_file=None,
-        doi_1=None,
-        doi_2=None,
+        entity_1=None,
+        entity_2=None,
         prefix="",
-        is_index=False,
+        entity_identifier="doi",
     ):
         """OCI manager constructor.
 
@@ -787,11 +787,12 @@ class OCIManager(object):
             oci_string (str, optional): _description_. Defaults to None.
             lookup_file (str, optional): path to the lookup file. Defaults to None.
             conf_file (str, optional): path to the config file. Defaults to None.
-            doi_1 (str, optional): _description_. Defaults to None.
-            doi_2 (str, optional): _description_. Defaults to None.
+            entity_1 (str, optional): _description_. Defaults to None.
+            entity_2 (str, optional): _description_. Defaults to None.
             prefix (str, optional): prefix to use. Defaults to "".
-            is_index (bool, optional): True if the citing and cited entities are OMID identifiers
+            entity_identifier (str, optional): the identifier of the entities. Default to "doi".
         """
+        self.entity_identifier = entity_identifier
         self.is_index = is_index
         self.is_valid = None
         self.messages = []
@@ -842,8 +843,8 @@ class OCIManager(object):
 
         if oci_string:
             self.oci = oci_string.lower().strip()
-        elif doi_1 and doi_2:
-            self.oci = self.get_oci(doi_1, doi_2, prefix)
+        elif entity_1 and entity_2:
+            self.oci = self.get_oci(entity_1, entity_2, prefix)
         else:
             self.oci = None
             self.add_message("__init__", W, "No OCI specified!")
@@ -901,22 +902,25 @@ class OCIManager(object):
     def __decode_inverse(self, doi):
         return self.__match_str_to_lookup(doi.replace("10.", ""))
 
-    def get_oci(self, doi_1, doi_2, prefix):
+    def get_oci(self, entity_1, entity_2, prefix):
         """It returns the oci associated to the citation.
 
         Args:
-            doi_1 (str): citing
-            doi_2 (str): cited
+            entity_1 (str): citing
+            entity_2 (str): cited
             prefix (str): prefix
 
         Returns:
             str: the oci
         """
-        _citing = self.__decode_inverse(doi_1),
-        _cited = self.__decode_inverse(doi_2),
-        if self.is_index:
-            _citing = doi_1.replace("omid:","")
-            _cited = doi_2.replace("omid:","")
+        _citing = entity_1
+        _cited = entity_2
+
+        # decode using lookup table only if entity identifier is "doi"
+        if self.entity_identifier == "doi":
+            _citing = self.__decode_inverse(entity_1),
+            _cited = self.__decode_inverse(entity_2),
+
         self.oci = "oci:%s%s-%s%s" % (
             prefix,
             _citing,

@@ -177,6 +177,7 @@ def main():
         result_map.update(queue.get())
     logger.info("Result map built")
 
+    print(result_map)
     # Validate citations according to the result map
     validator.validate_citations(args.input, result_map, args.output)
 

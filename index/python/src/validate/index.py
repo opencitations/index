@@ -29,6 +29,10 @@ class INDEXValidator(CitationValidator):
         super().__init__(service)
         self._omid_manager = OMIDManager()
         self._logger = get_logger()
+        self._oci_manager = self._oci_manager = OCIManager(
+            lookup_file=os.path.expanduser(self._config.get("cnc", "lookup")),
+            entity_identifier = "omid"
+        )
 
     def build_oci_query(self, input_file, result_map, disable_tqdm=False):
         csv_content = []
