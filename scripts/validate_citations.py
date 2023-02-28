@@ -178,7 +178,7 @@ def main():
     logger.info("Result map built")
 
     # Validate citations according to the result map
-    validator.validate_citations(input_files, result_map, args.output)
+    validator.validate_citations(args.input, result_map, args.output)
 
     logger.info(
         f"All the files have been processed in {(time.time() - start)/ 60} minutes"
