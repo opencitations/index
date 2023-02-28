@@ -69,30 +69,30 @@ class INDEXValidator(CitationValidator):
             if filename.endswith(".csv"):
                 csv_content = []
 
-                # # Build the OCI lookup query
-                # self._logger.info("Reading citation data from " + filename)
-                # query = []
-                # df = pd.DataFrame()
-                # for chunk in pd.read_csv(os.path.join(input_directory, filename), chunksize=1000, dtype=str):
-                #     f = pd.concat([df, chunk], ignore_index=True)
-                #     f.fillna("", inplace=True)
-                #     csv_content = f.to_dict("records")
-                #     for row in tqdm(csv_content):
-                #         citing = self._omid_manager.normalise(row.get("citing"))
-                #         cited = self._omid_manager.normalise(row.get("cited"))
-                #         if citing is not None and cited is not None:
-                #             oci = self._oci_manager.get_oci(
-                #                 citing, cited, prefix=self._prefix
-                #             ).replace("oci:", "")
-                #             # Add oci only if has not been processed in the past
-                #             # in the case this is a duplicate.
-                #             if oci not in result_map:
-                #                 query.append(oci)
-                #
-                # # Create input file
-                # with open("input.csv", "w") as f:
-                #     for oci in query:
-                #         f.write(oci + "\n")
+                # Build the OCI lookup query
+                self._logger.info("Reading citation data from " + filename)
+                query = []
+                df = pd.DataFrame()
+                for chunk in pd.read_csv(os.path.join(input_directory, filename), chunksize=1000, dtype=str):
+                    f = pd.concat([df, chunk], ignore_index=True)
+                    f.fillna("", inplace=True)
+                    csv_content = f.to_dict("records")
+                    for row in tqdm(csv_content):
+                        citing = self._omid_manager.normalise(row.get("citing"))
+                        cited = self._omid_manager.normalise(row.get("cited"))
+                        if citing is not None and cited is not None:
+                            oci = self._oci_manager.get_oci(
+                                citing, cited, prefix=self._prefix
+                            ).replace("oci:", "")
+                            # Add oci only if has not been processed in the past
+                            # in the case this is a duplicate.
+                            if oci not in result_map:
+                                query.append(oci)
+
+                # Create input file
+                with open("input.csv", "w") as f:
+                    for oci in query:
+                        f.write(oci + "\n")
 
                 # Remove the processed citations
                 self._logger.info("Remove duplicates and existiting citations")
