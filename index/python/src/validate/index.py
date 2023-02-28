@@ -73,9 +73,7 @@ class INDEXValidator(CitationValidator):
                 self._logger.info("Reading citation data from " + filename)
                 query = []
                 df = pd.DataFrame()
-                for chunk in pd.read_csv(
-                    os.path.join(input_directory, filename), chunksize=1000
-                ):
+                for chunk in pd.read_csv(os.path.join(input_directory, filename), chunksize=1000, dtype=str):
                     f = pd.concat([df, chunk], ignore_index=True)
                     f.fillna("", inplace=True)
                     csv_content = f.to_dict("records")
