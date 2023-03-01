@@ -90,6 +90,8 @@ class INDEXValidator(CitationValidator):
                             # in the case this is a duplicate.
                             if oci not in result_map:
                                 query.append(oci)
+                            else:
+                                print(oci,result_map[oci])
 
                 # Create input file
                 with open("input.csv", "w") as f:
