@@ -41,13 +41,14 @@ def worker_body(input_files, service, oci_dir, moph_dir, queue, pid, multiproces
             ).split()[0]
         )
         query_result = query_result[1:].replace("'", "")
+        print(query_result)
         i = 0
         for result in query_result.split(","):
             result_map[query[i]] = int(result) == 1
             i += 1
         logger.info("Result map updated")
 
-    print(result_map)
+
     queue.put(result_map)
 
 
