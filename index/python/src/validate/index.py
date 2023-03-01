@@ -60,7 +60,6 @@ class INDEXValidator(CitationValidator):
                     ).replace("oci:", "")
                     # Add oci only if has not been processed in the past
                     # in the case this is a duplicate.
-                    print(oci)
                     if oci not in result_map:
                         query.append(oci)
         return query
