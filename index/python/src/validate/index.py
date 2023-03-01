@@ -49,8 +49,18 @@ class INDEXValidator(CitationValidator):
             f.fillna("", inplace=True)
             csv_content = f.to_dict("records")
             for row in tqdm(csv_content, disable=disable_tqdm):
-                oci = row.get("id")
-                if oci is not None:
+                oci = row.get("oci")
+
+                citing = self._omid_manager.normalise(row.get("citing"))
+                cited = self._omid_manager.normalise(row.get("cited"))
+
+                if cited is not None:
+                    oci = self._oci_manager.get_oci(
+                        citing, cited, prefix=self._prefix
+                    ).replace("oci:", "")
+                    # Add oci only if has not been processed in the past
+                    # in the case this is a duplicate.
+                    print(oci)
                     if oci not in result_map:
                         query.append(oci)
         return query
@@ -71,8 +81,14 @@ class INDEXValidator(CitationValidator):
                     f.fillna("", inplace=True)
                     csv_content = f.to_dict("records")
                     for row in tqdm(csv_content):
-                        oci = row.get("id")
-                        if oci is not None:
+                        citing = self._omid_manager.normalise(row.get("citing"))
+                        cited = self._omid_manager.normalise(row.get("cited"))
+                        if citing is not None and cited is not None:
+                            oci = self._oci_manager.get_oci(
+                                citing, cited, prefix=self._prefix
+                            ).replace("oci:", "")
+                            # Add oci only if has not been processed in the past
+                            # in the case this is a duplicate.
                             if oci not in result_map:
                                 query.append(oci)
 
@@ -86,9 +102,12 @@ class INDEXValidator(CitationValidator):
                 duplicated = 0
                 items = []
                 for row in tqdm(csv_content):
-                    oci = row.get("id")
-                    if oci is not None:
-
+                    citing = self._omid_manager.normalise(row.get("citing"))
+                    cited = self._omid_manager.normalise(row.get("cited"))
+                    if citing is not None and cited is not None:
+                        oci = self._oci_manager.get_oci(
+                            citing, cited, prefix=self._prefix
+                        ).replace("oci:", "")
                         if oci in result_map and not result_map[oci]:
                             # Set result map true for the oci to avoid duplicates
                             result_map[oci] = True
