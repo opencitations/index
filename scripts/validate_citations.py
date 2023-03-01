@@ -47,6 +47,7 @@ def worker_body(input_files, service, oci_dir, moph_dir, queue, pid, multiproces
             i += 1
         logger.info("Result map updated")
 
+    print(result_map)
     queue.put(result_map)
 
 
@@ -179,7 +180,7 @@ def main():
 
     # Validate citations according to the result map
     validator.validate_citations(args.input, result_map, args.output)
-    print(result_map)
+
     logger.info(
         f"All the files have been processed in {(time.time() - start)/ 60} minutes"
     )
