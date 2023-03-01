@@ -49,7 +49,7 @@ class INDEXValidator(CitationValidator):
             f.fillna("", inplace=True)
             csv_content = f.to_dict("records")
             for row in tqdm(csv_content, disable=disable_tqdm):
-                oci = row.get("oci")
+                oci = row.get("id")
                 if oci is not None:
                     if oci not in result_map:
                         query.append(oci)
@@ -71,7 +71,7 @@ class INDEXValidator(CitationValidator):
                     f.fillna("", inplace=True)
                     csv_content = f.to_dict("records")
                     for row in tqdm(csv_content):
-                        oci = row.get("oci")
+                        oci = row.get("id")
                         if oci is not None:
                             if oci not in result_map:
                                 query.append(oci)
@@ -86,9 +86,9 @@ class INDEXValidator(CitationValidator):
                 duplicated = 0
                 items = []
                 for row in tqdm(csv_content):
-                    oci = row.get("oci")
+                    oci = row.get("id")
                     if oci is not None:
-                        
+
                         if oci in result_map and not result_map[oci]:
                             # Set result map true for the oci to avoid duplicates
                             result_map[oci] = True
