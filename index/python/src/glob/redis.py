@@ -21,15 +21,16 @@ from oc.index.glob.datasource import DataSource
 
 
 class RedisDataSource(DataSource):
-    def __init__(self, service, unified_index = False):
+    def __init__(self, service, use_unified_index = False):
         super().__init__(service)
         self._rid = None
+        self.is_index = service == "INDEX"
 
         _db = get_config().get(service, "db")
         # in case we wanto to use the unified INDEX
         # > the DB storing the data is the one of INDEX
         # > the original id should be mapped to the corrisponding OMID using the "db_br" DB
-        if unified_index:
+        if use_unified_index:
             _db = get_config().get("INDEX", "db")
             self._rid = redis.Redis(
                 host=get_config().get("redis", "host"),
@@ -45,7 +46,7 @@ class RedisDataSource(DataSource):
 
     def get(self, resource_id):
         org_resource_id = resource_id
-        if self._rid != None:
+        if self._rid != None and not self.is_index:
             resource_id = self._rid.get(resource_id)
         if resource_id is not None:
             redis_data = self._rdata.get(resource_id)
@@ -58,8 +59,9 @@ class RedisDataSource(DataSource):
     def mget(self, resources_id):
         org_resources_id = resources_id
 
-        if self._rid != None:
-            # build IDs if we are using unified index
+        # check if we want to use the unified index for non-INDEX services
+        # > in that case resource_id should be mapped to the corresponding OMID
+        if self._rid != None and not self.is_index:
             tmp_org_resources_id = []
             resources_id = []
             for i, v in enumerate(self._rid.mget(org_resources_id)):
@@ -73,8 +75,32 @@ class RedisDataSource(DataSource):
             for i, v in enumerate(self._rdata.mget(resources_id))
         }
 
-    def set(self, resource_id, value):
-        return self._rdata.set(resource_id, json.dumps(value))
+    def set(self, resource_id, value, rewrite=True):
+        # check if we want to use the unified index for non-INDEX services
+        # > in that case resource_id should be mapped to the corresponding OMID
+        if self._rid != None and not self.is_index:
+            resource_id = self._rid.get(resource_id)
 
-    def mset(self, resources):
+        # in case we update just part of the values
+        svalue = value
+        if not rewrite:
+            for k,v in value.items():
+                if isinstance(v,list):
+                    if k not in svalue:
+                        svalue[k] = []
+                    svalue[k] += v
+
+        return self._rdata.set(resource_id, json.dumps(svalue))
+
+    def mset(self, resources_id):
+        resources = resources_id
+
+        # check if we want to use the unified index for non-INDEX services
+        # > in that case resource_id should be mapped to the corresponding OMID
+        if self._rid != None and not self.is_index:
+            resources = []
+            for i, v in enumerate(self._rid.mget(resources_id)):
+                if v != None:
+                    resources.append( (resources_id[i],v) )
+
         return self._rdata.mset({k: json.dumps(v) for k, v in resources.items()})

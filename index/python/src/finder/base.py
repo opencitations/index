@@ -90,6 +90,15 @@ class ResourceFinder(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def get_container_citations(self, id_string):
+        """It returns the container citations.
+
+        Args:
+            id_string (_type_): id
+        """
+        pass
+
+    @abstractmethod
     def is_valid(self, id_string):
         """It checks if the id is valid.
 
@@ -127,6 +136,17 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         pass
 
     def _get_issn(self, json_obj):
+        """_summary_
+
+        Args:
+            json_obj (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return []
+
+    def _get_citations(self, json_obj):
         """_summary_
 
         Args:
@@ -212,6 +232,20 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         else:
             return self._data[id_string]["issn"]
 
+    def get_container_citations(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return self._get_item(id_string, "citations")
+        else:
+            return self._data[id_string]["citations"]
+
     def is_valid(self, id_string):
         """_summary_
 
@@ -251,6 +285,8 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
                         return self._get_date(json_obj)
                     elif column == "orcid":
                         return self._get_orcid(json_obj)
+                    elif column == "citations":
+                        return self._get_citations(json_obj)
                 return None
 
             return self._data[doi][column]
