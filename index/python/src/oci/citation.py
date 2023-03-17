@@ -311,7 +311,7 @@ class Citation(object):
 
     @staticmethod
     def check_datetime_with_timezone(s):
-        datetime = sub("\s+", "", s)[:19] if s is not None else ""
+        datetime = sub("\s+", "", s) if s is not None else ""
         if not match(
             "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\+[0-9]{2}\:[0-9]{2}$", datetime
         ):
