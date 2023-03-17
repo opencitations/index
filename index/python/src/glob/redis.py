@@ -86,9 +86,11 @@ class RedisDataSource(DataSource):
         if not rewrite:
             for k,v in value.items():
                 if isinstance(v,list):
-                    if k not in svalue:
-                        svalue[k] = []
-                    svalue[k] += v
+                    for elem in v:
+                        if elem not in svalue[k]:
+                            svalue[k].append(v)
+                else:
+                    svalue[k] = v
 
         return self._rdata.set(resource_id, json.dumps(svalue))
 

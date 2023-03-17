@@ -46,7 +46,6 @@ def normalise_cits(service, file, parser, ds, multiprocess):
         lookup_file=os.path.expanduser(_config.get("cnc", "lookup"))
     )
     logger = get_logger()
-    ds_index = RedisDataSource("INDEX", True)
 
     logger.info("Reading citation data from " + file)
     parser.parse(file)
@@ -129,10 +128,6 @@ def normalise_cits(service, file, parser, ds, multiprocess):
             citing = rf_handler.get_omid(org_citing).replace("br/","")
             cited = rf_handler.get_omid(org_cited).replace("br/","")
             if citing != None and cited != None:
-
-                # if it is a new citation insert it in Redis
-                if citing not in rf_handler.get_container_citations(org_cited):
-                    ds_index.set(cited,{"citations":[citing]})
 
                 citations.append([
                     (citing,cited),

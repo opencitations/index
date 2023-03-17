@@ -46,6 +46,16 @@ def cnc(service, file, parser, ds, multiprocess):
     )
     logger = get_logger()
 
+    # the redis db to store all the citations in INDEX
+    ds_index = None
+    db_cits = _config.get("cnc", "db_cits")
+    if db_cits != "":
+        ds_index = redis.Redis(
+            host=_config.get("redis", "host"),
+            port=_config.get("redis", "port"),
+            db=db_cits
+        )
+
     logger.info("Reading citation data from " + file)
     parser.parse(file)
     pbar = tqdm(total=parser.items, disable=multiprocess)
@@ -144,55 +154,59 @@ def cnc(service, file, parser, ds, multiprocess):
                     citing, cited
                 )
 
-            #oci_val = oci_manager.get_oci(citing, cited, prefix)
-            oci_val = "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,)
 
             if citing != None and cited != None:
-                citations.append(
-                    Citation(
-                        oci_val,
-                        idbase_url + quote(citing),
-                        citing_date,
-                        idbase_url + quote(cited),
-                        cited_date,
-                        None,
-                        None,
-                        1,
-                        agent,
-                        source,
-                        datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                        service_name,
-                        identifier,
-                        idbase_url + "([[XXX__decode]])",
-                        "reference",
-                        journal_sc,
-                        author_sc,
-                        None,
-                        "Creation of the citation",
-                        None,
-                    )
-                )
-                unified_citations.append(
-                    Citation(
-                        oci_val,
-                        idbase_url + quote(citing),
-                        None,
-                        idbase_url + quote(cited),
-                        None,
-                        None,
-                        None,
-                        1,
-                        agent,
-                        source,
-                        datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                        service_name,
-                        identifier,
-                        idbase_url + "([[XXX__decode]])",
-                        "reference",
-                    )
-                )
 
-            citations_created += 1
+                oci_val = "%s%s-%s%s" % (prefix,citing,prefix,cited,)
+                if not ds_index.get(oci_val):
+                    ds_index.set(oci_val, 1)
+
+                    oci_val = "oci:"+oci_val
+                    citations.append(
+                        Citation(
+                            oci_val,
+                            idbase_url + quote(citing),
+                            citing_date,
+                            idbase_url + quote(cited),
+                            cited_date,
+                            None,
+                            None,
+                            1,
+                            agent,
+                            source,
+                            datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                            service_name,
+                            identifier,
+                            idbase_url + "([[XXX__decode]])",
+                            "reference",
+                            journal_sc,
+                            author_sc,
+                            None,
+                            "Creation of the citation",
+                            None,
+                        )
+                    )
+                    unified_citations.append(
+                        Citation(
+                            oci_val,
+                            idbase_url + quote(citing),
+                            None,
+                            idbase_url + quote(cited),
+                            None,
+                            None,
+                            None,
+                            1,
+                            agent,
+                            source,
+                            datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                            service_name,
+                            identifier,
+                            idbase_url + "([[XXX__decode]])",
+                            "reference",
+                        )
+                    )
+
+                citations_created += 1
 
     logger.info(f"{citations_created}/{len(citation_data_list)} Citations created")
     return (citations,unified_citations)
