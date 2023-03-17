@@ -262,9 +262,9 @@ class Citation(object):
 
         self.prov_entity_number = prov_entity_number
         self.prov_agent_url = prov_agent_url
-        self.prov_date = Citation.check_datetime(prov_date)
+        self.prov_date = Citation.check_datetime_with_timezone(prov_date)
         self.service_name = service_name
-        self.prov_inv_date = Citation.check_datetime(prov_inv_date)
+        self.prov_inv_date = Citation.check_datetime_with_timezone(prov_inv_date)
         self.prov_description = Citation.check_string(prov_description)
         self.prov_update = Citation.check_string(prov_update)
 
@@ -305,6 +305,15 @@ class Citation(object):
         datetime = sub("\s+", "", s)[:19] if s is not None else ""
         if not match(
             "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$", datetime
+        ):
+            datetime = None
+        return datetime
+
+    @staticmethod
+    def check_datetime_with_timezone(s):
+        datetime = sub("\s+", "", s)[:19] if s is not None else ""
+        if not match(
+            "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\+[0-9]{2}\:[0-9]{2}$", datetime
         ):
             datetime = None
         return datetime
