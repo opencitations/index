@@ -102,7 +102,7 @@ def normalize_dump(service, type, input_files, output_dir):
 
                                 br_with_no_omid += sum([citing_omid == None, cited_omid == None])
 
-                                if br_with_no_omid == 0:
+                                if citing_omid != None and cited_omid != None:
 
                                     citing_omid = citing_omid.decode("utf-8")
                                     cited_omid = cited_omid.decode("utf-8")
