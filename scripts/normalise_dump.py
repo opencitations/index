@@ -47,12 +47,13 @@ def normalize_dump(service, type, input_files, output_dir):
 
     # get the service values from the CONFIG.INI
     idbase_url = _config.get("INDEX", "idbaseurl")
-    identifier = _config.get("INDEX", "identifier")
+    index_identifier = _config.get("INDEX", "identifier")
     agent = _config.get("INDEX", "agent")
     service_name = _config.get("INDEX", "service")
+    baseurl = _config.get("INDEX", "baseurl")
 
     # service variables
-    baseurl = _config.get(service, "baseurl")
+    identifier = _config.get(service, "identifier")
     source = _config.get(service, "source")
 
     # redis DB of <ANYID>:<OMID>
@@ -79,14 +80,14 @@ def normalize_dump(service, type, input_files, output_dir):
         if fzip.endswith(".zip"):
             files_to_zip = []
             with ZipFile(fzip) as archive:
-                logger.info("Working on the archive:",fzip)
-                logger.info("Total number of files in archive is:",len(archive.namelist()))
+                logger.info("Working on the archive:"+str(fzip))
+                logger.info("Total number of files in archive is:"+str(len(archive.namelist())))
 
                 if type == "csv":
                     # CSV header: oci,citing,cited,creation,timespan,journal_sc,author_sc
                     for csv_name in archive.namelist():
 
-                        logger.info("Converting the citations in:",csv_name)
+                        logger.info("Converting the citations in:"+str(csv_name))
                         with archive.open(csv_name) as csv_file:
                             l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
 
@@ -124,8 +125,7 @@ def normalize_dump(service, type, input_files, output_dir):
                                         journal_sc = "yes" in row["journal_sc"]
                                         author_sc = "yes" in row["author_sc"]
 
-                                        citations.append([
-                                            (citing_omid,cited_omid),
+                                        citations.append(
                                             Citation(
                                                 oci_omid, # oci,
                                                 idbase_url + quote(citing_omid), # citing_url,
@@ -139,7 +139,7 @@ def normalize_dump(service, type, input_files, output_dir):
                                                 source, # source,
                                                 datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
                                                 service_name, # service_name,
-                                                identifier, # id_type,
+                                                index_identifier, # id_type,
                                                 idbase_url + "([[XXX__decode]])", # id_shape,
                                                 "reference", # citation_type,
                                                 journal_sc, # journal_sc=False,
@@ -162,7 +162,7 @@ def normalize_dump(service, type, input_files, output_dir):
                             # Store the citations of the CSV file
                             storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
                             logger.info("Saving citations...")
-                            for citation in tqdm(citations, disable=multiprocess):
+                            for citation in tqdm(citations):
                                 storer.store_citation(citation)
                             logger.info(f"{len(citations)} citations saved")
 
@@ -226,7 +226,7 @@ def main():
     arg_parser.add_argument(
         "-s",
         "--service",
-        default="coci",
+        default="COCI",
         help="The source of the dump (e.g. coci)",
     )
     arg_parser.add_argument(
