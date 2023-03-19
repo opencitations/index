@@ -41,7 +41,7 @@ from oc.index.glob.csv import CSVDataSource
 
 _config = get_config()
 
-def normalize_dump(service, type, input_files, output_dir):
+def normalize_dump(service, input_files, output_dir):
     global _config
     logger = get_logger()
 
@@ -83,129 +83,87 @@ def normalize_dump(service, type, input_files, output_dir):
                 logger.info("Working on the archive:"+str(fzip))
                 logger.info("Total number of files in archive is:"+str(len(archive.namelist())))
 
-                if type == "csv":
-                    # CSV header: oci,citing,cited,creation,timespan,journal_sc,author_sc
-                    for csv_name in archive.namelist():
+                # CSV header: oci,citing,cited,creation,timespan,journal_sc,author_sc
+                for csv_name in archive.namelist():
 
-                        logger.info("Converting the citations in:"+str(csv_name))
-                        with archive.open(csv_name) as csv_file:
-                            l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
+                    logger.info("Converting the citations in:"+str(csv_name))
+                    with archive.open(csv_name) as csv_file:
+                        l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
 
-                            # iterate citations (CSV rows)
-                            for row in l_cits:
+                        # iterate citations (CSV rows)
+                        for row in l_cits:
 
-                                citing = row["citing"]
-                                citing_omid = redis_br.get(identifier+":"+citing)
+                            citing = row["citing"]
+                            citing_omid = redis_br.get(identifier+":"+citing)
 
-                                cited = row["cited"]
-                                cited_omid = redis_br.get(identifier+":"+cited)
+                            cited = row["cited"]
+                            cited_omid = redis_br.get(identifier+":"+cited)
 
-                                br_with_no_omid += sum([citing_omid == None, cited_omid == None])
+                            br_with_no_omid += sum([citing_omid == None, cited_omid == None])
 
-                                if citing_omid != None and cited_omid != None:
+                            if citing_omid != None and cited_omid != None:
 
-                                    citing_omid = citing_omid.decode("utf-8")
-                                    cited_omid = cited_omid.decode("utf-8")
-                                    oci_omid = citing_omid[3:]+"-"+cited_omid[3:]
+                                citing_omid = citing_omid.decode("utf-8")
+                                cited_omid = cited_omid.decode("utf-8")
+                                oci_omid = citing_omid[3:]+"-"+cited_omid[3:]
 
-                                    #check duplicate
-                                    if redis_cits.get(oci_omid) == None:
+                                #check duplicate
+                                if redis_cits.get(oci_omid) == None:
 
-                                        if "[[citing]]" in source:
-                                            source = source.replace("[[citing]]",citing)
+                                    if "[[citing]]" in source:
+                                        source = source.replace("[[citing]]",citing)
 
-                                        creation_date = None
-                                        if row["creation"] != "" and row["creation"] != None:
-                                            creation_date = row["creation"]
+                                    creation_date = None
+                                    if row["creation"] != "" and row["creation"] != None:
+                                        creation_date = row["creation"]
 
-                                        timespan = None
-                                        if row["timespan"] != "" and row["timespan"] != None:
-                                            timespan = row["timespan"]
+                                    timespan = None
+                                    if row["timespan"] != "" and row["timespan"] != None:
+                                        timespan = row["timespan"]
 
-                                        journal_sc = "yes" in row["journal_sc"]
-                                        author_sc = "yes" in row["author_sc"]
+                                    journal_sc = "yes" in row["journal_sc"]
+                                    author_sc = "yes" in row["author_sc"]
 
-                                        citations.append(
-                                            Citation(
-                                                oci_omid, # oci,
-                                                idbase_url + quote(citing_omid), # citing_url,
-                                                None, # citing_pub_date,
-                                                idbase_url + quote(cited_omid), # cited_url,
-                                                None, # cited_pub_date,
-                                                creation_date, # creation,
-                                                timespan, # timespan,
-                                                1, # prov_entity_number,
-                                                agent, # prov_agent_url,
-                                                source, # source,
-                                                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
-                                                service_name, # service_name,
-                                                index_identifier, # id_type,
-                                                idbase_url + "([[XXX__decode]])", # id_shape,
-                                                "reference", # citation_type,
-                                                journal_sc, # journal_sc=False,
-                                                author_sc,# author_sc=False,
-                                                None, # prov_inv_date=None,
-                                                "Creation of the citation", # prov_description=None,
-                                                None, # prov_update=None,
-                                            )
+                                    citations.append(
+                                        Citation(
+                                            oci_omid, # oci,
+                                            idbase_url + quote(citing_omid), # citing_url,
+                                            None, # citing_pub_date,
+                                            idbase_url + quote(cited_omid), # cited_url,
+                                            None, # cited_pub_date,
+                                            creation_date, # creation,
+                                            timespan, # timespan,
+                                            1, # prov_entity_number,
+                                            agent, # prov_agent_url,
+                                            source, # source,
+                                            datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                                            service_name, # service_name,
+                                            index_identifier, # id_type,
+                                            idbase_url + "([[XXX__decode]])", # id_shape,
+                                            "reference", # citation_type,
+                                            journal_sc, # journal_sc=False,
+                                            author_sc,# author_sc=False,
+                                            None, # prov_inv_date=None,
+                                            "Creation of the citation", # prov_description=None,
+                                            None, # prov_update=None,
                                         )
+                                    )
 
-                                        citations_created += 1
-                                        # add the OCI of the produced citation to Redis
-                                        redis_cits.set(oci_omid, "1")
+                                    citations_created += 1
+                                    # add the OCI of the produced citation to Redis
+                                    redis_cits.set(oci_omid, "1")
 
-                                    else:
-                                        citations_duplicated += 1
+                                else:
+                                    citations_duplicated += 1
 
-                            logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(br_with_no_omid))
+                        logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(br_with_no_omid))
 
-                            # Store the citations of the CSV file
-                            storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
-                            logger.info("Saving citations...")
-                            for citation in tqdm(citations):
-                                storer.store_citation(citation)
-                            logger.info(f"{len(citations)} citations saved")
-
-
-                # elif type == "rdf":
-                #
-                #     # Each citation is an RDF
-                #     for rdf_name in archive.namelist():
-                #
-                #         rdf_file = open(rdf_name, 'r')
-                #         cit_block = dict()
-                #         while True:
-                #             line = rdf_file.readline()
-                #             if not line:
-                #                 break
-                #             line = line.strip()
-                #
-                #             if "<http://purl.org/spar/cito/Citation>" in line:
-                #                 service_oci = re.findall("\<"+url_service_base.replace("/","\/")+"(\d{1,}-\d{1,})\>",line)
-                #                 if len(service_oci) > 0:
-                #                     cit_block["oci"] = service_oci[0]
-                #
-                #             if "<http://purl.org/spar/cito/hasCitingEntity>" in line:
-                #                 citing = re.findall("\<"+url_prefix.replace("/","\/")+"(.{1,})"+"\>",line)
-                #                 if len(citing) > 0:
-                #                     citing = citing[0]
-                #                     citing_omid = redis_br.get(prefix+citing)
-                #                     cit_block["citing"] = citing_omid
-                #
-                #             if "<http://purl.org/spar/cito/hasCitedEntity>" in line:
-                #                 cited = re.findall("\<"+url_prefix.replace("/","\/")+"(.{1,})"+"\>",line)
-                #                 if len(cited) > 0:
-                #                     cited = cited[0]
-                #                     cited_omid = redis_br.get(prefix+cited)
-                #                     cit_block["cited"] = cited_omid
-                #
-                #             if "<http://purl.org/spar/cito/hasCitationCreationDate>" in line:
-                #                 creation = re.findall("\"(\d{4}-\d{2}-\d{2})\"\^\^",line)
-                #                 if len(creation) > 0:
-                #                     creation = creation[0]
-                #                     cit_block["creation"] = creation
-                #
-                #         rdf_file.close()
+                        # Store the citations of the CSV file
+                        storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
+                        logger.info("Saving citations...")
+                        for citation in tqdm(citations):
+                            storer.store_citation(citation)
+                        logger.info(f"{len(citations)} citations saved")
 
 def main():
     global _config
@@ -216,12 +174,6 @@ def main():
         "--input",
         required=True,
         help="The input directory/Zipfile",
-    )
-    arg_parser.add_argument(
-        "-t",
-        "--type",
-        default="csv",
-        help="The data type of the dump (e.g. csv)",
     )
     arg_parser.add_argument(
         "-s",
@@ -236,7 +188,6 @@ def main():
         help="The output directory where citations will be stored",
     )
     args = arg_parser.parse_args()
-    type = args.type
     service = args.service
 
     # input directory/file
@@ -254,4 +205,4 @@ def main():
         os.makedirs(output_dir)
 
     # call the normalize_dump function
-    normalize_dump(service, type, input_files, output_dir)
+    normalize_dump(service, input_files, output_dir)
