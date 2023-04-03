@@ -54,7 +54,7 @@ def normalize_dump(service, input_files, output_dir):
 
     # service variables
     identifier = _config.get(service, "identifier")
-    source = _config.get(service, "source")
+    source = _config.get(service, "ocdump")
 
     # redis DB of <ANYID>:<OMID>
     redis_br = redis.Redis(
