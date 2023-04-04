@@ -70,10 +70,11 @@ def normalize_dump(service, input_files, output_dir):
         db=_config.get("cnc", "db_cits")
     )
 
-    citations = []
+    index_citations = []
     citations_created = 0
     citations_duplicated = 0
     br_with_no_omid = 0
+    service_citations = []
 
     for fzip in input_files:
         # checking if it is a file
@@ -107,6 +108,31 @@ def normalize_dump(service, input_files, output_dir):
                                 cited_omid = cited_omid.decode("utf-8")
                                 oci_omid = citing_omid[3:]+"-"+cited_omid[3:]
 
+                                service_citations.append(
+                                    Citation(
+                                        oci_omid, # oci,
+                                        idbase_url + quote(citing_omid), # citing_url,
+                                        None, # citing_pub_date,
+                                        idbase_url + quote(cited_omid), # cited_url,
+                                        None, # cited_pub_date,
+                                        None, # creation,
+                                        None, # timespan,
+                                        None, # prov_entity_number,
+                                        agent, # prov_agent_url,
+                                        source, # source,
+                                        datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                                        service_name, # service_name,
+                                        index_identifier, # id_type,
+                                        idbase_url + "([[XXX__decode]])", # id_shape,
+                                        "reference", # citation_type,
+                                        None, # journal_sc=False,
+                                        None,# author_sc=False,
+                                        None, # prov_inv_date=None,
+                                        "Creation of the citation", # prov_description=None,
+                                        None, # prov_update=None,
+                                    )
+                                )
+
                                 #check duplicate
                                 if redis_cits.get(oci_omid) == None:
 
@@ -124,7 +150,7 @@ def normalize_dump(service, input_files, output_dir):
                                     journal_sc = "yes" in row["journal_sc"]
                                     author_sc = "yes" in row["author_sc"]
 
-                                    citations.append(
+                                    index_citations.append(
                                         Citation(
                                             oci_omid, # oci,
                                             idbase_url + quote(citing_omid), # citing_url,
@@ -159,12 +185,17 @@ def normalize_dump(service, input_files, output_dir):
                         logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(br_with_no_omid))
 
                         # Store the citations of the CSV file
-                        storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
-                        logger.info("Saving citations...")
-                        for citation in tqdm(citations):
-                            storer.store_citation(citation)
-                        logger.info(f"{len(citations)} citations saved")
+                        index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
+                        logger.info("Saving Index citations...")
+                        for citation in tqdm(index_citations):
+                            index_storer.store_citation(index_citations)
+                        logger.info(f"{len(index_citations)} citations saved")
 
+                        service_storer = CitationStorer(output_dir + "/service-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
+                        logger.info("Saving service citations (in RDF)...")
+                        for citation in tqdm(service_citations):
+                            service_citations.store_citation(service_citations)
+                        logger.info(f"{len(service_citations)} citations saved")
 def main():
     global _config
 
