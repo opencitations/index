@@ -71,7 +71,6 @@ def normalize_dump(service, input_files, output_dir):
     )
 
     index_citations = []
-    citations_created = 0
     citations_duplicated = 0
     br_with_no_omid = 0
     service_citations = []
@@ -175,7 +174,6 @@ def normalize_dump(service, input_files, output_dir):
                                         )
                                     )
 
-                                    citations_created += 1
                                     # add the OCI of the produced citation to Redis
                                     redis_cits.set(oci_omid, "1")
 
@@ -188,13 +186,13 @@ def normalize_dump(service, input_files, output_dir):
                         index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
                         logger.info("Saving Index citations...")
                         for citation in tqdm(index_citations):
-                            index_storer.store_citation(index_citations)
+                            index_storer.store_citation(citation)
                         logger.info(f"{len(index_citations)} citations saved")
 
                         service_storer = CitationStorer(output_dir + "/service-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
                         logger.info("Saving service citations (in RDF)...")
                         for citation in tqdm(service_citations):
-                            service_citations.store_citation(service_citations)
+                            service_citations.store_citation(citation)
                         logger.info(f"{len(service_citations)} citations saved")
 def main():
     global _config
