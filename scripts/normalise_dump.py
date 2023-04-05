@@ -192,7 +192,7 @@ def normalize_dump(service, input_files, output_dir):
                         service_storer = CitationStorer(output_dir + "/service-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
                         logger.info("Saving service citations (in RDF)...")
                         for citation in tqdm(service_citations):
-                            service_citations.store_citation(citation)
+                            service_storer.store_citation(citation)
                         logger.info(f"{len(service_citations)} citations saved")
 def main():
     global _config
