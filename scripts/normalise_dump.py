@@ -74,9 +74,6 @@ def normalize_dump(service, input_files, output_dir):
     # redis DB of <OMID>:<METADATA>
     redis_index = RedisDataSource("INDEX")
 
-    # glob vars
-    entities_with_no_omid = set()
-    files_processed = set()
 
     for fzip in input_files:
         # checking if it is a file
@@ -94,7 +91,7 @@ def normalize_dump(service, input_files, output_dir):
 
                     index_citations = []
                     citations_duplicated = 0
-                    entities_with_no_omid_in_file = 0
+                    entities_with_no_omid = set()
                     service_citations = []
 
                     logger.info("Converting the citations in: "+str(csv_name))
@@ -184,41 +181,36 @@ def normalize_dump(service, input_files, output_dir):
                                     citations_duplicated += 1
                             else:
                                 if citing_omid == None:
-                                    entities_with_no_omid_in_file += 1
                                     entities_with_no_omid.add(citing_omid)
                                 if cited_omid == None:
-                                    entities_with_no_omid_in_file += 1
                                     entities_with_no_omid.add(cited_omid)
 
-                        logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(entities_with_no_omid_in_file += 1))
+                    logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(len(entities_with_no_omid)))
 
-                        # Store the citations of the CSV file
-                        index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
-                        logger.info("Saving Index citations...")
-                        for citation in tqdm(index_citations):
-                            index_storer.store_citation(citation)
-                        logger.info(f"{len(index_citations)} citations saved")
+                    # Store the citations of the CSV file
+                    index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
+                    logger.info("Saving Index citations...")
+                    for citation in tqdm(index_citations):
+                        index_storer.store_citation(citation)
+                    logger.info(f"{len(index_citations)} citations saved")
 
-                        service_storer = CitationStorer(output_dir + "/service-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
-                        logger.info("Saving service citations (in RDF)...")
-                        for citation in tqdm(service_citations):
-                            service_storer.store_citation(citation)
-                        logger.info(f"{len(service_citations)} citations saved")
+                    service_storer = CitationStorer(output_dir + "/service-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
+                    logger.info("Saving service citations (in RDF)...")
+                    for citation in tqdm(service_citations):
+                        service_storer.store_citation(citation)
+                    logger.info(f"{len(service_citations)} citations saved")
 
-                    files_processed.add((str(fzip),str(csv_name)))
+                    # Store files_processed
+                    logger.info("Saving file processed...")
+                    with open(output_dir+'files_processed.csv', 'a+') as f:
+                        write = csv.writer(f)
+                        write.writerow([str(fzip),str(csv_name)])
 
-    # Store entities_with_no_omid
-    logger.info("Saving entities with no omid...")
-    with open(output_dir+'entities_with_no_omid.csv', 'w') as f:
-        write = csv.writer(f)
-        write.writerows(list(entities_with_no_omid))
-
-    # Store files_processed
-    logger.info("Saving files processed...")
-    with open(output_dir+'files_processed.csv', 'w') as f:
-        write = csv.writer(f)
-        for t in files_processed:
-            write.writerow(list(t))
+                    # Store entities_with_no_omid
+                    logger.info("Saving entities with no omid...")
+                    with open(output_dir+'entities_with_no_omid.csv', 'a+') as f:
+                        write = csv.writer(f)
+                        write.writerows(list(entities_with_no_omid))
 
 def main():
     global _config
