@@ -94,6 +94,7 @@ def normalize_dump(service, input_files, output_dir):
 
                     index_citations = []
                     citations_duplicated = 0
+                    entities_with_no_omid_in_file = 0
                     service_citations = []
 
                     logger.info("Converting the citations in: "+str(csv_name))
@@ -183,11 +184,13 @@ def normalize_dump(service, input_files, output_dir):
                                     citations_duplicated += 1
                             else:
                                 if citing_omid == None:
+                                    entities_with_no_omid_in_file += 1
                                     entities_with_no_omid.add(citing_omid)
                                 if cited_omid == None:
+                                    entities_with_no_omid_in_file += 1
                                     entities_with_no_omid.add(cited_omid)
 
-                        logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(len(entities_with_no_omid)))
+                        logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(entities_with_no_omid_in_file += 1))
 
                         # Store the citations of the CSV file
                         index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
