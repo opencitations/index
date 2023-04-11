@@ -205,6 +205,17 @@ class OMIDResourceFinder(ResourceFinder, metaclass=ABCMeta):
         """
         return self._dm.normalise(id_string, include_prefix=True)
 
+    def get_unified_id(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return id_string
+
 
 class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
     """This is the abstract class that must be implemented by any resource finder
