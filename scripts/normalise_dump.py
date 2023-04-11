@@ -144,7 +144,6 @@ def normalize_dump(service, input_files, output_dir):
                                 if redis_cits.get(oci_omid) == None:
 
                                     resources = redis_index.mget([citing_omid,cited_omid])
-                                    print(resources)
                                     rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
 
                                     citing_date = rf_handler.get_date(citing_omid)
