@@ -117,7 +117,7 @@ def normalize_dump(service, input_files, output_dir):
 
                                 service_citations.append(
                                     Citation(
-                                        oci_omid, # oci,
+                                        "oci:"+oci_omid, # oci,
                                         None, # citing_url,
                                         None, # citing_pub_date,
                                         None, # cited_url,
@@ -154,7 +154,7 @@ def normalize_dump(service, input_files, output_dir):
 
                                     index_citations.append(
                                         Citation(
-                                            oci_omid, # oci,
+                                            "oci:"+oci_omid, # oci,
                                             idbase_url + quote(citing_omid), # citing_url,
                                             citing_date, # citing_pub_date,
                                             idbase_url + quote(cited_omid), # cited_url,
