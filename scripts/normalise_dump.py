@@ -31,6 +31,7 @@ from oc.index.parsing.base import CitationParser
 from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
 from oc.index.finder.base import ResourceFinderHandler
+from oc.index.finder.base import OMIDResourceFinder
 from oc.index.finder.orcid import ORCIDResourceFinder
 from oc.index.finder.crossref import CrossrefResourceFinder
 from oc.index.finder.datacite import DataCiteResourceFinder
