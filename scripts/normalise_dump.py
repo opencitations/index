@@ -147,21 +147,10 @@ def normalize_dump(service, input_files, output_dir):
                                     print(resources)
                                     rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
 
-                                    if citing_date is None:
-                                        citing_date = rf_handler.get_date(citing_omid)
-
-                                    if cited_date is None:
-                                        cited_date = rf_handler.get_date(cited_omid)
-
-                                    if journal_sc is None or type(journal_sc) is not bool:
-                                        journal_sc, citing_issn, cited_issn = rf_handler.share_issn(
-                                            citing_omid, cited_omid
-                                        )
-
-                                    if author_sc is None or type(author_sc) is not bool:
-                                        author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(
-                                            citing_omid, cited_omid
-                                        )
+                                    citing_date = rf_handler.get_date(citing_omid)
+                                    cited_date = rf_handler.get_date(cited_omid)
+                                    journal_sc, citing_issn, cited_issn = rf_handler.share_issn(citing_omid, cited_omid)
+                                    author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(citing_omid, cited_omid)
 
                                     index_citations.append(
                                         Citation(
