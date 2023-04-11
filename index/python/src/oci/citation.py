@@ -115,7 +115,7 @@ class Citation(object):
     description = URIRef(dc_base + "description")
 
     header_citation_data = [
-        "oci",
+        "id",
         "citing",
         "cited",
         "creation",
@@ -124,7 +124,7 @@ class Citation(object):
         "author_sc",
     ]
     header_provenance_data = [
-        "oci",
+        "id",
         "snapshot",
         "agent",
         "source",
@@ -617,9 +617,10 @@ class Citation(object):
             str: citation in json format.
         """
         result = {
-            "oci": self.oci.replace("oci:", ""),
-            "citing": self.get_id(self.citing_url),
-            "cited": self.get_id(self.cited_url),
+            #"oci": self.oci.replace("oci:", ""),
+            "id": self.oci,
+            "citing": self.get_id(self.citing_url,include_type=True),
+            "cited": self.get_id(self.cited_url,include_type=True),
             "creation": self.creation_date,
             "timespan": self.duration,
             "journal_sc": self.journal_sc,
@@ -636,7 +637,8 @@ class Citation(object):
         """
         result = {
             "snapshot": self.prov_entity_number,
-            "oci": self.oci.replace("oci:", ""),
+            #"oci": self.oci.replace("oci:", ""),
+            "id": self.oci,
             "agent": self.prov_agent_url,
             "source": self.source,
             "created": self.prov_date,
@@ -695,7 +697,7 @@ class Citation(object):
 
         return dumps(result, indent=4, ensure_ascii=False)
 
-    def get_id(self, entity_url):
+    def get_id(self, entity_url, include_type=False):
         """It returns the id associated to a specific entity url.
 
         Returns:
@@ -704,7 +706,11 @@ class Citation(object):
         decode = "XXX__decode]]" in self.id_shape
         entity_regex = sub("\[\[[^\]]+\]\]", ".+", self.id_shape)
         entity_token = sub(entity_regex, "\\1", entity_url)
-        return unquote(entity_token) if decode else entity_token
+        if decode:
+            entity_token = unquote(entity_token)
+        if include_type:
+            entity_token = self.id_type + ":" + entity_token
+        return entity_token
 
     @staticmethod
     def contains_years(date):
