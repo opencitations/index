@@ -189,9 +189,9 @@ def cnc(service, file, parser, ds, multiprocess):
                     unified_citations.append(
                         Citation(
                             oci_val,
-                            idbase_url + quote(citing),
                             None,
-                            idbase_url + quote(cited),
+                            None,
+                            None,
                             None,
                             None,
                             None,

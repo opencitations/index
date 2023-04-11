@@ -70,15 +70,16 @@ def normalize_dump(service, input_files, output_dir):
         db=_config.get("cnc", "db_cits")
     )
 
-    index_citations = []
-    citations_duplicated = 0
-    br_with_no_omid = 0
-    service_citations = []
+    # redis DB of <OMID>:<METADATA>
+    redis_index = RedisDataSource("INDEX")
+
+    # glob vars
+    entities_with_no_omid = set()
+    files_processed = set()
 
     for fzip in input_files:
         # checking if it is a file
         if fzip.endswith(".zip"):
-            files_to_zip = []
             with ZipFile(fzip) as archive:
                 logger.info("Working on the archive:"+str(fzip))
                 logger.info("Total number of files in archive is:"+str(len(archive.namelist())))
@@ -86,7 +87,15 @@ def normalize_dump(service, input_files, output_dir):
                 # CSV header: oci,citing,cited,creation,timespan,journal_sc,author_sc
                 for csv_name in archive.namelist():
 
-                    logger.info("Converting the citations in:"+str(csv_name))
+                    if not csv_name.endswith(".csv"):
+                        logger.info("Skip file (not a CSV): "+str(csv_name))
+                        continue
+
+                    index_citations = []
+                    citations_duplicated = 0
+                    service_citations = []
+
+                    logger.info("Converting the citations in: "+str(csv_name))
                     with archive.open(csv_name) as csv_file:
                         l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
 
@@ -99,8 +108,6 @@ def normalize_dump(service, input_files, output_dir):
                             cited = row["cited"]
                             cited_omid = redis_br.get(identifier+":"+cited)
 
-                            br_with_no_omid += sum([citing_omid == None, cited_omid == None])
-
                             if citing_omid != None and cited_omid != None:
 
                                 citing_omid = citing_omid.decode("utf-8")
@@ -110,9 +117,9 @@ def normalize_dump(service, input_files, output_dir):
                                 service_citations.append(
                                     Citation(
                                         oci_omid, # oci,
-                                        idbase_url + quote(citing_omid), # citing_url,
+                                        None, # citing_url,
                                         None, # citing_pub_date,
-                                        idbase_url + quote(cited_omid), # cited_url,
+                                        None, # cited_url,
                                         None, # cited_pub_date,
                                         None, # creation,
                                         None, # timespan,
@@ -135,29 +142,35 @@ def normalize_dump(service, input_files, output_dir):
                                 #check duplicate
                                 if redis_cits.get(oci_omid) == None:
 
-                                    if "[[citing]]" in source:
-                                        source = source.replace("[[citing]]",citing)
+                                    resources = redis_index.mget([citing_omid,cited_omid])
+                                    print(resources)
+                                    rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
 
-                                    creation_date = None
-                                    if row["creation"] != "" and row["creation"] != None:
-                                        creation_date = row["creation"]
+                                    if citing_date is None:
+                                        citing_date = rf_handler.get_date(citing_omid)
 
-                                    timespan = None
-                                    if row["timespan"] != "" and row["timespan"] != None:
-                                        timespan = row["timespan"]
+                                    if cited_date is None:
+                                        cited_date = rf_handler.get_date(cited_omid)
 
-                                    journal_sc = "yes" in row["journal_sc"]
-                                    author_sc = "yes" in row["author_sc"]
+                                    if journal_sc is None or type(journal_sc) is not bool:
+                                        journal_sc, citing_issn, cited_issn = rf_handler.share_issn(
+                                            citing_omid, cited_omid
+                                        )
+
+                                    if author_sc is None or type(author_sc) is not bool:
+                                        author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(
+                                            citing_omid, cited_omid
+                                        )
 
                                     index_citations.append(
                                         Citation(
                                             oci_omid, # oci,
                                             idbase_url + quote(citing_omid), # citing_url,
-                                            None, # citing_pub_date,
+                                            citing_date, # citing_pub_date,
                                             idbase_url + quote(cited_omid), # cited_url,
-                                            None, # cited_pub_date,
-                                            creation_date, # creation,
-                                            timespan, # timespan,
+                                            cited_date, # cited_pub_date,
+                                            None, # creation,
+                                            None, # timespan,
                                             1, # prov_entity_number,
                                             agent, # prov_agent_url,
                                             source, # source,
@@ -179,8 +192,13 @@ def normalize_dump(service, input_files, output_dir):
 
                                 else:
                                     citations_duplicated += 1
+                            else:
+                                if citing_omid == None:
+                                    entities_with_no_omid.add(citing_omid)
+                                if cited_omid == None:
+                                    entities_with_no_omid.add(cited_omid)
 
-                        logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(br_with_no_omid))
+                        logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(len(entities_with_no_omid)))
 
                         # Store the citations of the CSV file
                         index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
@@ -194,6 +212,22 @@ def normalize_dump(service, input_files, output_dir):
                         for citation in tqdm(service_citations):
                             service_storer.store_citation(citation)
                         logger.info(f"{len(service_citations)} citations saved")
+
+                    files_processed.add((str(fzip),str(csv_name)))
+
+    # Store entities_with_no_omid
+    logger.info("Saving entities with no omid...")
+    with open(output_dir+'entities_with_no_omid.csv', 'w') as f:
+        write = csv.writer(f)
+        write.writerows(list(entities_with_no_omid))
+
+    # Store files_processed
+    logger.info("Saving files processed...")
+    with open(output_dir+'files_processed.csv', 'w') as f:
+        write = csv.writer(f)
+        for t in files_processed:
+            write.writerow(list(t))
+
 def main():
     global _config
 
