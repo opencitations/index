@@ -56,6 +56,7 @@ setup(
             "oc.index.meta2redis=oc.index.scripts.meta2redis:main",
             "oc.index.normalise=oc.index.scripts.normalise_citations:main",
             "oc.index.normalise_dump=oc.index.scripts.normalise_dump:main",
+            "oc.index.check_entities=oc.index.scripts.check_entities:main",
             "oc.index.cnc=oc.index.scripts.cnc:main",
             "oc.index.datasource=oc.index.scripts.datasource:main",
             "oc.index.glob.crossref=oc.index.scripts.glob_crossref:main",
