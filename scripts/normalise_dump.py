@@ -93,6 +93,7 @@ def normalize_dump(service, input_files, output_dir):
                     citations_duplicated = 0
                     entities_with_no_omid = set()
                     service_citations = []
+                    cache = dict()
 
                     logger.info("Converting the citations in: "+str(csv_name))
                     with archive.open(csv_name) as csv_file:
@@ -103,10 +104,16 @@ def normalize_dump(service, input_files, output_dir):
                         for row in l_cits:
 
                             citing = row["citing"]
-                            citing_omid = redis_br.get(identifier+":"+citing)
+                            citing_omid = cache[citing] if citing in cache else None
+                            if citing_omid == None:
+                                citing_omid = redis_br.get(identifier+":"+citing)
+                                cache[citing] = citing_omid
 
                             cited = row["cited"]
-                            cited_omid = redis_br.get(identifier+":"+cited)
+                            cited_omid = cache[cited] if cited in cache else None
+                            if cited_omid == None:
+                                cited_omid = redis_br.get(identifier+":"+cited)
+                                cache[cited] = cited_omid
 
                             if citing_omid != None and cited_omid != None:
 

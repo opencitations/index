@@ -93,6 +93,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                     other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\]\s]+)", o_row[col])
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid[0],omid_br) )
+                                        # Note: some entities might be part of <db_metadata_buffer> but not of <db_meta_buffer> since they might have no corresponding <br_ids>
                                         db_meta_buffer.append( (omid_br,oid[0]) )
                                         count_br += 1
 
