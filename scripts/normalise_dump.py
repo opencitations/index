@@ -98,6 +98,7 @@ def normalize_dump(service, input_files, output_dir):
                     with archive.open(csv_name) as csv_file:
                         l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
 
+                        logger.info("The #citations is: "+str(len(l_cits)))
                         # iterate citations (CSV rows)
                         for row in l_cits:
 
@@ -186,7 +187,7 @@ def normalize_dump(service, input_files, output_dir):
                                     entities_with_no_omid.add(cited_omid)
 
                     logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(len(entities_with_no_omid)))
-
+                    logger.info(str(list(entities_with_no_omid)))
                     # Store the citations of the CSV file
                     index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
                     logger.info("Saving Index citations...")
@@ -226,7 +227,7 @@ def main():
         "-s",
         "--service",
         default="COCI",
-        help="The source of the dump (e.g. coci)",
+        help="The source of the dump (e.g. COCI, DOCI)",
     )
     arg_parser.add_argument(
         "-o",
