@@ -199,7 +199,7 @@ def normalize_dump(service, input_files, output_dir):
                     logger.info("Saving entities with no omid...")
                     with open(output_dir+'entities_with_no_omid.csv', 'a+') as f:
                         write = csv.writer(f)
-                        write.writerows(list(entities_with_no_omid))
+                        write.writerows([[e] for e in entities_with_no_omid])
 
                     # Store the citations of the CSV file
                     index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
