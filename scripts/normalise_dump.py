@@ -182,12 +182,18 @@ def normalize_dump(service, input_files, output_dir):
                                     citations_duplicated += 1
                             else:
                                 if citing_omid == None:
-                                    entities_with_no_omid.add(citing_omid)
+                                    entities_with_no_omid.add(citing)
                                 if cited_omid == None:
-                                    entities_with_no_omid.add(cited_omid)
+                                    entities_with_no_omid.add(cited)
 
                     logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(len(entities_with_no_omid)))
-                    logger.info(str(list(entities_with_no_omid)))
+
+                    # Store entities_with_no_omid
+                    logger.info("Saving entities with no omid...")
+                    with open(output_dir+'entities_with_no_omid.csv', 'a+') as f:
+                        write = csv.writer(f)
+                        write.writerows(list(entities_with_no_omid))
+
                     # Store the citations of the CSV file
                     index_storer = CitationStorer(output_dir, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
                     logger.info("Saving Index citations...")
@@ -206,12 +212,6 @@ def normalize_dump(service, input_files, output_dir):
                     with open(output_dir+'files_processed.csv', 'a+') as f:
                         write = csv.writer(f)
                         write.writerow([str(fzip),str(csv_name)])
-
-                    # Store entities_with_no_omid
-                    logger.info("Saving entities with no omid...")
-                    with open(output_dir+'entities_with_no_omid.csv', 'a+') as f:
-                        write = csv.writer(f)
-                        write.writerows(list(entities_with_no_omid))
 
 def main():
     global _config
