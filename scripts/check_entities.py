@@ -100,7 +100,7 @@ def normalize_dump(service, input_files, output_dir):
 
                         logger.info("#citations to check is: "+str(len(l_cits)))
                         # iterate citations (CSV rows)
-                        for row in l_cits:
+                        for row in tqdm(l_cits):
 
                             citing = row["citing"]
                             citing_omid = cache[citing] if citing in cache else None
