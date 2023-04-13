@@ -144,6 +144,17 @@ def normalize_dump(service, input_files, output_dir):
                         write = csv.writer(f)
                         write.writerows([[e] for e in citing_entities_with_omid])
 
+    # remove duplicates from files
+    for f in ["citing_entities_with_no_omid.csv","cited_entities_with_no_omid.csv","citing_entities_with_omid.csv"]:
+        index_entities = set()
+        with open(output_dir+f) as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            for row in csv_reader:
+                index_entities.add(row)
+        with open(output_dir+f, 'w') as f:
+            csv.writer(f).writerows([[e] for e in index_entities])
+
+
 def main():
     global _config
 
