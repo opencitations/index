@@ -150,7 +150,7 @@ def normalize_dump(service, input_files, output_dir):
         with open(output_dir+f) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             for row in csv_reader:
-                index_entities.add(row)
+                index_entities.add(row[0])
         with open(output_dir+f, 'w') as f_out:
             csv.writer(f_out).writerows([[e] for e in index_entities])
 
