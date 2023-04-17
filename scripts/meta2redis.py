@@ -85,8 +85,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                             "date": str(o_row["pub_date"]),
                                             "valid": True,
                                             "orcid": re.findall("orcid\:(\S[^\]\s]+)", o_row["author"]),
-                                            "issn": re.findall("issn\:(\S[^\]\s]+)", o_row["venue"]),
-                                            "citations": []
+                                            "issn": re.findall("issn\:(\S[^\]\s]+)", o_row["venue"])
                                         }
                                         db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
 
