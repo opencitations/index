@@ -47,6 +47,8 @@ class RedisDB(object):
 
 
 def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_meta="9", db_br="10", db_ra="11", db_metadata="12"):
+    global _config
+    logger = get_logger()
 
     rconn_db_br =  RedisDB(redishost, redisport, redisbatchsize, db_br)
     rconn_db_ra = RedisDB(redishost, redisport, redisbatchsize, db_ra)
