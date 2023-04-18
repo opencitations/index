@@ -24,6 +24,8 @@ from redis import Redis
 import re
 import sys
 
+from tqdm import tqdm
+from collections import defaultdict
 from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
 
@@ -57,22 +59,24 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
     db_ra_buffer = []
     db_metadata_buffer = []
 
-    count_br = 0
-    count_ra = 0
+    # glob indexes
+    br_index = defaultdict(set)
+    ra_index = defaultdict(set)
+
     for filename in os.listdir(dump_path):
         fzip = os.path.join(dump_path, filename)
         # checking if it is a file
         if fzip.endswith(".zip"):
             with ZipFile(fzip) as archive:
+                logger.info("Total number of files in the archive is:"+str(len(archive.namelist())))
                 # Each CSV file contain (i.e., CSV header):
                 # "id","title","author","pub_date","venue","volume","issue","page","type","publisher","editor"
                 for csv_name in archive.namelist():
                     with archive.open(csv_name) as csv_file:
-                        l_cits = list(csv.DictReader(
-                            io.TextIOWrapper(csv_file)))
-
-                        # elaborate each citation in the DUMP
-                        for o_row in l_cits:
+                        l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
+                        # walk through each citation in the CSV
+                        logger.info("Walking through the citations of: "+str(csv_name))
+                        for o_row in tqdm(l_cits):
                             #check BRs from the columns: "id" and "venue"
                             for col in ["id","venue"]:
                                 re_id = re.search("(meta\:br\S[^\]\s]+)", o_row[col])
@@ -90,11 +94,12 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                         db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
 
                                     other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\]\s]+)", o_row[col])
+                                    # Note: some entities might be part of <db_metadata_buffer> but not of <db_meta_buffer> since they might have no corresponding <br_ids>
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid[0],omid_br) )
-                                        # Note: some entities might be part of <db_metadata_buffer> but not of <db_meta_buffer> since they might have no corresponding <br_ids>
                                         db_meta_buffer.append( (omid_br,oid[0]) )
-                                        count_br += 1
+                                        #update glob index
+                                        br_index[oid[0]].add(omid_br)
 
                             #check RAs from the columns: "author","publisher", and "editor"
                             for col in ["author","publisher","editor"]:
@@ -106,7 +111,8 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                         for oid in other_ids:
                                             db_ra_buffer.append( (oid[0],omid_ra) )
                                             db_meta_buffer.append( (omid_ra,oid[0]) )
-                                            count_ra += 1
+                                            #update glob index
+                                            ra_index[oid[0]].add(omid_ra)
 
                             #update redis DBs
                             if rconn_db_meta.set_data(db_meta_buffer) > 0:
@@ -127,7 +133,19 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
     rconn_db_br.set_data(db_br_buffer, True)
     rconn_db_ra.set_data(db_ra_buffer, True)
 
-    return (count_br, count_ra)
+    #print glob indexes to file
+    logger.info("Saving global indexes...")
+    with open('meta_br.csv', 'a+') as f:
+        write = csv.writer(f)
+        for id in br_index:
+            write.writerow([id,"; ".join(br_index[id])])
+
+    with open('meta_ra.csv', 'a+') as f:
+        write = csv.writer(f)
+        for id in ra_index:
+            write.writerow([id,"; ".join(ra_index[id])])
+
+    return (str(len(br_index)), str(len(ra_index)))
 
 
 def main():
@@ -156,4 +174,4 @@ def main():
         db_metadata = _config.get("INDEX", "db")
     )
 
-    logger.info("A total of "+str(res[0])+" BRs and "+str(res[1])+" RAs have been added to Redis.")
+    logger.info("A total of unique "+str(res[0])+" BRs and "+str(res[1])+" RAs have been found and added to Redis.")
