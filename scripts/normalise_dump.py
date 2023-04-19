@@ -219,7 +219,9 @@ def normalize_dump(service, input_files, output_dir):
                                 if cited_omid == None:
                                     entities_with_no_omid.add(cited)
 
-                    logger.info("> duplicated citations="+str(citations_duplicated)+"; entities with no OMID="+str(len(entities_with_no_omid)))
+                    logger.info("[STATS] duplicated citations="+str(citations_duplicated))
+                    logger.info("[STATS] entities with no OMID="+str(len(entities_with_no_omid)))
+                    logger.info("[STATS] number of citations lost="+str(len(l_cits) - len(service_citations)))
 
                     # Store entities_with_no_omid
                     logger.info("Saving entities with no omid...")
