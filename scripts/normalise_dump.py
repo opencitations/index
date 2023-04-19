@@ -304,3 +304,5 @@ def main():
 
     # call the normalize_dump function
     normalize_dump(service, input_files, output_dir)
+
+    logger.info("Done !!")
