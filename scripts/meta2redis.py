@@ -46,17 +46,15 @@ class RedisDB(object):
         return 0
 
 
-def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_meta="9", db_br="10", db_ra="11", db_metadata="12"):
+def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_br="10", db_ra="11", db_metadata="12"):
     global _config
     logger = get_logger()
 
     rconn_db_br =  RedisDB(redishost, redisport, redisbatchsize, db_br)
     rconn_db_ra = RedisDB(redishost, redisport, redisbatchsize, db_ra)
     rconn_db_metadata = RedisDB(redishost, redisport, redisbatchsize, db_metadata)
-    rconn_db_meta =  RedisDB(redishost, redisport, redisbatchsize, db_meta)
 
     # set buffers
-    db_meta_buffer = []
     db_br_buffer = []
     db_ra_buffer = []
     db_metadata_buffer = []
@@ -96,10 +94,8 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                         db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
 
                                     other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\]\s]+)", o_row[col])
-                                    # Note: some entities might be part of <db_metadata_buffer> but not of <db_meta_buffer> since they might have no corresponding <br_ids>
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid[0],omid_br) )
-                                        db_meta_buffer.append( (omid_br,oid[0]) )
                                         #update glob index
                                         br_index[oid[0]].add(omid_br)
 
@@ -112,14 +108,10 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                         other_ids = re.findall("(("+"|".join(ra_ids)+")\:\S[^\]\s]+)", item)
                                         for oid in other_ids:
                                             db_ra_buffer.append( (oid[0],omid_ra) )
-                                            db_meta_buffer.append( (omid_ra,oid[0]) )
                                             #update glob index
                                             ra_index[oid[0]].add(omid_ra)
 
                             #update redis DBs
-                            if rconn_db_meta.set_data(db_meta_buffer) > 0:
-                                db_meta_buffer = []
-
                             if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
                                 db_metadata_buffer = []
 
@@ -130,8 +122,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                 db_ra_buffer = []
 
     # Set last data in Redis
-    rconn_db_meta.set_data(db_meta_buffer, True)
-    rconn_db_br.set_data(db_metadata_buffer, True)
+    rconn_db_metadata.set_data(db_metadata_buffer, True)
     rconn_db_br.set_data(db_br_buffer, True)
     rconn_db_ra.set_data(db_ra_buffer, True)
 
@@ -170,7 +161,6 @@ def main():
         redisbatchsize = _config.get("redis", "batch_size"),
         br_ids = _config.get("cnc", "br_ids").split(","),
         ra_ids = _config.get("cnc", "ra_ids").split(","),
-        db_meta = _config.get("cnc", "db_meta"),
         db_br = _config.get("cnc", "db_br"),
         db_ra = _config.get("cnc", "db_ra"),
         db_metadata = _config.get("INDEX", "db")
