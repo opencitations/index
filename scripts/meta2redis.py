@@ -79,7 +79,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                         for o_row in tqdm(l_cits):
                             #check BRs from the columns: "id" and "venue"
                             for col in ["id","venue"]:
-                                re_id = re.search("(meta\:br\S[^\]\s]+)", o_row[col])
+                                re_id = re.search("(meta\:br\S[^\s]+)", o_row[col])
                                 if re_id:
                                     omid_br = re_id.group(1).replace("meta:br/","br/")
 
@@ -93,7 +93,9 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                         }
                                         db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
 
-                                    other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\]\s]+)", o_row[col])
+                                    if o_row[col][-1] == "]":
+                                        o_row[col] = o_row[col][:-1]
+                                    other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\s]+)", o_row[col])
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid[0],omid_br) )
                                         #update glob index
