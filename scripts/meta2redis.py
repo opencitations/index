@@ -111,11 +111,13 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
 
                                     # add metadata only if the BR entity is in the ID column
                                     if col == "id":
+                                        orcids = re_get_ids(o_row["author"],["orcid"])
+                                        issns = re_get_ids(o_row["venue"],["issn"])
                                         entity_value = {
                                             "date": str(o_row["pub_date"]),
                                             "valid": True,
-                                            "orcid": re_get_ids(o_row["author"],["orcid"]),
-                                            "issn": re_get_ids(o_row["venue"],["issn"])
+                                            "orcid": [a.replace("orcid:","") for a in orcids] if len(orcids) > 0 else [],
+                                            "issn": [a.replace("issn:","") for a in issns] if len(issns) > 0 else []
                                         }
                                         db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
 
