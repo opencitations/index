@@ -45,6 +45,28 @@ class RedisDB(object):
             return len(data)
         return 0
 
+# get IDs using Regex
+def re_get_ids(val, identifiers, multi_ids = True, group_ids= False):
+    res = []
+    items = [val]
+    if multi_ids:
+        items = [item for item in val.split("; ")]
+
+    for item in items:
+        re_rule = "(.*)"
+        if multi_ids:
+            re_rule = "\[(.*)\]"
+
+        re_ids_container = re.search(re_rule,item)
+        if re_ids_container:
+            re_ids = re.findall("(("+"|".join(identifiers)+")\:\S[^\s]+)", re_ids_container.group(1))
+            oids = [oid[0] for oid in re_ids]
+            if group_ids:
+                res.append(oids)
+            else:
+                for _id in oids:
+                    res.append(_id)
+    return res
 
 def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_br="10", db_ra="11", db_metadata="12"):
     global _config
@@ -79,39 +101,34 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                         for o_row in tqdm(l_cits):
                             #check BRs from the columns: "id" and "venue"
                             for col in ["id","venue"]:
-                                re_id = re.search("(meta\:br\S[^\s]+)", o_row[col])
-                                if re_id:
-                                    omid_br = re_id.group(1).replace("meta:br/","br/")
+                                omid_ids = re_get_ids(o_row[col],["meta"], col == "venue")
+                                if len(omid_ids) > 0:
+                                    omid_br = omid_ids[0].replace("meta:","")
+                                    other_ids = re_get_ids(o_row[col],br_ids, col == "venue")
+                                    for oid in other_ids:
+                                        db_br_buffer.append( (oid,omid_br) )
+                                        br_index[oid].add(omid_br) #update glob index
 
                                     # add metadata only if the BR entity is in the ID column
                                     if col == "id":
                                         entity_value = {
                                             "date": str(o_row["pub_date"]),
                                             "valid": True,
-                                            "orcid": re.findall("orcid\:(\S[^\]\s]+)", o_row["author"]),
-                                            "issn": re.findall("issn\:(\S[^\]\s]+)", o_row["venue"])
+                                            "orcid": re_get_ids(o_row["author"],["orcid"]),
+                                            "issn": re_get_ids(o_row["venue"],["issn"])
                                         }
                                         db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
 
-                                    if o_row[col][-1] == "]":
-                                        o_row[col] = o_row[col][:-1]
-                                    other_ids = re.findall("(("+"|".join(br_ids)+")\:\S[^\s]+)", o_row[col])
-                                    for oid in other_ids:
-                                        db_br_buffer.append( (oid[0],omid_br) )
-                                        #update glob index
-                                        br_index[oid[0]].add(omid_br)
-
                             #check RAs from the columns: "author","publisher", and "editor"
                             for col in ["author","publisher","editor"]:
-                                for item in o_row[col].split(";"):
-                                    re_id = re.search("(meta\:ra\S[^\]\s]+)", item)
-                                    if re_id:
-                                        omid_ra = re_id.group(1).replace("meta:ra/","ra/")
-                                        other_ids = re.findall("(("+"|".join(ra_ids)+")\:\S[^\]\s]+)", item)
+                                for item in o_row[col].split("; "):
+                                    omid_ids = re_get_ids(item,["meta"])
+                                    if len(omid_ids) > 0:
+                                        omid_ra = omid_ids[0].replace("meta:","")
+                                        other_ids = re_get_ids(item,ra_ids)
                                         for oid in other_ids:
-                                            db_ra_buffer.append( (oid[0],omid_ra) )
-                                            #update glob index
-                                            ra_index[oid[0]].add(omid_ra)
+                                            db_ra_buffer.append( (oid,omid_ra) )
+                                            ra_index[oid].add(omid_ra) #update glob index
 
                             #update redis DBs
                             if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
