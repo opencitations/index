@@ -142,13 +142,6 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                             if rconn_db_ra.set_data(db_ra_buffer) > 0:
                                 db_ra_buffer = []
 
-    print("-----------------")
-    print(db_metadata_buffer)
-    print("-----------------")
-    print(db_br_buffer)
-    print("-----------------")
-    print(db_ra_buffer)
-
     # Set last data in Redis
     rconn_db_metadata.set_data(db_metadata_buffer, True)
     rconn_db_br.set_data(db_br_buffer, True)
