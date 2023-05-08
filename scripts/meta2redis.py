@@ -132,15 +132,17 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                             db_ra_buffer.append( (oid,omid_ra) )
                                             ra_index[oid].add(omid_ra) #update glob index
 
-                            #update redis DBs
-                            if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
-                                db_metadata_buffer = []
+                        logger.info("> Total BR-OMIDs found in file: "+str(len(db_br_buffer)))
 
-                            if rconn_db_br.set_data(db_br_buffer) > 0:
-                                db_br_buffer = []
+                        #update redis DBs
+                        if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
+                            db_metadata_buffer = []
 
-                            if rconn_db_ra.set_data(db_ra_buffer) > 0:
-                                db_ra_buffer = []
+                        if rconn_db_br.set_data(db_br_buffer) > 0:
+                            db_br_buffer = []
+
+                        if rconn_db_ra.set_data(db_ra_buffer) > 0:
+                            db_ra_buffer = []
 
     # Set last data in Redis
     rconn_db_metadata.set_data(db_metadata_buffer, True)
