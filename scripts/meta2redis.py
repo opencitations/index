@@ -101,7 +101,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                         for o_row in tqdm(l_cits):
                             #check BRs from the columns: "id" and "venue"
                             for col in ["id","venue"]:
-                                omid_ids = re_get_ids(o_row[col],["meta"], col == "venue")
+                                omid_ids = re_get_ids(o_row[col],["omid"], col == "venue")
                                 if len(omid_ids) > 0:
                                     omid_br = omid_ids[0].replace("omid:","")
                                     other_ids = re_get_ids(o_row[col],br_ids, col == "venue")
@@ -124,7 +124,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                             #check RAs from the columns: "author","publisher", and "editor"
                             for col in ["author","publisher","editor"]:
                                 for item in o_row[col].split("; "):
-                                    omid_ids = re_get_ids(item,["meta"])
+                                    omid_ids = re_get_ids(item,["omid"])
                                     if len(omid_ids) > 0:
                                         omid_ra = omid_ids[0].replace("omid:","")
                                         other_ids = re_get_ids(item,ra_ids)
