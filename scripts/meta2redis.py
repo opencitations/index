@@ -103,7 +103,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                             for col in ["id","venue"]:
                                 omid_ids = re_get_ids(o_row[col],["meta"], col == "venue")
                                 if len(omid_ids) > 0:
-                                    omid_br = omid_ids[0].replace("meta:","")
+                                    omid_br = omid_ids[0].replace("omid:","")
                                     other_ids = re_get_ids(o_row[col],br_ids, col == "venue")
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid,omid_br) )
@@ -126,7 +126,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                 for item in o_row[col].split("; "):
                                     omid_ids = re_get_ids(item,["meta"])
                                     if len(omid_ids) > 0:
-                                        omid_ra = omid_ids[0].replace("meta:","")
+                                        omid_ra = omid_ids[0].replace("omid:","")
                                         other_ids = re_get_ids(item,ra_ids)
                                         for oid in other_ids:
                                             db_ra_buffer.append( (oid,omid_ra) )
