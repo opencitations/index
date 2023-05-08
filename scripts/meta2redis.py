@@ -45,7 +45,7 @@ class RedisDB(object):
             return len(data)
         return 0
 
-# get IDs using Regex
+# get IDs defined in the CSV dump of META using Regex
 def re_get_ids(val, identifiers, multi_ids = True, group_ids= False):
     res = []
     items = [val]
