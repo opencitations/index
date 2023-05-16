@@ -158,30 +158,30 @@ def normalize_dump(service, input_files, output_dir):
                                     journal_sc, citing_issn, cited_issn = rf_handler.share_issn(citing_omid, cited_omid)
                                     author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(citing_omid, cited_omid)
 
-                                    index_citations.append(
-                                        Citation(
-                                            "oci:"+oci_omid, # oci,
-                                            idbase_url + quote(citing_omid), # citing_url,
-                                            citing_date, # citing_pub_date,
-                                            idbase_url + quote(cited_omid), # cited_url,
-                                            None, # cited_pub_date,
-                                            None, # creation,
-                                            None, # timespan,
-                                            1, # prov_entity_number,
-                                            agent, # prov_agent_url,
-                                            source, # source,
-                                            datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
-                                            service_name, # service_name,
-                                            index_identifier, # id_type,
-                                            idbase_url + "([[XXX__decode]])", # id_shape,
-                                            "reference", # citation_type,
-                                            None, # journal_sc=False,
-                                            None,# author_sc=False,
-                                            None, # prov_inv_date=None,
-                                            "Creation of the citation", # prov_description=None,
-                                            None, # prov_update=None,
-                                        )
-                                    )
+                                    # index_citations.append(
+                                    #     Citation(
+                                    #         "oci:"+oci_omid, # oci,
+                                    #         idbase_url + quote(citing_omid), # citing_url,
+                                    #         None, # citing_pub_date,
+                                    #         idbase_url + quote(cited_omid), # cited_url,
+                                    #         None, # cited_pub_date,
+                                    #         None, # creation,
+                                    #         None, # timespan,
+                                    #         1, # prov_entity_number,
+                                    #         agent, # prov_agent_url,
+                                    #         source, # source,
+                                    #         datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                                    #         service_name, # service_name,
+                                    #         index_identifier, # id_type,
+                                    #         idbase_url + "([[XXX__decode]])", # id_shape,
+                                    #         "reference", # citation_type,
+                                    #         None, # journal_sc=False,
+                                    #         None,# author_sc=False,
+                                    #         None, # prov_inv_date=None,
+                                    #         "Creation of the citation", # prov_description=None,
+                                    #         None, # prov_update=None,
+                                    #     )
+                                    # )
 
                                     index_citations_todump.append(
                                         Citation(
@@ -230,11 +230,11 @@ def normalize_dump(service, input_files, output_dir):
                         write.writerows([[e] for e in entities_with_no_omid])
 
                     # Store the citations of the CSV file
-                    index_storer = CitationStorer(output_dir + "/index-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
-                    logger.info("Saving Index citations (in RDF)...")
-                    for citation in tqdm(index_citations):
-                        index_storer.store_citation(citation)
-                    logger.info(f"{len(index_citations)} citations saved")
+                    # index_storer = CitationStorer(output_dir + "/index-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
+                    # logger.info("Saving Index citations (in RDF)...")
+                    # for citation in tqdm(index_citations):
+                    #     index_storer.store_citation(citation)
+                    # logger.info(f"{len(index_citations)} citations saved")
 
                     index_ts_storer = CitationStorer(output_dir+"/index-dump", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
                     logger.info("Saving Index citations to dump...")
