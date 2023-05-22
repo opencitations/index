@@ -17,14 +17,14 @@ def remove_rows_with_string(input_file, output_file, strings_to_remove):
         file.writelines(filtered_lines)
 
 def main():
-    arg_parser = ArgumentParser(description="Generates the RDF files to be uploaded to the triplestore")
-    arg_parser.add_argument(
+    args = ArgumentParser(description="Generates the RDF files to be uploaded to the triplestore")
+    args.add_argument(
         "-i",
         "--input",
         required=True,
         help="The directory storing the TTL files",
     )
-    arg_parser.add_argument(
+    args.add_argument(
         "-o",
         "--out",
         required=True,
