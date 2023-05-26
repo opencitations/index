@@ -95,6 +95,7 @@ def normalize_dump(service, input_files, output_dir):
                     entities_with_no_omid = set()
                     service_citations = []
                     cache = dict()
+                    oci_list = []
 
                     logger.info("Converting the citations in: "+str(csv_name))
                     with archive.open(csv_name) as csv_file:
@@ -210,6 +211,7 @@ def normalize_dump(service, input_files, output_dir):
 
                                     # add the OCI of the produced citation to Redis
                                     redis_cits.set(oci_omid, "1")
+                                    oci_list.append(oci_omid)
 
                                 else:
                                     citations_duplicated += 1
@@ -253,6 +255,13 @@ def normalize_dump(service, input_files, output_dir):
                     with open(output_dir+'files_processed.csv', 'a+') as f:
                         write = csv.writer(f)
                         write.writerow([str(fzip),str(csv_name)])
+
+                    # Store new OCIs
+                    logger.info("Saving new OCIs...")
+                    with open(output_dir+'index_citations.csv', 'a+') as f:
+                        write = csv.writer(f)
+                        for oci in oci_list:
+                            write.writerow([oci])
 
     # remove duplicates from entities_with_no_omid
     index_entities = set()
