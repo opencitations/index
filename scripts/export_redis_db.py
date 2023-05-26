@@ -12,6 +12,6 @@ rconn_db = Redis(host="localhost", port="6379", db=args.db)
 
 with open('redis_'+str(args.db)+'.csv', 'a+') as f:
     write = csv.writer(f)
-    for key in rconn_db.scan_iter():
+    for key in tqdm(rconn_db.scan_iter()):
         val = rconn_db.get(key).decode('utf-8')
         write.writerow([key.decode('utf-8'),val])
