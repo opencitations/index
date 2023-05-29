@@ -101,10 +101,12 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                         for o_row in tqdm(l_cits):
                             #check BRs from the columns: "id" and "venue"
                             for col in ["id","venue"]:
-                                omid_ids = re_get_ids(o_row[col],["omid"], multi_ids = False, group_ids= False)
+                                # "venue" is a field with multiple ids
+                                multi_ids_bool = col == "venue"
+                                omid_ids = re_get_ids(o_row[col],["omid"], multi_ids = multi_ids_bool, group_ids= False)
                                 if len(omid_ids) > 0:
                                     omid_br = omid_ids[0].replace("omid:","")
-                                    other_ids = re_get_ids(o_row[col],br_ids)
+                                    other_ids = re_get_ids(o_row[col],br_ids, multi_ids = multi_ids_bool, group_ids= False)
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid,omid_br) )
                                         br_index[oid].add(omid_br) #update glob index
