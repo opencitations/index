@@ -274,6 +274,7 @@ def normalize_dump(service, input_files, output_dir):
 
 def main():
     global _config
+    logger = get_logger()
 
     arg_parser = ArgumentParser(description="Normalise citations of an index dump (e.g., COCI, DOCI) – convert citations into OMID-OMID format")
     arg_parser.add_argument(
