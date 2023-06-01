@@ -26,6 +26,7 @@ from tqdm import tqdm
 from argparse import ArgumentParser
 from urllib.parse import quote
 from datetime import datetime, timezone
+from collections import defaultdict
 
 from oc.index.parsing.base import CitationParser
 from oc.index.utils.logging import get_logger
@@ -75,10 +76,8 @@ def normalize_dump(service, input_files, output_dir):
     redis_index = RedisDataSource("INDEX")
 
     #cache variables
-    oci_omids_buffer = dict()
-    cits_done_buffer = dict()
     REDIS_W_BUFFER = 300000
-    REDIS_R_BUFFER = 100000
+    REDIS_R_BUFFER_CITS = 100000
 
     for fzip in input_files:
         # checking if it is a file
@@ -94,102 +93,115 @@ def normalize_dump(service, input_files, output_dir):
                         logger.info("Skip file (not a CSV): "+str(csv_name))
                         continue
 
-                    index_citations_todump = []
                     index_citations = []
                     citations_duplicated = 0
                     entities_with_no_omid = set()
                     service_citations = []
-                    cache = dict()
-                    oci_list = []
+                    cits_buffer = []
+                    ocis_processed_buffer = dict()
 
                     logger.info("Converting the citations in: "+str(csv_name))
                     with archive.open(csv_name) as csv_file:
-                        l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
+
+                        l_cits = [(row["citing"],row["cited"]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
 
                         logger.info("The #citations is: "+str(len(l_cits)))
+
                         # iterate citations (CSV rows)
-                        for row in tqdm(l_cits):
+                        for idx, cit in tqdm(enumerate(l_cits)):
 
-                            citing = row["citing"]
-                            citing_omid = cache[citing] if citing in cache else None
-                            if citing_omid == None:
-                                citing_omid = redis_br.get(identifier+":"+citing)
-                                cache[citing] = citing_omid
+                            # add the citing and cited entities to be further retrivied from redis
+                            cits_buffer.append(cit)
 
-                            cited = row["cited"]
-                            cited_omid = cache[cited] if cited in cache else None
-                            if cited_omid == None:
-                                cited_omid = redis_br.get(identifier+":"+cited)
-                                cache[cited] = cited_omid
 
-                            if citing_omid != None and cited_omid != None:
+                            # Process when the buffer is full or I have reached the last element
+                            if len(cits_buffer) >= REDIS_R_BUFFER_CITS or idx == len(l_cits) - 1:
 
-                                citing_omid = citing_omid.decode("utf-8")
-                                cited_omid = cited_omid.decode("utf-8")
-                                oci_omid = citing_omid[3:]+"-"+cited_omid[3:]
+                                # (1) GET ALL OMIDS
+                                index_ocis = dict()
+                                keys_br_ids = []
+                                for c in cits_buffer:
+                                    keys_br_ids += [c[0],c[1]]
+                                br_omids = zip(keys_br_ids, rconn_db.mget(keys_br_ids))
 
-                                service_citations.append(
-                                    Citation(
-                                        "oci:"+oci_omid, # oci,
-                                        None, # citing_url,
-                                        None, # citing_pub_date,
-                                        None, # cited_url,
-                                        None, # cited_pub_date,
-                                        None, # creation,
-                                        None, # timespan,
-                                        None, # prov_entity_number,
-                                        agent, # prov_agent_url,
-                                        source, # source,
-                                        datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
-                                        service_name, # service_name,
-                                        index_identifier, # id_type,
-                                        idbase_url + "([[XXX__decode]])", # id_shape,
-                                        "reference", # citation_type,
-                                        None, # journal_sc=False,
-                                        None,# author_sc=False,
-                                        None, # prov_inv_date=None,
-                                        "Creation of the citation", # prov_description=None,
-                                        None, # prov_update=None,
-                                    )
-                                )
+                                # iterate by couples
+                                for citing_entity, cited_entity in zip(br_omids[::2], br_omids[1::2]):
 
-                                #check duplicate
-                                if redis_cits.get(oci_omid) == None and oci_omid not in cits_done_buffer:
+                                    citing_id, citing_omid = citing_entity[0], citing_entity[1]
+                                    cited_id, cited_omid = cited_entity[0], cited_entity[1]
 
-                                    resources = redis_index.mget([citing_omid,cited_omid])
-                                    rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
+                                    # check if both citing and cited entities have omid
+                                    if citing_omid != None and cited_omid != None:
+
+                                        citing_omid = citing_omid.decode("utf-8")
+                                        cited_omid = cited_omid.decode("utf-8")
+                                        oci_omid = citing_omid[3:]+"-"+cited_omid[3:]
+
+                                        index_ocis[oci_omid] = (citing_omid,cited_omid)
+
+                                        service_citations.append(
+                                            Citation(
+                                                "oci:"+oci_omid, # oci,
+                                                None, # citing_url,
+                                                None, # citing_pub_date,
+                                                None, # cited_url,
+                                                None, # cited_pub_date,
+                                                None, # creation,
+                                                None, # timespan,
+                                                None, # prov_entity_number,
+                                                agent, # prov_agent_url,
+                                                source, # source,
+                                                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                                                service_name, # service_name,
+                                                index_identifier, # id_type,
+                                                idbase_url + "([[XXX__decode]])", # id_shape,
+                                                "reference", # citation_type,
+                                                None, # journal_sc=False,
+                                                None,# author_sc=False,
+                                                None, # prov_inv_date=None,
+                                                "Creation of the citation", # prov_description=None,
+                                                None, # prov_update=None,
+                                            )
+                                        )
+
+                                    else:
+                                        if citing_omid == None:
+                                            entities_with_no_omid.add(citing_id)
+                                        if cited_omid == None:
+                                            entities_with_no_omid.add(cited_id)
+
+
+                                # (2) GET ALL OMID-OCIs not processed yet
+                                ocis_to_process = dict()
+                                brs_to_process = []
+                                for oci_omid, in_redis in zip(index_ocis.keys(), redis_cits.mget(index_ocis.keys())):
+
+                                    # it has been already processed
+                                    if in_redis != None:
+                                        citations_duplicated += 1
+                                    else:
+                                        #check if is not in the cache too
+                                        if oci_omid not in ocis_processed_buffer:
+                                            brs_to_process.append(index_ocis[oci_omid][0])
+                                            brs_to_process.append(index_ocis[oci_omid][1])
+                                            ocis_to_process[oci_omid] = [index_ocis[oci_omid][0], index_ocis[oci_omid][1]]
+
+
+                                # (3) GET ALL METADATA
+                                # Create a dict which maps the omid_brs to their metadata
+                                # br_meta = {key: value for key, value in zip(brs_to_process, rconn_db.mget(brs_to_process))}
+                                resources = redis_index.mget(brs_to_process)
+                                rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
+                                for oci_omid in ocis_to_process:
+
+                                    citing_omid, cited_omid = oci_omid[0], oci_omid[1]
 
                                     citing_date = rf_handler.get_date(citing_omid)
                                     cited_date = rf_handler.get_date(cited_omid)
                                     journal_sc, citing_issn, cited_issn = rf_handler.share_issn(citing_omid, cited_omid)
                                     author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(citing_omid, cited_omid)
 
-                                    # index_citations.append(
-                                    #     Citation(
-                                    #         "oci:"+oci_omid, # oci,
-                                    #         idbase_url + quote(citing_omid), # citing_url,
-                                    #         None, # citing_pub_date,
-                                    #         idbase_url + quote(cited_omid), # cited_url,
-                                    #         None, # cited_pub_date,
-                                    #         None, # creation,
-                                    #         None, # timespan,
-                                    #         1, # prov_entity_number,
-                                    #         agent, # prov_agent_url,
-                                    #         source, # source,
-                                    #         datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
-                                    #         service_name, # service_name,
-                                    #         index_identifier, # id_type,
-                                    #         idbase_url + "([[XXX__decode]])", # id_shape,
-                                    #         "reference", # citation_type,
-                                    #         None, # journal_sc=False,
-                                    #         None,# author_sc=False,
-                                    #         None, # prov_inv_date=None,
-                                    #         "Creation of the citation", # prov_description=None,
-                                    #         None, # prov_update=None,
-                                    #     )
-                                    # )
-
-                                    index_citations_todump.append(
+                                    index_citations.append(
                                         Citation(
                                             "oci:"+oci_omid, # oci,
                                             idbase_url + quote(citing_omid), # citing_url,
@@ -215,31 +227,23 @@ def normalize_dump(service, input_files, output_dir):
                                     )
 
                                     # update cache var
-                                    cits_done_buffer[oci_omid] = 1
+                                    ocis_processed_buffer[oci_omid] = 1
 
-                                    # add the OCI of the produced citation to Redis
-                                    oci_list.append(oci_omid)
-
-                                else:
-                                    citations_duplicated += 1
-                            else:
-                                if citing_omid == None:
-                                    entities_with_no_omid.add(citing)
-                                if cited_omid == None:
-                                    entities_with_no_omid.add(cited)
+                                # reset buffer
+                                cits_buffer = []
 
                             # write on redis cache var
-                            if len(cits_done_buffer.keys()) >= REDIS_W_BUFFER:
-                                redis_cits.mset(cits_done_buffer)
-                                cits_done_buffer = dict()
+                            if len(ocis_processed_buffer.keys()) >= REDIS_W_BUFFER:
+                                redis_cits.mset(ocis_processed_buffer)
+                                ocis_processed_buffer = dict()
 
                     logger.info("[STATS] duplicated citations="+str(citations_duplicated))
                     logger.info("[STATS] entities with no OMID="+str(len(entities_with_no_omid)))
                     logger.info("[STATS] number of citations lost="+str(len(l_cits) - len(service_citations)))
 
                     # write on redis cache var when done
-                    if len(cits_done_buffer.keys()) > 0:
-                        redis_cits.mset(cits_done_buffer)
+                    if len(ocis_processed_buffer.keys()) > 0:
+                        redis_cits.mset(ocis_processed_buffer)
 
                     # Store entities_with_no_omid
                     logger.info("Saving entities with no omid...")
@@ -247,18 +251,11 @@ def normalize_dump(service, input_files, output_dir):
                         write = csv.writer(f)
                         write.writerows([[e] for e in entities_with_no_omid])
 
-                    # Store the citations of the CSV file
-                    # index_storer = CitationStorer(output_dir + "/index-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
-                    # logger.info("Saving Index citations (in RDF)...")
-                    # for citation in tqdm(index_citations):
-                    #     index_storer.store_citation(citation)
-                    # logger.info(f"{len(index_citations)} citations saved")
-
                     index_ts_storer = CitationStorer(output_dir+"/index-dump", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
                     logger.info("Saving Index citations to dump...")
-                    for citation in tqdm(index_citations_todump):
+                    for citation in tqdm(index_citations):
                         index_ts_storer.store_citation(citation)
-                    logger.info(f"{len(index_citations_todump)} citations saved")
+                    logger.info(f"{len(index_citations)} citations saved")
 
                     service_storer = CitationStorer(output_dir + "/service-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
                     logger.info("Saving service citations (in RDF)...")
@@ -272,12 +269,6 @@ def normalize_dump(service, input_files, output_dir):
                         write = csv.writer(f)
                         write.writerow([str(fzip),str(csv_name)])
 
-                    # Store new OCIs
-                    logger.info("Saving new OCIs...")
-                    with open(output_dir+'index_citations.csv', 'a+') as f:
-                        write = csv.writer(f)
-                        for oci in oci_list:
-                            write.writerow([oci])
 
     # remove duplicates from entities_with_no_omid
     index_entities = set()
