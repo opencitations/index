@@ -191,12 +191,11 @@ def normalize_dump(service, input_files, output_dir):
                                 # (3) GET ALL METADATA
                                 # Create a dict which maps the omid_brs to their metadata
                                 # br_meta = {key: value for key, value in zip(brs_to_process, redis_br.mget(brs_to_process))}
-                                print(brs_to_process[:10])
                                 resources = redis_index.mget(brs_to_process)
                                 rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
                                 for oci_omid in ocis_to_process:
 
-                                    citing_omid, cited_omid = oci_omid[0], oci_omid[1]
+                                    citing_omid, cited_omid = ocis_to_process[oci_omid][0], ocis_to_process[oci_omid][1]
 
                                     citing_date = rf_handler.get_date(citing_omid)
                                     cited_date = rf_handler.get_date(cited_omid)
