@@ -12,6 +12,13 @@ rconn_db = Redis(host="localhost", port="6379", db=args.db)
 
 with open('redis_'+str(args.db)+'.csv', 'a+') as f:
     write = csv.writer(f)
+    r_buffer_keys = []
+    REDIS_R_BUFFER = 100000
     for key in tqdm(rconn_db.scan_iter()):
-        val = rconn_db.get(key).decode('utf-8')
-        write.writerow([key.decode('utf-8'),val])
+        r_buffer_keys.append(key)
+        if len(r_buffer_keys) >= REDIS_R_BUFFER:
+            values = rconn_db.mget(r_buffer_keys)
+
+            # Print the values
+            for key, value in zip(r_buffer_keys, values):
+                write.writerow([key.decode('utf-8'),value.decode('utf-8')])

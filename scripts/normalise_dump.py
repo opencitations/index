@@ -238,7 +238,7 @@ def normalize_dump(service, input_files, output_dir):
                     logger.info("[STATS] number of citations lost="+str(len(l_cits) - len(service_citations)))
 
                     # write on redis cache var when done
-                    if len(cits_done_buffer.keys()):
+                    if len(cits_done_buffer.keys()) > 0:
                         redis_cits.mset(cits_done_buffer)
 
                     # Store entities_with_no_omid

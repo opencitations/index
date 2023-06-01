@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='Export a DB from Redis')
 parser.add_argument('--db', type=str, required=True,help='DB to populate')
-parser.add_argument('--in', type=str, required=True,help='Input file in CSV format')
+parser.add_argument('--csv', type=str, required=True,help='Input file in CSV format')
 parser.add_argument('--key', type=str, required=True,help='column (i.e. number of column) to use as key in redis')
 parser.add_argument('--value', type=str, required=True,help='column (i.e. number of column) to use as value in redis')
 
@@ -22,12 +22,20 @@ args = parser.parse_args()
 
 r_db = Redis(host="localhost", port="6379", db=args.db)
 
-print("Insert in redis DB="+str(args.db)+", the data in="+str(args.in)+" .")
+print("Insert in redis DB="+str(args.db)+", the data in="+str(args.csv)+" .")
 with open(args.in,'r') as f:
     reader = csv.reader(f)
+    w_buffer = dict()
+    REDIS_W_BUFFER = 10000
     for row in tqdm(reader):
         key = row[args.key]
         value = row[args.value]
-        r_db.set(key, value)
+        w_buffer[key] = value
+        if len(w_buffer.keys()) >= REDIS_W_BUFFER:
+            r_db.mset(w_buffer)
+            w_buffer = dict()
+
+    if len(w_buffer.keys()) > 0:
+        r_db.mset(w_buffer)
 
 print("Done!")
