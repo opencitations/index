@@ -23,7 +23,7 @@ args = parser.parse_args()
 r_db = Redis(host="localhost", port="6379", db=args.db)
 
 print("Insert in redis DB="+str(args.db)+", the data in="+str(args.csv)+" .")
-with open(args.in,'r') as f:
+with open(args.csv,'r') as f:
     reader = csv.reader(f)
     w_buffer = dict()
     REDIS_W_BUFFER = 10000
