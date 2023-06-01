@@ -74,6 +74,11 @@ def normalize_dump(service, input_files, output_dir):
     # redis DB of <OMID>:<METADATA>
     redis_index = RedisDataSource("INDEX")
 
+    #cache variables
+    oci_omids_buffer = dict()
+    cits_done_buffer = dict()
+    REDIS_W_BUFFER = 300000
+    REDIS_R_BUFFER = 100000
 
     for fzip in input_files:
         # checking if it is a file
@@ -149,7 +154,7 @@ def normalize_dump(service, input_files, output_dir):
                                 )
 
                                 #check duplicate
-                                if redis_cits.get(oci_omid) == None:
+                                if redis_cits.get(oci_omid) == None and oci_omid not in cits_done_buffer:
 
                                     resources = redis_index.mget([citing_omid,cited_omid])
                                     rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
@@ -209,8 +214,10 @@ def normalize_dump(service, input_files, output_dir):
                                         )
                                     )
 
+                                    # update cache var
+                                    cits_done_buffer[oci_omid] = 1
+
                                     # add the OCI of the produced citation to Redis
-                                    redis_cits.set(oci_omid, "1")
                                     oci_list.append(oci_omid)
 
                                 else:
@@ -221,9 +228,18 @@ def normalize_dump(service, input_files, output_dir):
                                 if cited_omid == None:
                                     entities_with_no_omid.add(cited)
 
+                            # write on redis cache var
+                            if len(cits_done_buffer.keys()) >= REDIS_W_BUFFER:
+                                redis_cits.mset(cits_done_buffer)
+                                cits_done_buffer = dict()
+
                     logger.info("[STATS] duplicated citations="+str(citations_duplicated))
                     logger.info("[STATS] entities with no OMID="+str(len(entities_with_no_omid)))
                     logger.info("[STATS] number of citations lost="+str(len(l_cits) - len(service_citations)))
+
+                    # write on redis cache var when done
+                    if len(cits_done_buffer.keys()):
+                        redis_cits.mset(cits_done_buffer)
 
                     # Store entities_with_no_omid
                     logger.info("Saving entities with no omid...")
