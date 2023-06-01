@@ -22,3 +22,6 @@ with open('redis_'+str(args.db)+'.csv', 'a+') as f:
             # Print the values
             for key, value in zip(r_buffer_keys, values):
                 write.writerow([key.decode('utf-8'),value.decode('utf-8')])
+
+            # reset buffer
+            r_buffer_keys = []
