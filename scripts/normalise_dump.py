@@ -103,7 +103,7 @@ def normalize_dump(service, input_files, output_dir):
                     logger.info("Converting the citations in: "+str(csv_name))
                     with archive.open(csv_name) as csv_file:
 
-                        l_cits = [(row["citing"],row["cited"]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
+                        l_cits = [(identifier+":"+row["citing"],identifier+":"+row["cited"]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
 
                         logger.info("The #citations is: "+str(len(l_cits)))
 
