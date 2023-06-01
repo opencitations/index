@@ -111,7 +111,7 @@ def normalize_dump(service, input_files, output_dir):
                         for idx, cit in tqdm(enumerate(l_cits)):
 
                             # add the citing and cited entities to be further retrivied from redis
-                            cits_buffer.append(cit)
+                            cits_buffer.append(list(cit))
 
 
                             # Process when the buffer is full or I have reached the last element
@@ -121,14 +121,15 @@ def normalize_dump(service, input_files, output_dir):
                                 index_ocis = dict()
                                 keys_br_ids = []
                                 for c in cits_buffer:
-                                    keys_br_ids += [c[0],c[1]]
-                                br_omids = zip(keys_br_ids, redis_br.mget(keys_br_ids))
+                                    keys_br_ids += c
+
+                                br_omids = {key: value for key, value in zip(keys_br_ids, redis_br.mget(keys_br_ids))}
 
                                 # iterate by couples
-                                for citing_entity, cited_entity in zip(br_omids[::2], br_omids[1::2]):
+                                for buffer_cit in cits_buffer:
 
-                                    citing_id, citing_omid = citing_entity[0], citing_entity[1]
-                                    cited_id, cited_omid = cited_entity[0], cited_entity[1]
+                                    citing_id, citing_omid = buffer_cit[0], br_omids[buffer_cit[0]]
+                                    cited_id, cited_omid = buffer_cit[1], br_omids[buffer_cit[1]]
 
                                     # check if both citing and cited entities have omid
                                     if citing_omid != None and cited_omid != None:
