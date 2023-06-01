@@ -131,6 +131,7 @@ def normalize_dump(service, input_files, output_dir):
                                     citing_id, citing_omid = buffer_cit[0], br_omids[buffer_cit[0]]
                                     cited_id, cited_omid = buffer_cit[1], br_omids[buffer_cit[1]]
 
+                                    print(citing_id, citing_omid)
                                     # check if both citing and cited entities have omid
                                     if citing_omid != None and cited_omid != None:
 
