@@ -131,7 +131,6 @@ def normalize_dump(service, input_files, output_dir):
                                     citing_id, citing_omid = buffer_cit[0], br_omids[buffer_cit[0]]
                                     cited_id, cited_omid = buffer_cit[1], br_omids[buffer_cit[1]]
 
-                                    print(citing_id, citing_omid)
                                     # check if both citing and cited entities have omid
                                     if citing_omid != None and cited_omid != None:
 
@@ -192,6 +191,7 @@ def normalize_dump(service, input_files, output_dir):
                                 # (3) GET ALL METADATA
                                 # Create a dict which maps the omid_brs to their metadata
                                 # br_meta = {key: value for key, value in zip(brs_to_process, redis_br.mget(brs_to_process))}
+                                print(brs_to_process[:10])
                                 resources = redis_index.mget(brs_to_process)
                                 rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
                                 for oci_omid in ocis_to_process:
