@@ -122,7 +122,7 @@ def normalize_dump(service, input_files, output_dir):
                                 keys_br_ids = []
                                 for c in cits_buffer:
                                     keys_br_ids += [c[0],c[1]]
-                                br_omids = zip(keys_br_ids, rconn_db.mget(keys_br_ids))
+                                br_omids = zip(keys_br_ids, redis_br.mget(keys_br_ids))
 
                                 # iterate by couples
                                 for citing_entity, cited_entity in zip(br_omids[::2], br_omids[1::2]):
@@ -189,7 +189,7 @@ def normalize_dump(service, input_files, output_dir):
 
                                 # (3) GET ALL METADATA
                                 # Create a dict which maps the omid_brs to their metadata
-                                # br_meta = {key: value for key, value in zip(brs_to_process, rconn_db.mget(brs_to_process))}
+                                # br_meta = {key: value for key, value in zip(brs_to_process, redis_br.mget(brs_to_process))}
                                 resources = redis_index.mget(brs_to_process)
                                 rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
                                 for oci_omid in ocis_to_process:
