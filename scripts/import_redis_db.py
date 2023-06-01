@@ -28,8 +28,8 @@ with open(args.csv,'r') as f:
     w_buffer = dict()
     REDIS_W_BUFFER = 10000
     for row in tqdm(reader):
-        key = row[args.key]
-        value = row[args.value]
+        key = row[int(args.key)]
+        value = row[int(args.value)]
         w_buffer[key] = value
         if len(w_buffer.keys()) >= REDIS_W_BUFFER:
             r_db.mset(w_buffer)
