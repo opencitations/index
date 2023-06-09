@@ -25,3 +25,9 @@ with open('redis_'+str(args.db)+'.csv', 'a+') as f:
 
             # reset buffer
             r_buffer_keys = []
+
+    # add last elements too
+    if len(r_buffer_keys) > 0:
+        values = rconn_db.mget(r_buffer_keys)
+        for key, value in zip(r_buffer_keys, values):
+            write.writerow([key.decode('utf-8'),value.decode('utf-8')])
