@@ -252,16 +252,19 @@ def normalize_dump(service, input_files, output_dir):
                         write = csv.writer(f)
                         write.writerows([[e] for e in entities_with_no_omid])
 
+                    BATCH_SAVE = 100000
                     index_ts_storer = CitationStorer(output_dir+"/index-dump", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
                     logger.info("Saving Index citations to dump...")
-                    for citation in tqdm(index_citations):
-                        index_ts_storer.store_citation(citation)
+                    for idx in range(0, len(index_citations), BATCH_SAVE):
+                        batch_citations = index_citations[idx:idx+BATCH_SAVE]
+                        index_ts_storer.store_citation(batch_citations)
                     logger.info(f"{len(index_citations)} citations saved")
 
                     service_storer = CitationStorer(output_dir + "/service-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
                     logger.info("Saving service citations (in RDF)...")
-                    for citation in tqdm(service_citations):
-                        service_storer.store_citation(citation)
+                    for idx in range(0, len(service_citations), BATCH_SAVE):
+                        batch_citations = service_citations[idx:idx+BATCH_SAVE]
+                        service_storer.store_citation(batch_citations)
                     logger.info(f"{len(service_citations)} citations saved")
 
                     # Store files_processed

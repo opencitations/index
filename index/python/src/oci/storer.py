@@ -262,13 +262,24 @@ class CitationStorer(object):
             dw = DictWriter(f, header)
             if not f_exists:
                 dw.writeheader()
-            dw.writerow(json_obj)
+
+            if type(json_obj) is list:
+                for o in json_obj:
+                    dw.writerow(o)
+            else:
+                dw.writerow(json_obj)
 
     @staticmethod
     def __store_rdf_on_file(f_path, rdf_obj, format="nt"):
         with open(f_path, "a", encoding="utf8") as f:
-            rdf_string = Citation.format_rdf(rdf_obj, format)
-            f.write(rdf_string)
+
+            if type(rdf_obj) is list:
+                for o in rdf_obj:
+                    rdf_string = Citation.format_rdf(o, format)
+                    f.write(rdf_string)
+            else:
+                rdf_string = Citation.format_rdf(rdf_obj, format)
+                f.write(rdf_string)
 
     @staticmethod
     def __store_slx_on_file(f_path, slx_string):
@@ -282,9 +293,16 @@ class CitationStorer(object):
                 f.truncate()
 
         with open(f_path, "a", encoding="utf8") as f:
-            if f_exists:
-                f.write(",")
-            f.write("\n" + slx_string + "]")
+            if type(slx_string) is list:
+                for o in slx_string:
+                    if f_exists:
+                        f.write(",")
+                    f.write("\n" + o )
+                f.write("]")
+            else:
+                if f_exists:
+                    f.write(",")
+                f.write("\n" + slx_string +"]")
 
     @staticmethod
     def load_citations_from_file(
@@ -534,17 +552,29 @@ class CitationStorer(object):
         prov_csv_f_path = self.prov_csv_dir + csv_filename
 
         if "csv_data" in self.store_as:
+            cits_to_store = None
+            if type(citation) is list:
+                cits_to_store = [loads(c.get_citation_json()) for c in citation]
+            else:
+                cits_to_store = loads(citation.get_citation_json())
+
             CitationStorer.__store_csv_on_file(
                 data_csv_f_path,
                 Citation.header_citation_data,
-                loads(citation.get_citation_json()),
+                cits_to_store,
             )
 
         if "csv_prov" in self.store_as:
+            cits_to_store = None
+            if type(citation) is list:
+                cits_to_store = [loads(c.get_citation_prov_json()) for c in citation]
+            else:
+                cits_to_store = loads(citation.get_citation_prov_json())
+
             CitationStorer.__store_csv_on_file(
                 prov_csv_f_path,
                 Citation.header_provenance_data,
-                loads(citation.get_citation_prov_json()),
+                cits_to_store,
             )
 
         # Store data in RDF
@@ -553,15 +583,27 @@ class CitationStorer(object):
         prov_rdf_f_path = self.prov_rdf_dir + rdf_filename
 
         if "rdf_data" in self.store_as:
+            cits_to_store = None
+            if type(citation) is list:
+                cits_to_store = [c.get_citation_rdf(self.rdf_resource_base, False, False, False) for c in citation]
+            else:
+                cits_to_store = citation.get_citation_rdf(self.rdf_resource_base, False, False, False)
+
             CitationStorer.__store_rdf_on_file(
                 data_rdf_f_path,
-                citation.get_citation_rdf(self.rdf_resource_base, False, False, False),
+                cits_to_store,
             )
 
         if "rdf_prov" in self.store_as:
+            cits_to_store = None
+            if type(citation) is list:
+                cits_to_store = [c.get_citation_prov_rdf(self.rdf_resource_base, False, False, False) for c in citation]
+            else:
+                cits_to_store = citation.get_citation_prov_rdf(self.rdf_resource_base, False, False, False)
+
             CitationStorer.__store_rdf_on_file(
                 prov_rdf_f_path,
-                citation.get_citation_prov_rdf(self.rdf_resource_base),
+                cits_to_store,
                 "nq",
             )
 
@@ -570,6 +612,12 @@ class CitationStorer(object):
         data_slx_f_path = self.data_slx_dir + slx_filename
 
         if "scholix_data" in self.store_as:
+            cits_to_store = None
+            if type(citation) is list:
+                cits_to_store = [c.get_citation_scholix() for c in citation]
+            else:
+                cits_to_store = citation.get_citation_scholix()
+
             CitationStorer.__store_slx_on_file(
-                data_slx_f_path, citation.get_citation_scholix()
+                data_slx_f_path, cits_to_store
             )
