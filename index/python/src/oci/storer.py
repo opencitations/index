@@ -597,9 +597,9 @@ class CitationStorer(object):
         if "rdf_prov" in self.store_as:
             cits_to_store = None
             if type(citation) is list:
-                cits_to_store = [c.get_citation_prov_rdf(self.rdf_resource_base, False, False, False) for c in citation]
+                cits_to_store = [c.get_citation_prov_rdf(self.rdf_resource_base) for c in citation]
             else:
-                cits_to_store = citation.get_citation_prov_rdf(self.rdf_resource_base, False, False, False)
+                cits_to_store = citation.get_citation_prov_rdf(self.rdf_resource_base)
 
             CitationStorer.__store_rdf_on_file(
                 prov_rdf_f_path,
