@@ -43,7 +43,11 @@ setup(
         "lxml",
         "regex",
         "zstandard",
-        "oc-idmanager"
+        "oc_graphenricher",
+        "Levenshtein",
+        "requests_cache",
+        "oc_meta",
+        "wget"
     ],
     packages=[
         f"oc.index.{mod}"
