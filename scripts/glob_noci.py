@@ -164,7 +164,7 @@ def get_all_files_noci(i_dir):
     opener = None
     if i_dir.endswith(".zip"):
         with ZipFile(i_dir, 'r') as zip_ref:
-            dest_dir = i_dir + "decompr_zip_dir"
+            dest_dir = i_dir.split(".")[0] + "_decompr_zip_dir"
             if not exists(dest_dir):
                 makedirs(dest_dir)
             zip_ref.extractall(dest_dir)
@@ -192,11 +192,17 @@ def process_noci(
     input_dir,
     output_dir,
     n,
+    process_type,
+    use_api="True",
     id_orcid_dir=None,
     orcid_client_id=None,
-    orcid_client_secret=None,
-):
-
+    orcid_client_secret=None,):
+    use_api = use_api.strip()
+    if use_api == "True":
+        use_api = True
+    elif use_api == "False":
+        use_api = False
+        
     start = timer()
     if not exists(output_dir):
         makedirs(output_dir)
@@ -211,14 +217,26 @@ def process_noci(
     orcid_manager = ORCIDManager()
     pmid_manager = PMIDManager()
     config = get_config()
-    service_ds = config.get("NOCI", "datasource")
+    if process_type == "process":
+        service_ds = config.get("NOCI", "datasource")
+    else:
+        service_ds = config.get("NOCI_T", "datasource")
+
     svc_datasource = None
+    
     if service_ds == "redis":
-        svc_datasource = RedisDataSource("NOCI")
+        if process_type == "process":
+            svc_datasource = RedisDataSource("NOCI")
+        else:
+            svc_datasource = RedisDataSource("NOCI_T")
     elif service_ds == "csv":
-        svc_datasource = CSVDataSource("NOCI")
+        if process_type == "process":
+            svc_datasource = CSVDataSource("NOCI")
+        else:
+            svc_datasource = CSVDataSource("NOCI_T")
     else:
         raise Exception(service_ds + " is not a valid data source")
+
     all_files, opener = get_all_files_noci(input_dir)
     len_all_files = len(all_files)
     pmid_doi_map = dict()
@@ -238,21 +256,21 @@ def process_noci(
                 # print( "Group nr.", int(index)//int(n), "processed. Data from", int(index), "rows saved to journal_issn.json mapping file")
                 issn_data_to_cache_noci(journal_issn_dict, output_dir)
             citing_pmid = pmid_manager.normalise(row["pmid"], True)
-            if citing_pmid :
+            if citing_pmid:
+                multi_space = re.compile(r"\s+")
                 authors_dicts_list = []
-                authors_split_list = row["authors"].split(",")
+                authors_string = str(row["authors"]).strip()
+                authors_split_list = [a.strip() for a in authors_string.split(",") if a]
                 for author in authors_split_list:
-                    names = re.findall(
-                        "([A-Z]|[ÄŐŰÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽÑ]){1}\s",
-                        author,
-                    )
-                    strp_names = [(x.strip()).lower() for x in names]
-                    surnames = re.findall(
-                        "[a-zA-Z'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}",
-                        author,
-                    )
-                    surnames_l = [s.lower() for s in surnames]
-                    author_dict = {"names": strp_names, "surnames": surnames_l}
+                    author = author.replace(".", " ")
+                    author = multi_space.sub(" ", author).strip()
+                    inits_pattern = r"([A-Z]|[ÄŐŰÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽÑ]){1}(?:\s|$)"
+                    extend_pattern =r"[a-zA-Z'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}(?:\s|$)"
+                    re_inits = re.findall(inits_pattern, author)
+                    re_extended = re.findall(extend_pattern, author)
+                    initials = [(x.strip()).lower() for x in re_inits]
+                    extended = [(s.strip()).lower() for s in re_extended]
+                    author_dict = {"initials": initials, "extended": extended}
                     authors_dicts_list.append(author_dict)
 
                 if not svc_datasource.get(citing_pmid):
@@ -272,7 +290,7 @@ def process_noci(
                     if citing_date:
                         entity["date"] = [citing_date]
 
-                    if orcid_client_id and orcid_client_secret:
+                    if orcid_client_id and orcid_client_secret and use_api:
                         json_res_pmid = pmid_orcid_resource_finder._call_api(
                             citing_pmid
                         )
@@ -307,7 +325,7 @@ def process_noci(
                                 issn_list.append(issn)
 
                         else:
-                            if citing_doi:
+                            if citing_doi and use_api:
                                 json_res = crossref_resource_finder._call_api(
                                     citing_doi
                                 )
@@ -326,7 +344,7 @@ def process_noci(
                                             issn_norm
                                         )
                     else:
-                        if citing_doi:
+                        if citing_doi and use_api:
                             json_res = crossref_resource_finder._call_api(
                                 citing_doi
                             )
@@ -347,25 +365,43 @@ def process_noci(
                 k: v for k, v in pmid_doi_map.items() if v["has_orcid"] is False
             }
             if pmid_doi_map:
+                orcid_re = r"([0-9]{4}-){3}[0-9]{3}[0-9X]"
+                full_name_re = r"[a-zA-Z'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}"
                 for k,v in pmid_doi_map.items():
                     if v["doi"] in doi_orcid_index.keys():
+                        authors_dicts_list = pmid_doi_map[k]["all_authors_names"]
                         values_list = doi_orcid_index[v["doi"]]
                         for author in values_list:
-                            orcid = re.search("([0-9]{4}-){3}[0-9]{3}[0-9X]", author, re.IGNORECASE).group(0)
-                            author_name_parts = re.findall(
-                                    "[a-zA-Z'\-áéíóúäëïöüÄłŁőŐűŰZàáâäãåąčćęèéêëėįìíîïłńòóôöõøùúûüųūÿýżźñçčšžÀÁÂÄÃÅĄĆČĖĘÈÉÊËÌÍÎÏĮŁŃÒÓÔÖÕØÙÚÛÜŲŪŸÝŻŹÑßÇŒÆČŠŽñÑâê]{2,}",
-                                    author,
-                                )
-                            author_name_parts_l = [np.lower() for np in author_name_parts]
-                            authors_dicts_list = pmid_doi_map[k]["all_authors_names"]
-                            matches = [dict for dict in authors_dicts_list if [
-                                        sn for sn in dict["surnames"] if sn in author_name_parts_l
-                                    ]
-                                    and [l for l in dict["names"] if any(
-                                            element.startswith(l) and element not in dict["surnames"] for element in author_name_parts_l
-                                        )
-                                    ]
-                                ]
+                            orcid = re.search(orcid_re, author, re.IGNORECASE).group(0)
+                            if orcid:
+                                author = (author[: author.find(orcid)-1]).strip()
+
+                                if "," in author and len([x for x in author.split(",") if x and x.strip()]) > 1:
+                                    surname_parts = author.split(",")[0]
+                                    author_surname_parts = re.findall(full_name_re, surname_parts)
+                                    author_surname_parts_l = [np.lower() for np in author_surname_parts]
+                                    name_parts = author.split(",")[1]
+                                    author_name_parts = re.findall(full_name_re, name_parts)
+                                    author_name_parts_l = [np.lower() for np in author_name_parts]
+                                    matches = [dict for dict in authors_dicts_list if [
+                                        sn for sn in dict["extended"] if sn in author_surname_parts_l
+                                    ] and (
+                                            [l for l in dict["initials"] if any(element.startswith(l) for element in author_name_parts_l)]
+                                            or
+                                            [ext for ext in dict["extended"] if ext in author_name_parts_l and ext not in author_surname_parts_l])
+                                               ]
+                                else:
+                                    author_all_name_parts = re.findall(full_name_re, author)
+                                    author_all_name_parts_l = [np.lower() for np in author_all_name_parts]
+                                    matches =[dict for dict in authors_dicts_list if [
+                                        n for n in dict["extended"] if n in author_all_name_parts_l
+                                    ] and (
+                                            [l for l in dict["initials"] if any(element.startswith(l) and element not in dict["extended"] for element in author_all_name_parts_l)]
+                                            or
+                                            all(el in dict["extended"] for el in author_all_name_parts_l)
+                                    )
+                                               ]
+
                             if matches and orcid:
                                 nor_orcid = orcid_manager.normalise(orcid)
                                 if nor_orcid:
@@ -386,7 +422,7 @@ def process_noci(
                                     ):
                                         pmid_doi_map[k]["has_orcid"] = True
 
-            if orcid_client_id and orcid_client_secret:
+            if orcid_client_id and orcid_client_secret and use_api:
                 for citing_pmid, d in pmid_doi_map.items():
                     if d["has_orcid"] == False:
                         json_res = orcid_resource_finder._call_api(d["doi"])
@@ -421,51 +457,6 @@ def process_noci(
         pmid_doi_map = dict()
         issn_data_to_cache_noci(journal_issn_dict, output_dir)
 
-    middle = timer()
-
-    print("first process duration: :", (middle - start))
-    print("\n\n# Checking the referenced pmids validity")
-    for file_idx, file in enumerate(tqdm(all_files), 1):
-        df = pd.read_csv(file, encoding='utf8', low_memory=True)
-        df.fillna("", inplace=True)
-        df_dict_list = df.to_dict("records")
-        for index, row in enumerate(df_dict_list):
-            if row.get("references"):
-                ref_string = row["references"].strip()
-                ref_string_norm = re.sub("\s+", " ", ref_string)
-                cited_pmids = set(ref_string_norm.split(" "))
-                for cited_pmid in cited_pmids:
-                    cited_pmid = pmid_manager.normalise(cited_pmid, True)
-
-                    if cited_pmid:
-                        cited_pmid_entity = svc_datasource.get(cited_pmid)
-                        if not cited_pmid_entity:
-                            cited_pmid_entity = dict()
-                            cited_pmid_entity["valid"] = (
-                                True if pmid_manager.is_valid(cited_pmid) else False
-                            )
-                            svc_datasource.set(cited_pmid, cited_pmid_entity)
-
-            if row.get("cited_by"):
-                citing_string = row["cited_by"].strip()
-                citing_string_norm = re.sub("\s+", " ", citing_string)
-                citing_pmids = set(citing_string_norm.split(" "))
-                for citing_p in citing_pmids:
-                    citing_p = pmid_manager.normalise(citing_p, True)
-                    if not citing_p:
-                        citing_p_entity = svc_datasource.get(citing_p)
-                        if not citing_p_entity:
-                            citing_p_entity = dict()
-                            citing_p_entity["valid"] = (
-                                True if pmid_manager.is_valid(citing_p) else False
-                            )
-                            svc_datasource.set(citing_p, citing_p_entity)
-
-    end = timer()
-    print("second process duration: ", end-middle)
-    print("full process duration: ", end-start)
-
-
 def main():
     arg_parser = ArgumentParser(
         "Global files creator for NOCI",
@@ -492,6 +483,25 @@ def main():
         dest="entities",
         required=True,
         help="Interval of processed entities after which the issn data are saved to the cache file.",
+    )
+    arg_parser.add_argument(
+        "-p",
+        "--process_type",
+        dest="process_type",
+        required=True,
+        choices=['process', 'test'],
+        help="scope of the process to be run, either 'process' or 'test'. Choose 'test' in case the script is run for"
+             "testing purposes and 'process' if the script is run for processing the full glob.",
+    )
+    arg_parser.add_argument(
+        "-api",
+        "--use_api",
+        dest="use_api",
+        required=False,
+        default='True',
+        choices=['True', 'False'],
+        help="True or False. Use False as parameter value to disable API both for obtaining ORCID id in case the "
+             "mapping file was not specified and for publishers' ISSNs.",
     )
 
     arg_parser.add_argument(
@@ -524,12 +534,17 @@ def main():
         "Developer tools section of the ORCID platform.",
     )
 
+
     args = arg_parser.parse_args()
     process_noci(
         args.input,
         args.output,
         args.entities,
+        args.process_type,
+        args.use_api,
         args.orcid,
         args.orcid_client_id,
         args.orcid_client_secret,
     )
+
+# oc.index.glob.noci -i index/python/test/data/noci_glob_dump_input -o tmp/noci_glob_dump_output -n 10

@@ -7,7 +7,7 @@ import pandas as pd
 from oc.index.preprocessing.base import Preprocessing
 from argparse import ArgumentParser
 from datetime import datetime
-
+from tqdm import tqdm
 
 
 class NIHPreProcessing(Preprocessing):
@@ -15,10 +15,7 @@ class NIHPreProcessing(Preprocessing):
     Citation Collection + ICite Metadata), available at:
     https://nih.figshare.com/search?q=iCite+Database+Snapshot. In particular,
     NIHPreProcessing splits the original CSV file in many lighter CSV files,
-    each one containing the number of entities specified in input by the user.
-    Further, in processing iCiteMetadata Dump, the entities which are not involved
-    in citations are discarded"""
-
+    each one containing the number of entities specified in input by the user"""
     def __init__(self, input_dir, output_dir, interval, input_type):
         self._req_type = ".csv"
         self._input_dir = input_dir
@@ -33,7 +30,7 @@ class NIHPreProcessing(Preprocessing):
             self._filter = ["citing", "referenced"]
         super(NIHPreProcessing, self).__init__()
 
-    def splitted_to_file(self, cur_n, lines):
+    def splitted_to_file(self, cur_n, lines, type=None):
         if int(cur_n) != 0 and int(cur_n) % int(self._interval) == 0:
             # to be logged: print("Processed lines:", cur_n, ". Reduced csv nr.", cur_n // self._interval)
             filename = "CSVFile_" + str(cur_n // self._interval) + self._req_type
@@ -52,9 +49,11 @@ class NIHPreProcessing(Preprocessing):
         else:
             return lines
 
+
     def split_input(self):
         # restart from the last processed line, in case of previous process interruption
         out_dir = listdir(self._output_dir)
+        processed_citations = set()
         # Checking if the list is empty or not
         if len(out_dir) != 0:
             list_of_files = glob.glob(join(self._output_dir, '*.csv'))
@@ -64,6 +63,13 @@ class NIHPreProcessing(Preprocessing):
             df_dict_list = df.to_dict("records")
             if self._input_type == "icmd":
                 last_processed_pmid = df_dict_list[-1]["pmid"]
+            elif self._input_type == "occ":
+                for file in list_of_files:
+                    with open(file, 'r') as read_obj:
+                        csv_reader = csv.reader(read_obj)
+                        next(csv_reader)
+                        citations = [tuple(x) for x in csv_reader]
+                        processed_citations.update(citations)
         else:
             if self._input_type == "icmd":
                 last_processed_pmid = 0
@@ -71,7 +77,7 @@ class NIHPreProcessing(Preprocessing):
         all_files, targz_fd = self.get_all_files(self._input_dir, self._req_type)
         count = 0
         lines = []
-        for file_idx, file in enumerate(all_files, 1):
+        for file_idx, file in enumerate(tqdm(all_files), 1):
             chunksize = 100000
             with pd.read_csv(file,  usecols=self._filter, chunksize=chunksize) as reader:
                 for chunk in reader:
@@ -81,11 +87,14 @@ class NIHPreProcessing(Preprocessing):
                         filt_values = [d.values() for d in df_dict_list if d.get("pmid") > last_processed_pmid and (d.get("cited_by") or d.get("references"))]
                     else:
                         filt_values = [d.values() for d in df_dict_list]
+
                     for line in filt_values:
-                        count += 1
-                        lines.append(line)
-                        if int(count) != 0 and int(count) % int(self._interval) == 0:
-                            lines = self.splitted_to_file(count, lines)
+                        if tuple(line) not in processed_citations:
+                            count += 1
+                            lines.append(line)
+                            processed_citations.add(tuple(line))
+                            if int(count) != 0 and int(count) % int(self._interval) == 0:
+                                lines = self.splitted_to_file(count, lines)
 
         if len(lines) > 0:
             count = count + (self._interval - (int(count) % int(self._interval)))
@@ -112,3 +121,4 @@ if __name__ == '__main__':
 
     nihpp = NIHPreProcessing(input_dir=args.input, output_dir=args.output, interval=args.number, input_type=args.input_type)
     nihpp.split_input()
+

@@ -13,9 +13,9 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-from json import load
 from oc.index.identifier.doi import DOIManager
 from oc.index.parsing.base import CitationParser
+import csv
 
 
 class DataciteParser(CitationParser):
@@ -26,48 +26,25 @@ class DataciteParser(CitationParser):
 
     def is_valid(self, filename: str):
         super().is_valid(filename)
-        return filename.endswith(".json")
+        return filename.endswith(".csv")
 
     def parse(self, filename: str):
         super().parse(filename)
-        json_content = None
-        with open(filename, mode="r", encoding="utf-8") as fp:
-            json_content = load(fp)
-
-        self._rows = json_content.get("data")
-        self._items = len(self._rows)
+        with open(filename, mode='r') as csv_file:
+            csv_reader_l = list(csv.DictReader(csv_file))
+            self._rows = csv_reader_l
+            self._items = len(csv_reader_l)
 
     def get_next_citation_data(self):
-        needed_info = ["relationType", "relatedIdentifierType", "relatedIdentifier"]
         if len(self._rows) == 0:
             return None
-        row = self._rows.pop()
-        self._current_item += 1
-        attr = row.get("attributes")
-        citing = self._doi_manager.normalise(attr.get("doi"))
-        if citing:
-            citations = []
-            for ref in attr["relatedIdentifiers"]:
-                if all(elem in ref for elem in needed_info):
-                    relatedIdentifierType = (str(ref["relatedIdentifierType"])).lower().strip()
-                    if relatedIdentifierType == "doi":
-                        rel_id = self._doi_manager.normalise(ref["relatedIdentifier"])
-                        relationType = str(ref["relationType"]).lower().strip()
-                        if relationType == "references" or relationType == "cites":
-                            if rel_id is not None:
-                                cited = rel_id
-                                citations.append(
-                                    (citing, cited, None, None, None, None)
-                                )
-                        elif (
-                            relationType == "isreferencedby"
-                            or relationType == "iscitedby"
-                        ):
-                            if rel_id is not None:
-                                cited = citing
-                                citations.append(
-                                    (rel_id, cited, None, None, None, None)
-                                )
 
-            return citations
+        row = self._rows.pop(0)
+        self._current_item += 1
+        citing = self._doi_manager.normalise(str(row.get("citing")))
+        cited = self._doi_manager.normalise(str(row.get("referenced")))
+
+        if citing is not None and cited is not None:
+            return citing, cited, None, None, None, None
+
         return self.get_next_citation_data()

@@ -15,33 +15,42 @@
 
 import json
 import unittest
-from oc.index.preprocessing.datacite_pp import DatacitePreProcessing
-from os.path import exists
+from oc.index.preprocessing.datacite import DatacitePreProcessing
+from os.path import exists, join
 import os.path
-from os import sep, makedirs, walk
-import pandas as pd
+from os import listdir
 import shutil
 import math
+import glob
+import csv
+
 
 class PreprocessingTest(unittest.TestCase):
         def setUp(self):
-            self._input_dir_dc = "index/python/test/data/preprocess/data_datacite"
-            self._input_compr = "index/python/test/data/preprocess/dc_pp_input.json.zst"
-            self._output_dir_dc_lm = "index/python/test/data/preprocess/tmp_data_datacite_lm"
-            self._output_dir_dc_nlm = "index/python/test/data/preprocess/tmp_data_datacite_nlm"
-            self._output_dir_compr_nlm = "index/python/test/data/preprocess/tmp_data_datacite_c_nlm"
-            self._output_dir_compr_lm = "index/python/test/data/preprocess/tmp_data_datacite_c_lm"
+            self.test_dir = join("index", "python","test", "data", "preprocess")
+            self._input_dir_dc = join(self.test_dir, "data_datacite")
+            self._input_dir_cit = join(self.test_dir, "data_datacite_sample")
+            self._input_compr = join(self.test_dir, "dc_pp_input.json.zst")
+            self._output_dir_dc_lm = join(self.test_dir, "tmp_data_datacite_lm")
+            self._output_dir_dc_nlm = join(self.test_dir, "tmp_data_datacite_nlm")
+            self._output_dir_compr_nlm = join(self.test_dir, "tmp_data_datacite_c_nlm")
+            self._output_dir_compr_lm = join(self.test_dir, "tmp_data_datacite_c_lm")
+            self._output_dir_cit = join(self.test_dir, "tmp_data_datacite_cit")
+            self._output_dir_cit2 = join(self.test_dir, "tmp_data_datacite_cit2")
             self._interval = 78
             self._relation_type_datacite = ["references", "isreferencedby", "cites", "iscitedby"]
-            self._out_dir_broken_process_compr = "index/python/test/data/preprocess/tmp_data_datacite_c_broken"
-            self._out_dir_broken_process = "index/python/test/data/preprocess/tmp_data_datacite_broken"
-
+            self._out_dir_broken_process_compr = join(self.test_dir, "tmp_data_datacite_c_broken")
+            self._out_dir_broken_process = join(self.test_dir, "tmp_data_datacite_broken")
+            self._out_dir_csv_1 = join(self.test_dir, "datacite_csv_cit_1")
+            self._out_dir_csv_2 = join(self.test_dir, "datacite_csv_cit_2")
+            self._out_dir_dupl_check = self._output_dir_cit2 + "_citations"
+            self._process_meta = "meta"
+            self._process_index = "index"
 
         def test_dc_preprocessing(self):
-            self._dc_pp = DatacitePreProcessing(self._input_dir_dc, self._output_dir_dc_lm, self._interval)
             if exists(self._output_dir_dc_lm):
                 shutil.rmtree(self._output_dir_dc_lm)
-            makedirs(self._output_dir_dc_lm)
+            self._dc_pp = DatacitePreProcessing(self._input_dir_dc, self._output_dir_dc_lm, self._interval, self._process_meta)
             self._dc_pp.split_input()
             len_lines_input = 0
             for file in self._dc_pp.get_all_files(self._input_dir_dc, self._dc_pp._req_type)[0]:
@@ -61,10 +70,9 @@ class PreprocessingTest(unittest.TestCase):
             shutil.rmtree(self._output_dir_dc_lm)
 
         def test_dc_preprocessing_no_low_memory(self):
-            self._dc_pp = DatacitePreProcessing(self._input_dir_dc, self._output_dir_dc_nlm, self._interval, low_memo=False)
             if exists(self._output_dir_dc_nlm):
                 shutil.rmtree(self._output_dir_dc_nlm)
-            makedirs(self._output_dir_dc_nlm)
+            self._dc_pp = DatacitePreProcessing(self._input_dir_dc, self._output_dir_dc_nlm, self._interval, self._process_meta, low_memo=False)
             self._dc_pp.split_input()
             len_lines_input = 0
             for file in self._dc_pp.get_all_files(self._input_dir_dc, self._dc_pp._req_type)[0]:
@@ -85,10 +93,9 @@ class PreprocessingTest(unittest.TestCase):
             shutil.rmtree(self._output_dir_dc_nlm)
 
         def test_dc_preprocessing_compr(self):
-            self._dc_pp = DatacitePreProcessing(self._input_compr, self._output_dir_compr_lm, self._interval)
             if exists(self._output_dir_compr_lm):
                 shutil.rmtree(self._output_dir_compr_lm)
-            makedirs(self._output_dir_compr_lm)
+            self._dc_pp = DatacitePreProcessing(self._input_compr, self._output_dir_compr_lm, self._interval, self._process_meta)
             self._dc_pp.split_input()
             len_lines_input = 0
             for file in self._dc_pp.get_all_files(self._input_compr, self._dc_pp._req_type)[0]:
@@ -108,10 +115,9 @@ class PreprocessingTest(unittest.TestCase):
             shutil.rmtree(self._output_dir_compr_lm)
 
         def test_dc_preprocessing_no_low_memory_compr(self):
-            self._dc_pp = DatacitePreProcessing(self._input_compr, self._output_dir_compr_nlm, self._interval, low_memo=False)
             if exists(self._output_dir_compr_nlm):
                 shutil.rmtree(self._output_dir_compr_nlm)
-            makedirs(self._output_dir_compr_nlm)
+            self._dc_pp = DatacitePreProcessing(self._input_compr, self._output_dir_compr_nlm, self._interval, self._process_meta, low_memo=False)
             self._dc_pp.split_input()
             len_lines_input = 0
             for file in self._dc_pp.get_all_files(self._input_compr, self._dc_pp._req_type)[0]:
@@ -132,7 +138,7 @@ class PreprocessingTest(unittest.TestCase):
             shutil.rmtree(self._output_dir_compr_nlm)
 
         def test_dc_broken_preprocessing_compr(self):
-            self._dc_pp = DatacitePreProcessing(self._input_compr, self._out_dir_broken_process_compr, self._interval)
+            self._dc_pp = DatacitePreProcessing(self._input_compr, self._out_dir_broken_process_compr, self._interval, self._process_meta)
             already_processed_files = []
             for file in os.listdir(self._out_dir_broken_process_compr):
                 already_processed_files.append(file)
@@ -148,7 +154,7 @@ class PreprocessingTest(unittest.TestCase):
                 os.remove(os.path.join(self._out_dir_broken_process_compr, nf))
 
         def test_dc_broken_preprocessing(self):
-            self._dc_pp = DatacitePreProcessing(self._input_dir_dc, self._out_dir_broken_process, self._interval)
+            self._dc_pp = DatacitePreProcessing(self._input_dir_dc, self._out_dir_broken_process, self._interval, self._process_meta)
             already_processed_files = []
             for file in os.listdir(self._out_dir_broken_process):
                 already_processed_files.append(file)
@@ -162,6 +168,75 @@ class PreprocessingTest(unittest.TestCase):
 
             for nf in new_files:
                 os.remove(os.path.join(self._out_dir_broken_process, nf))
+
+        def test_citations_preprocessing(self):
+            if exists(self._output_dir_cit):
+                shutil.rmtree(self._output_dir_cit)
+            out_dir_csv_2 = self._output_dir_cit + "_citations"
+
+            self._dc_pp_cit = DatacitePreProcessing(self._input_dir_cit, self._output_dir_cit, self._interval, self._process_index)
+            self._dc_pp_cit.split_input()
+            expected_citations_set = {("10.1002/2013jc009302","10.1002/2014gb004975"),
+                                      ("10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"),
+                                      ("10.1002/2014gl061020", "10.1029/2000jc000355"),
+                                      ("10.1002/2014gl061020","10.1029/2011gl050078")}
+            processed_citations = set()
+            out_dir_p = listdir(out_dir_csv_2)
+            if len(out_dir_p) != 0:
+                list_of_csv = glob.glob(join(out_dir_csv_2, '*.csv'))
+                for file in list_of_csv:
+                    with open(file, 'r') as read_obj:
+                        csv_reader = csv.reader(read_obj)
+                        next(csv_reader)
+                        citations = [tuple(x) for x in csv_reader]
+                        processed_citations.update(citations)
+            self.assertEqual(processed_citations, expected_citations_set)
+            shutil.rmtree(out_dir_csv_2)
+            shutil.rmtree(self._output_dir_cit)
+
+        def test_citations_preprocessing_duplicates(self):
+            if exists(self._output_dir_cit2):
+                shutil.rmtree(self._output_dir_cit2)
+            out_dir_p = listdir(self._out_dir_dupl_check)
+            self._dc_pp_cit = DatacitePreProcessing(self._input_dir_cit, self._output_dir_cit2, self._interval, self._process_index)
+            out_dir_p = listdir(self._out_dir_dupl_check)
+            citations_before_process = set()
+            list_of_csv_before_process = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
+            if len(out_dir_p) != 0:
+                for file in list_of_csv_before_process:
+                    with open(file, 'r') as read_obj:
+                        csv_reader = csv.reader(read_obj)
+                        next(csv_reader)
+                        citations = [tuple(x) for x in csv_reader]
+                        citations_before_process.update(citations)
+            expected_citations_before_process = {("10.1002/2013jc009302","10.1002/2014gb004975"),
+                                                 ("10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"),
+                                                 ("10.1002/2014gl061020", "10.1029/2000jc000355")}
+            self.assertEqual(citations_before_process, expected_citations_before_process)
+
+            self._dc_pp_cit.split_input()
+
+            expected_citations_set = {("10.1002/2013jc009302","10.1002/2014gb004975"),
+                                      ("10.1016/0304-4203(74)90015-2","10.1002/2014gb004975"),
+                                      ("10.1002/2014gl061020", "10.1029/2000jc000355"),
+                                      ("10.1002/2014gl061020","10.1029/2011gl050078")}
+            processed_citations = set()
+            out_dir_p_post = listdir(self._out_dir_dupl_check)
+            if len(out_dir_p_post) != 0:
+                list_of_csv_post = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
+                for file in list_of_csv_post:
+                    with open(file, 'r') as read_obj:
+                        csv_reader = csv.reader(read_obj)
+                        next(csv_reader)
+                        citations = [tuple(x) for x in csv_reader]
+                        processed_citations.update(citations)
+            self.assertEqual(processed_citations, expected_citations_set)
+            shutil.rmtree(self._output_dir_cit2)
+
+            list_of_csv_post_process = glob.glob(join(self._out_dir_dupl_check, '*.csv'))
+            new_files = [f for f in list_of_csv_post_process if f not in list_of_csv_before_process]
+            for nf in new_files:
+                os.remove(nf)
 
 
 if __name__ == '__main__':

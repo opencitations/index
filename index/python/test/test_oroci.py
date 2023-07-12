@@ -14,48 +14,44 @@
 # SOFTWARE.
 
 import unittest
-from os import makedirs
-from os.path import join, exists
-from os.path import join
+from os import sep, remove, makedirs
+import os
+from os.path import exists, join
 from csv import DictReader
-from oc.index.parsing.datacite import DataciteParser
+from oc.index.parsing.openaire import OpenaireParser
 
 
-class DOCITest(unittest.TestCase):
-    """This class aims at testing the methods of the class DataciteParser."""
-
+class OROCITest(unittest.TestCase):
     def setUp(self):
         if not exists("tmp"):
             makedirs("tmp")
-        test_dir = join("index", "python", "test", "data")
-        self.input = join(test_dir, "doci_dump.csv")
-        self.citations = join(test_dir, "doci_citations.csv")
+        self.test_dir = join("index", "python", "test", "data")
+        self.input = join(self.test_dir, "openaire_dump.gz")
+        self.citations = join(self.test_dir, "openaire_citations.csv")
+        self.id_metaid_map = join(
+            self.test_dir, "oroci_id_meta_mapping", "id_meta.csv.zip"
+        )
 
     def test_citation_source(self):
-        parser = DataciteParser()
+        parser = OpenaireParser(self.id_metaid_map)
         parser.parse(self.input)
         new = []
-        counter = 0
-        counter_cit = 0
         cit = parser.get_next_citation_data()
-
         while cit is not None:
-            citing, cited, creation, timespan, journal_sc, author_sc = cit
-            new.append(
-                {
-                    "citing": citing,
-                    "cited": cited,
-                    "creation": "" if creation is None else creation,
-                    "timespan": "" if timespan is None else timespan,
-                    "journal_sc": "" if journal_sc is None else journal_sc,
-                    "author_sc": "" if author_sc is None else author_sc,
-                }
-            )
+            for citation_data in cit:
+                citing, cited, creation, timespan, journal_sc, author_sc = citation_data
+                new.append(
+                    {
+                        "citing": citing,
+                        "cited": cited,
+                        "creation": "" if creation is None else creation,
+                        "timespan": "" if timespan is None else timespan,
+                        "journal_sc": "" if journal_sc is None else journal_sc,
+                        "author_sc": "" if author_sc is None else author_sc,
+                    }
+                )
             cit = parser.get_next_citation_data()
-            counter += 1
 
         with open(self.citations, encoding="utf8") as f:
             old = list(DictReader(f))
-
-        self.assertEqual(new, old)
-
+        self.assertCountEqual(new, old)

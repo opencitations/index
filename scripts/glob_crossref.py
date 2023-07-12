@@ -128,7 +128,7 @@ def load_json_coci(file, targz_fd, file_idx, len_all_files):
     return result
 
 
-def process_coci(input_dir, output_dir):
+def process_coci(input_dir, output_dir, process_type):
     start = timer()
     if not exists(output_dir):
         makedirs(output_dir)
@@ -138,12 +138,21 @@ def process_coci(input_dir, output_dir):
     orcid_manager = ORCIDManager()
 
     config = get_config()
-    service_ds = config.get("COCI", "datasource")
+    if process_type == "process":
+        service_ds = config.get("COCI", "datasource")
+    else:
+        service_ds = config.get("COCI_T", "datasource")
     svc_datasource = None
     if service_ds == "redis":
-        svc_datasource = RedisDataSource("COCI")
+        if process_type == "process":
+            svc_datasource = RedisDataSource("COCI")
+        else:
+            svc_datasource = RedisDataSource("COCI_T")
     elif service_ds == "csv":
-        svc_datasource = CSVDataSource("COCI")
+        if process_type == "process":
+            svc_datasource = CSVDataSource("COCI")
+        else:
+            svc_datasource = CSVDataSource("COCI_T")
     else:
         raise Exception(service_ds + " is not a valid data source")
 
@@ -300,6 +309,15 @@ def main():
         required=True,
         help="The directory where the indexes are stored.",
     )
+    arg_parser.add_argument(
+        "-p",
+        "--process_type",
+        dest="process_type",
+        required=True,
+        choices=['process', 'test'],
+        help="scope of the process to be run, either 'process' or 'test'. Choose 'test' in case the script is run for"
+             "testing purposes and 'process' if the script is run for processing the full glob.",
+    )
 
     args = arg_parser.parse_args()
-    process_coci(args.input, args.output)
+    process_coci(args.input, args.output, args.process_type)

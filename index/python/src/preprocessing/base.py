@@ -6,10 +6,7 @@ import tarfile
 from json import load, loads
 import zstandard as zstd
 import pathlib
-import pandas as pd
 import zipfile
-
-from tqdm import tqdm
 
 
 class Preprocessing(metaclass=ABCMeta):
@@ -38,7 +35,7 @@ class Preprocessing(metaclass=ABCMeta):
                     result.append(cur_file)
         elif i_dir_or_compr.endswith("zip"):
             with zipfile.ZipFile(i_dir_or_compr, 'r') as zip_ref:
-                dest_dir = i_dir_or_compr + "decompr_zip_dir"
+                dest_dir = i_dir_or_compr.split(".")[0] + "_decompr_zip_dir"
                 if not exists(dest_dir):
                     makedirs(dest_dir)
                 zip_ref.extractall(dest_dir)
@@ -49,7 +46,7 @@ class Preprocessing(metaclass=ABCMeta):
 
         elif i_dir_or_compr.endswith("zst"):
             input_file = pathlib.Path(i_dir_or_compr)
-            dest_dir = i_dir_or_compr.split(".")[0] + "decompr_zst_dir"
+            dest_dir = i_dir_or_compr.split(".")[0] + "_decompr_zst_dir"
             with open(input_file, 'rb') as compressed:
                 decomp = zstd.ZstdDecompressor()
                 if not exists(dest_dir):
@@ -63,7 +60,7 @@ class Preprocessing(metaclass=ABCMeta):
                     if cur_file.endswith(req_type) and not basename(cur_file).startswith("."):
                         result.append(cur_dir + sep + cur_file)
         else:
-            print("It is not possible to process the input path:", i_dir_or_compr)
+            print("It is not possible to process the input path.", i_dir_or_compr)
         return result, targz_fd
 
     def load_json(self, file, targz_fd, file_idx, len_all_files):
@@ -102,5 +99,5 @@ class Preprocessing(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def splitted_to_file(self, cur_n, data):
+    def splitted_to_file(self, cur_n, data, type):
         pass
