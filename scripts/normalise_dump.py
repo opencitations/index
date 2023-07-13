@@ -57,9 +57,13 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
     # service variables
     identifier = ""
     source = _config.get(service, "source")
+    citing_col = "citing"
+    cited_col = "referenced"
     if not newdump:
         identifier = _config.get(service, "identifier") + ":"
         source = _config.get(service, "ocdump")
+        citing_col = "citing"
+        cited_col = "cited"
 
     # redis DB of <ANYID>:<OMID>
     redis_br = redis.Redis(
@@ -118,7 +122,7 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
                     logger.info("Converting the citations in: "+str(csv_name))
                     with archive.open(csv_name) as csv_file:
 
-                        l_cits = [(identifier+row["citing"],identifier+row["cited"]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
+                        l_cits = [(identifier+row[citing_col],identifier+row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
 
                         logger.info("The #citations is: "+str(len(l_cits)))
 
