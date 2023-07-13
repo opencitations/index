@@ -43,7 +43,7 @@ from oc.index.glob.csv import CSVDataSource
 
 _config = get_config()
 
-def normalize_dump(service, input_files, output_dir):
+def normalize_dump(service, input_files, output_dir, newdump = False):
     global _config
     logger = get_logger()
 
@@ -55,8 +55,11 @@ def normalize_dump(service, input_files, output_dir):
     baseurl = _config.get("INDEX", "baseurl")
 
     # service variables
-    identifier = _config.get(service, "identifier")
-    source = _config.get(service, "ocdump")
+    identifier = ""
+    source = _config.get(service, "source")
+    if not newdump:
+        identifier = _config.get(service, "identifier") + ":"
+        source = _config.get(service, "ocdump")
 
     # redis DB of <ANYID>:<OMID>
     redis_br = redis.Redis(
@@ -79,6 +82,14 @@ def normalize_dump(service, input_files, output_dir):
     REDIS_W_BUFFER = 300000
     REDIS_R_BUFFER_CITS = 100000
 
+    # file already processed
+    processed_files = set()
+    if os.path.exists(output_dir+'files_processed.csv'):
+        with open(output_dir+'files_processed.csv', 'r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                processed_files.add(row[1])
+
     for fzip in input_files:
         # checking if it is a file
         if fzip.endswith(".zip"):
@@ -89,8 +100,12 @@ def normalize_dump(service, input_files, output_dir):
                 # CSV header: oci,citing,cited,creation,timespan,journal_sc,author_sc
                 for csv_name in archive.namelist():
 
+                    if csv_name in processed_files:
+                        logger.info("Already processed, skip file: "+str(csv_name))
+                        continue
+
                     if not csv_name.endswith(".csv"):
-                        logger.info("Skip file (not a CSV): "+str(csv_name))
+                        logger.info("Not a CSV, skip file: "+str(csv_name))
                         continue
 
                     index_citations = []
@@ -103,7 +118,7 @@ def normalize_dump(service, input_files, output_dir):
                     logger.info("Converting the citations in: "+str(csv_name))
                     with archive.open(csv_name) as csv_file:
 
-                        l_cits = [(identifier+":"+row["citing"],identifier+":"+row["cited"]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
+                        l_cits = [(identifier+row["citing"],identifier+row["cited"]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
 
                         logger.info("The #citations is: "+str(len(l_cits)))
 
@@ -306,6 +321,13 @@ def main():
         default="out",
         help="The output directory where citations will be stored",
     )
+    arg_parser.add_argument(
+        '--newdump',
+        action='store_true',
+        default=False,
+        help='Specify it in case the source of the data to convert is not the online dump of OpenCitations, rather a new dump'
+    )
+
     args = arg_parser.parse_args()
     service = args.service
 
@@ -324,6 +346,6 @@ def main():
         os.makedirs(output_dir)
 
     # call the normalize_dump function
-    normalize_dump(service, input_files, output_dir)
+    normalize_dump(service, input_files, output_dir, args.newdump)
 
     logger.info("Done !!")
