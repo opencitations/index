@@ -15,11 +15,7 @@ def remove_duplicates(input_files, entities, identifier):
     with open(entities, 'r') as infile:
         reader = csv.reader(infile)
         for row in reader:
-            print(row[0])
-            break
-            unique_entities.add(row[0])
-
-    return 1
+            unique_entities.add(row[0])    
 
     missing_cits = [["citing","cited"]]
     idx_file = 1
