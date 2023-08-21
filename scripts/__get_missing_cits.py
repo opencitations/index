@@ -7,6 +7,7 @@ import redis
 from zipfile import ZipFile
 import json
 import io
+from tqdm import tqdm
 
 def remove_duplicates(input_files, entities, identifier):
 
@@ -15,7 +16,7 @@ def remove_duplicates(input_files, entities, identifier):
     with open(entities, 'r') as infile:
         reader = csv.reader(infile)
         for row in reader:
-            unique_entities.add(row[0])    
+            unique_entities.add(row[0])
 
     missing_cits = [["citing","cited"]]
     idx_file = 1
@@ -28,7 +29,7 @@ def remove_duplicates(input_files, entities, identifier):
                 print("Total number of files in archive is:"+str(len(archive.namelist())))
 
                 # CSV header: oci,citing,cited,creation,timespan,journal_sc,author_sc
-                for csv_name in archive.namelist():
+                for csv_name in tqdm(archive.namelist()):
 
                     if csv_name.endswith(".csv"):
 
@@ -42,8 +43,8 @@ def remove_duplicates(input_files, entities, identifier):
                                     identifier = [identifier]
 
                                 for e_id in identifier:
-                                    e_citing = identifier+":"+row["citing"]
-                                    e_cited = identifier+":"+row["cited"]
+                                    e_citing = e_id+":"+row["citing"]
+                                    e_cited = e_id+":"+row["cited"]
 
                                     if e_citing in unique_entities or e_cited in unique_entities:
                                         missing_cits.append([e_citing,e_cited])
