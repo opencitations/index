@@ -9,7 +9,7 @@ import json
 import io
 from tqdm import tqdm
 
-def remove_duplicates(input_files, entities, identifier):
+def remove_duplicates(input_files, entities, identifier, output):
 
     unique_entities = set()
 
@@ -51,14 +51,14 @@ def remove_duplicates(input_files, entities, identifier):
 
                             if len(missing_cits) >= 1000000:
                                 print("Saving missing cits in file #"+str(idx_file)+"...")
-                                with open('missing_cits_'+str(idx_file)+'.csv', 'a+') as f:
+                                with open(output+str(idx_file)+'.csv', 'a+') as f:
                                     write = csv.writer(f)
                                     write.writerows(missing_cits)
                                 idx_file += 1
                                 missing_cits = [["citing","cited"]]
 
     print("Saving last missing cits in file #"+str(idx_file)+"...")
-    with open('missing_cits_'+str(idx_file)+'.csv', 'a+') as f:
+    with open(output+str(idx_file)+'.csv', 'a+') as f:
         write = csv.writer(f)
         write.writerows(missing_cits)
 
@@ -84,6 +84,12 @@ if __name__ == "__main__":
         required=True,
         help="doi | pmid | any",
     )
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        help="output name",
+    )
     args = parser.parse_args()
 
 
@@ -96,4 +102,4 @@ if __name__ == "__main__":
     else:
         input_files.append(args.input)
 
-    remove_duplicates(input_files, args.entities, args.identifier)
+    remove_duplicates(input_files, args.entities, args.identifier, args.output)
