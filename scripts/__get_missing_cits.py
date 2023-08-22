@@ -21,6 +21,11 @@ def remove_duplicates(input_files, entities, identifier):
     missing_cits = [["citing","cited"]]
     idx_file = 1
 
+    if identifier == "any":
+        identifier = ["doi","pmid"]
+    else:
+        identifier = [identifier]
+
     for fzip in input_files:
         # checking if it is a file
         if fzip.endswith(".zip"):
@@ -36,11 +41,6 @@ def remove_duplicates(input_files, entities, identifier):
                         with archive.open(csv_name) as csv_file:
 
                             for row in list(csv.DictReader(io.TextIOWrapper(csv_file))):
-
-                                if identifier == "any":
-                                    identifier = ["doi","pmid"]
-                                else:
-                                    identifier = [identifier]
 
                                 for e_id in identifier:
                                     e_citing = e_id+":"+row["citing"]
