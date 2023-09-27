@@ -14,7 +14,7 @@ def edit_files(input_file, output_file, strings_to_remove, strings_to_replace):
 
         if not remove_it:
             for s in strings_to_replace:
-                line = line.replace(s[0],strings_to_replace[s[1]])
+                line = line.replace(s[0],s[1])
 
             filtered_lines.append(line)
 
