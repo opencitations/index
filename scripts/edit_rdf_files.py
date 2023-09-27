@@ -53,7 +53,10 @@ conver_to = args.convert
 if conver_to != "index":
     triples_to_remove = ["hasCitedEntity","hasCitingEntity"]
     triples_to_replace.append(
-        ("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation>": "<http://www.w3.org/ns/prov#atLocation> <https://w3id.org/oc/index/"+conver_to.strip().lower()+"/>")
+        (
+            "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation>",
+            "<http://www.w3.org/ns/prov#atLocation> <https://w3id.org/oc/index/"+conver_to.strip().lower()+"/>"
+        )
     )
 
 for filename in tqdm(os.listdir(directory)):
