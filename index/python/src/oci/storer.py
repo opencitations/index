@@ -45,6 +45,7 @@ class CitationStorer(object):
         n_citations_slx_file=5000000,
         suffix="",
         store_as=["csv_data","csv_prov","rdf_data","rdf_prov","scholix_data"],
+        source = None
     ):
         """CitationStorer constructor.
 
@@ -56,6 +57,7 @@ class CitationStorer(object):
             n_citations_slx_file (int, optional): number of ciitations in slx file. Defaults to 5000000.
             suffix (str, optional): suffix, defaults to "".
             store_as (list, optional): which formats to store the citations with
+            source (str, optional): if specified the the object <http://purl.org/spar/cito/Citation> with the provenance of the Citation
         """
         self.store_as = store_as
         self.cur_time = datetime.now().strftime("%Y-%m-%dT%H%M%S")
