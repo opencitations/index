@@ -44,8 +44,8 @@ arg_parser.add_argument(
 )
 args = arg_parser.parse_args()
 
-directory = args.input if args.input[-1] == "/" else args.input[0:-1]
-out_dir = args.out if args.out[-1] == "/" else args.out[0:-1]
+directory = args.input if args.input[-1] != "/" else args.input[0:-1]
+out_dir = args.out if args.out[-1] != "/" else args.out[0:-1]
 triples_to_remove = ["hasCitationCreationDate","hasCitationTimeSpan","JournalSelfCitation","AuthorSelfCitation"]
 triples_to_replace = []
 
