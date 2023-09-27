@@ -14,7 +14,7 @@ def edit_files(input_file, output_file, strings_to_remove, strings_to_replace):
 
         if not remove_it:
             for s in strings_to_replace:
-                line = line.replace(s,strings_to_replace[s])
+                line = line.replace(s[0],strings_to_replace[s[1]])
 
             filtered_lines.append(line)
 
@@ -52,9 +52,9 @@ triples_to_replace = []
 conver_to = args.convert
 if conver_to != "index":
     triples_to_remove = ["hasCitedEntity","hasCitingEntity"]
-    triples_to_replace.append({
-        "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation>": "<http://www.w3.org/ns/prov#atLocation> <https://w3id.org/oc/index/"+conver_to.strip().lower()+"/>"
-    })
+    triples_to_replace.append(
+        ("<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/spar/cito/Citation>": "<http://www.w3.org/ns/prov#atLocation> <https://w3id.org/oc/index/"+conver_to.strip().lower()+"/>")
+    )
 
 for filename in tqdm(os.listdir(directory)):
     file_path = os.path.join(directory, filename)
