@@ -17,7 +17,6 @@ import multiprocessing
 import os
 import time
 import math
-import csv
 
 from tqdm import tqdm
 from argparse import ArgumentParser
@@ -39,13 +38,23 @@ from oc.index.glob.csv import CSVDataSource
 _config = get_config()
 
 
-def normalise_cits(service, file, parser, ds, multiprocess):
+def cnc(service, file, parser, ds, multiprocess):
     global _config
 
     oci_manager = OCIManager(
         lookup_file=os.path.expanduser(_config.get("cnc", "lookup"))
     )
     logger = get_logger()
+
+    # the redis db to store all the citations in INDEX
+    ds_index = None
+    db_cits = _config.get("cnc", "db_cits")
+    if db_cits != "":
+        ds_index = redis.Redis(
+            host=_config.get("redis", "host"),
+            port=_config.get("redis", "port"),
+            db=db_cits
+        )
 
     logger.info("Reading citation data from " + file)
     parser.parse(file)
@@ -90,13 +99,12 @@ def normalise_cits(service, file, parser, ds, multiprocess):
         pbar.update(current_size)
     pbar.close()
     logger.info("Information retrivied")
-    use_api = False
-    #print(resources)
+    use_api = _config.getboolean("cnc", "use_api")
     crossref_rc = CrossrefResourceFinder(resources, use_api)
     rf_handler = ResourceFinderHandler(
         [
             crossref_rc,
-            ORCIDResourceFinder(resources, use_api,""),
+            ORCIDResourceFinder(resources, use_api,_config.get("cnc", "orcid")),
             DataCiteResourceFinder(resources, use_api),
         ]
     )
@@ -107,59 +115,101 @@ def normalise_cits(service, file, parser, ds, multiprocess):
     citations_created = 0
 
     idbase_url = _config.get(service, "idbaseurl")
-    prefix = _config.get("INDEX", "prefix")
+    prefix = _config.get(service, "prefix")
     agent = _config.get(service, "agent")
     source = _config.get(service, "source")
     service_name = _config.get(service, "service")
     citations = []
+    unified_citations = []
 
     for citation_data in tqdm(citation_data_list, disable=multiprocess):
         (
-            org_citing,
-            org_cited,
+            citing,
+            cited,
             citing_date,
             cited_date,
             author_sc,
             journal_sc,
         ) = citation_data
 
-        if crossref_rc.is_valid(org_citing) and crossref_rc.is_valid(org_cited):
+        citing_issn = []
+        cited_issn = []
+        citing_orcid = []
+        cited_orcid = []
+        if crossref_rc.is_valid(citing) and crossref_rc.is_valid(cited):
 
-            citing = rf_handler.get_omid(org_citing).replace("br/","")
-            cited = rf_handler.get_omid(org_cited).replace("br/","")
-            if citing != None and cited != None:
+            if citing_date is None:
+                citing_date = rf_handler.get_date(citing)
 
-                citations.append([
-                    (citing,cited),
-                    Citation(
-                        "oci:%s%s-%s%s" % (prefix,citing,prefix,cited,),
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        None,
-                        1,
-                        agent,
-                        source,
-                        datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                        service_name,
-                        identifier,
-                        idbase_url + "([[XXX__decode]])",
-                        "reference",
-                        None,
-                        None,
-                        None,
-                        "Creation of the citation",
-                        None,
-                    )
-                  ]
+            if cited_date is None:
+                cited_date = rf_handler.get_date(cited)
+
+            if journal_sc is None or type(journal_sc) is not bool:
+                journal_sc, citing_issn, cited_issn = rf_handler.share_issn(
+                    citing, cited
                 )
 
-            citations_created += 1
+            if author_sc is None or type(author_sc) is not bool:
+                author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(
+                    citing, cited
+                )
+
+
+            if citing != None and cited != None:
+
+                oci_val = "%s%s-%s%s" % (prefix,citing,prefix,cited,)
+                if not ds_index.get(oci_val):
+                    ds_index.set(oci_val, 1)
+
+                    oci_val = "oci:"+oci_val
+                    citations.append(
+                        Citation(
+                            oci_val,
+                            idbase_url + quote(citing),
+                            citing_date,
+                            idbase_url + quote(cited),
+                            cited_date,
+                            None,
+                            None,
+                            1,
+                            agent,
+                            source,
+                            datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                            service_name,
+                            identifier,
+                            idbase_url + "([[XXX__decode]])",
+                            "reference",
+                            journal_sc,
+                            author_sc,
+                            None,
+                            "Creation of the citation",
+                            None,
+                        )
+                    )
+                    unified_citations.append(
+                        Citation(
+                            oci_val,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            1,
+                            agent,
+                            source,
+                            datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                            service_name,
+                            identifier,
+                            idbase_url + "([[XXX__decode]])",
+                            "reference",
+                        )
+                    )
+
+                citations_created += 1
 
     logger.info(f"{citations_created}/{len(citation_data_list)} Citations created")
-    return citations
+    return (citations,unified_citations)
 
 
 def worker_body(input_files, output, service, tid, multiprocess):
@@ -168,8 +218,7 @@ def worker_body(input_files, output, service, tid, multiprocess):
     service_ds = _config.get(service, "datasource")
     ds = None
     if service_ds == "redis":
-        #set redis to use the unified index in redis, i.e., META
-        ds = RedisDataSource(service, True)
+        ds = RedisDataSource(service)
     elif service_ds == "csv":
         ds = CSVDataSource(service)
     else:
@@ -179,30 +228,26 @@ def worker_body(input_files, output, service, tid, multiprocess):
     parser = CitationParser.get_parser(service)
     baseurl = _config.get(service, "baseurl")
     unified_baseurl = _config.get("INDEX", "baseurl")
+    storer = CitationStorer(
+        output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
+    )
     index_storer = CitationStorer(
-        output + "/service-rdf", unified_baseurl + "/" if not unified_baseurl.endswith("/") else unified_baseurl, suffix=str(tid), store_as=["rdf_data"]
+        output + "/index-rdf", unified_baseurl + "/" if not unified_baseurl.endswith("/") else unified_baseurl, suffix=str(tid), store_as=["rdf_data"]
     )
 
     logger.info("Working on " + str(len(input_files)) + " files")
 
     for file in input_files:
-        citations = normalise_cits(service, file, parser, ds, multiprocess)
+        citations,unified_citations = cnc(service, file, parser, ds, multiprocess)
 
-        if len(citations) > 0:
-            logger.info("Saving normalised citations into CSV...")
-            out_path = output + "/omid2omid-csv/"
-            if not os.path.exists(out_path):
-                os.makedirs(out_path)
-            output_norm_file = out_path+".".join(file.split('/')[-1].split(".")[:-1])+".csv"
-            with open(output_norm_file,'w+') as f:
-                csv_out = csv.writer(f)
-                csv_out.writerow(["citing","cited"])
-                for citation in tqdm(citations, disable=multiprocess):
-                    csv_out.writerow(citation[0])
+        logger.info("Saving citations...")
+        for citation in tqdm(citations, disable=multiprocess):
+            storer.store_citation(citation)
 
+        if len(unified_citations) > 0:
             logger.info("Saving RDF data to be loaded into INDEX triplestore...")
-            for citation in tqdm(citations, disable=multiprocess):
-                index_storer.store_citation(citation[1])
+            for citation in tqdm(unified_citations, disable=multiprocess):
+                index_storer.store_citation(citation)
 
         logger.info(f"{len(citations)} citations saved")
 
@@ -210,7 +255,7 @@ def worker_body(input_files, output, service, tid, multiprocess):
 def main():
     global _config
 
-    arg_parser = ArgumentParser(description="Normalise citations – converted into OMID to OMID citations")
+    arg_parser = ArgumentParser(description="CNC - create new citations")
     arg_parser.add_argument(
         "-i",
         "--input",

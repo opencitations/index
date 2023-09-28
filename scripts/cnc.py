@@ -16,17 +16,23 @@
 import multiprocessing
 import os
 import time
-import math
+import csv
+import redis
+from zipfile import ZipFile
+import json
+import io
 
 from tqdm import tqdm
 from argparse import ArgumentParser
 from urllib.parse import quote
-from datetime import datetime
+from datetime import datetime, timezone
+from collections import defaultdict
 
 from oc.index.parsing.base import CitationParser
 from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
 from oc.index.finder.base import ResourceFinderHandler
+from oc.index.finder.base import OMIDResourceFinder
 from oc.index.finder.orcid import ORCIDResourceFinder
 from oc.index.finder.crossref import CrossrefResourceFinder
 from oc.index.finder.datacite import DataCiteResourceFinder
@@ -37,313 +43,313 @@ from oc.index.glob.csv import CSVDataSource
 
 _config = get_config()
 
-
-def cnc(service, file, parser, ds, multiprocess):
+def normalize_dump(service, input_files, output_dir, newdump = False):
     global _config
-
-    oci_manager = OCIManager(
-        lookup_file=os.path.expanduser(_config.get("cnc", "lookup"))
-    )
     logger = get_logger()
 
-    # the redis db to store all the citations in INDEX
-    ds_index = None
-    db_cits = _config.get("cnc", "db_cits")
-    if db_cits != "":
-        ds_index = redis.Redis(
-            host=_config.get("redis", "host"),
-            port=_config.get("redis", "port"),
-            db=db_cits
-        )
+    # get the service values from the CONFIG.INI
+    idbase_url = _config.get("INDEX", "idbaseurl")
+    index_identifier = _config.get("INDEX", "identifier")
+    agent = _config.get("INDEX", "agent")
+    service_name = _config.get("INDEX", "service")
+    baseurl = _config.get("INDEX", "baseurl")
 
-    logger.info("Reading citation data from " + file)
-    parser.parse(file)
-    pbar = tqdm(total=parser.items, disable=multiprocess)
-    citation_data = 1
-    citation_data_list = []
-    ids = []
-
-    citation_data = parser.get_next_citation_data()
-    identifier = _config.get(service, "identifier")
-    while citation_data is not None:
-        if isinstance(citation_data, list):
-            citation_data_list = citation_data_list + citation_data
-            for c_citation_data in citation_data:
-                ids = ids + [
-                    identifier + ":" + c_citation_data[0],
-                    identifier + ":" + c_citation_data[1],
-                ]
-        else:
-            citation_data_list.append(citation_data)
-            ids = ids + [
-                identifier + ":" + citation_data[0],
-                identifier + ":" + citation_data[1],
-            ]
-        pbar.update(parser.current_item - pbar.n)
-        citation_data = parser.get_next_citation_data()
-    pbar.close()
-
-    ids = list(set(ids))
-
-    logger.info("Retrieving citation data informations from data source")
-    resources = {}
-    batch_size = _config.getint("redis", "batch_size")
-    pbar = tqdm(total=len(ids), disable=multiprocess)
-    while len(ids) > 0:
-        current_size = min(len(ids), batch_size)
-        batch = ids[:current_size]
-        batch_result = ds.mget(batch)
-        for key in batch_result.keys():
-            resources[key.replace(identifier + ":", "")] = batch_result[key]
-        ids = ids[batch_size:] if batch_size < len(ids) else []
-        pbar.update(current_size)
-    pbar.close()
-    logger.info("Information retrivied")
-    use_api = _config.getboolean("cnc", "use_api")
-    crossref_rc = CrossrefResourceFinder(resources, use_api)
-    rf_handler = ResourceFinderHandler(
-        [
-            crossref_rc,
-            ORCIDResourceFinder(resources, use_api,_config.get("cnc", "orcid")),
-            DataCiteResourceFinder(resources, use_api),
-        ]
-    )
-
-    logger.info(
-        f"Working on {len(citation_data_list)} citation data with related support information"
-    )
-    citations_created = 0
-
-    idbase_url = _config.get(service, "idbaseurl")
-    prefix = _config.get(service, "prefix")
-    agent = _config.get(service, "agent")
+    # service variables
+    identifier = ""
     source = _config.get(service, "source")
-    service_name = _config.get(service, "service")
-    citations = []
-    unified_citations = []
+    citing_col = "citing"
+    cited_col = "referenced"
+    if not newdump:
+        identifier = _config.get(service, "identifier") + ":"
+        source = _config.get(service, "ocdump")
+        citing_col = "citing"
+        cited_col = "cited"
 
-    for citation_data in tqdm(citation_data_list, disable=multiprocess):
-        (
-            citing,
-            cited,
-            citing_date,
-            cited_date,
-            author_sc,
-            journal_sc,
-        ) = citation_data
-
-        citing_issn = []
-        cited_issn = []
-        citing_orcid = []
-        cited_orcid = []
-        if crossref_rc.is_valid(citing) and crossref_rc.is_valid(cited):
-
-            if citing_date is None:
-                citing_date = rf_handler.get_date(citing)
-
-            if cited_date is None:
-                cited_date = rf_handler.get_date(cited)
-
-            if journal_sc is None or type(journal_sc) is not bool:
-                journal_sc, citing_issn, cited_issn = rf_handler.share_issn(
-                    citing, cited
-                )
-
-            if author_sc is None or type(author_sc) is not bool:
-                author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(
-                    citing, cited
-                )
-
-
-            if citing != None and cited != None:
-
-                oci_val = "%s%s-%s%s" % (prefix,citing,prefix,cited,)
-                if not ds_index.get(oci_val):
-                    ds_index.set(oci_val, 1)
-
-                    oci_val = "oci:"+oci_val
-                    citations.append(
-                        Citation(
-                            oci_val,
-                            idbase_url + quote(citing),
-                            citing_date,
-                            idbase_url + quote(cited),
-                            cited_date,
-                            None,
-                            None,
-                            1,
-                            agent,
-                            source,
-                            datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                            service_name,
-                            identifier,
-                            idbase_url + "([[XXX__decode]])",
-                            "reference",
-                            journal_sc,
-                            author_sc,
-                            None,
-                            "Creation of the citation",
-                            None,
-                        )
-                    )
-                    unified_citations.append(
-                        Citation(
-                            oci_val,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            1,
-                            agent,
-                            source,
-                            datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                            service_name,
-                            identifier,
-                            idbase_url + "([[XXX__decode]])",
-                            "reference",
-                        )
-                    )
-
-                citations_created += 1
-
-    logger.info(f"{citations_created}/{len(citation_data_list)} Citations created")
-    return (citations,unified_citations)
-
-
-def worker_body(input_files, output, service, tid, multiprocess):
-    global _config
-
-    service_ds = _config.get(service, "datasource")
-    ds = None
-    if service_ds == "redis":
-        ds = RedisDataSource(service)
-    elif service_ds == "csv":
-        ds = CSVDataSource(service)
-    else:
-        raise Exception(service_ds + " is not a valid data source")
-
-    logger = get_logger()
-    parser = CitationParser.get_parser(service)
-    baseurl = _config.get(service, "baseurl")
-    unified_baseurl = _config.get("INDEX", "baseurl")
-    storer = CitationStorer(
-        output, baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(tid)
-    )
-    index_storer = CitationStorer(
-        output + "/index-rdf", unified_baseurl + "/" if not unified_baseurl.endswith("/") else unified_baseurl, suffix=str(tid), store_as=["rdf_data"]
+    # redis DB of <ANYID>:<OMID>
+    redis_br = redis.Redis(
+        host="127.0.0.1",
+        port="6379",
+        db=_config.get("cnc", "db_br")
     )
 
-    logger.info("Working on " + str(len(input_files)) + " files")
+    # redis DB of <OCI>:1
+    redis_cits = redis.Redis(
+        host="127.0.0.1",
+        port="6379",
+        db=_config.get("cnc", "db_cits")
+    )
 
-    for file in input_files:
-        citations,unified_citations = cnc(service, file, parser, ds, multiprocess)
+    # redis DB of <OMID>:<METADATA>
+    redis_index = RedisDataSource("INDEX")
 
-        logger.info("Saving citations...")
-        for citation in tqdm(citations, disable=multiprocess):
-            storer.store_citation(citation)
+    #cache variables
+    REDIS_W_BUFFER = 300000
+    REDIS_R_BUFFER_CITS = 100000
 
-        if len(unified_citations) > 0:
-            logger.info("Saving RDF data to be loaded into INDEX triplestore...")
-            for citation in tqdm(unified_citations, disable=multiprocess):
-                index_storer.store_citation(citation)
+    # file already processed
+    processed_files = set()
+    if os.path.exists(output_dir+'files_processed.csv'):
+        with open(output_dir+'files_processed.csv', 'r') as file:
+            reader = csv.reader(file)
+            for row in reader:
+                processed_files.add(row[1])
 
-        logger.info(f"{len(citations)} citations saved")
+    for fzip in input_files:
+        # checking if it is a file
+        if fzip.endswith(".zip"):
+            with ZipFile(fzip) as archive:
+                logger.info("Working on the archive:"+str(fzip))
+                logger.info("Total number of files in archive is:"+str(len(archive.namelist())))
 
+                # CSV header: oci,citing,cited,creation,timespan,journal_sc,author_sc
+                for csv_name in archive.namelist():
+
+                    if csv_name in processed_files:
+                        logger.info("Already processed, skip file: "+str(csv_name))
+                        continue
+
+                    if not csv_name.endswith(".csv"):
+                        logger.info("Not a CSV, skip file: "+str(csv_name))
+                        continue
+
+                    index_citations = []
+                    citations_duplicated = 0
+                    entities_with_no_omid = set()
+                    service_citations = []
+                    cits_buffer = []
+                    ocis_processed_buffer = dict()
+
+                    logger.info("Converting the citations in: "+str(csv_name))
+                    with archive.open(csv_name) as csv_file:
+
+                        l_cits = [(identifier+row[citing_col],identifier+row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
+
+                        logger.info("The #citations is: "+str(len(l_cits)))
+
+                        # iterate citations (CSV rows)
+                        for idx, cit in tqdm(enumerate(l_cits)):
+
+                            # add the citing and cited entities to be further retrivied from redis
+                            cits_buffer.append(list(cit))
+
+
+                            # Process when the buffer is full or I have reached the last element
+                            if len(cits_buffer) >= REDIS_R_BUFFER_CITS or idx == len(l_cits) - 1:
+
+                                # (1) GET ALL OMIDS
+                                index_ocis = dict()
+                                keys_br_ids = []
+                                for c in cits_buffer:
+                                    keys_br_ids += c
+
+                                br_omids = {key: value for key, value in zip(keys_br_ids, redis_br.mget(keys_br_ids))}
+
+                                # iterate by couples
+                                for buffer_cit in cits_buffer:
+
+                                    citing_id, citing_omid = buffer_cit[0], br_omids[buffer_cit[0]]
+                                    cited_id, cited_omid = buffer_cit[1], br_omids[buffer_cit[1]]
+
+                                    # check if both citing and cited entities have omid
+                                    if citing_omid != None and cited_omid != None:
+
+                                        citing_omid = citing_omid.decode("utf-8")
+                                        cited_omid = cited_omid.decode("utf-8")
+                                        oci_omid = citing_omid[3:]+"-"+cited_omid[3:]
+
+                                        index_ocis[oci_omid] = (citing_omid,cited_omid)
+
+                                        service_citations.append(
+                                            Citation(
+                                                "oci:"+oci_omid, # oci,
+                                                None, # citing_url,
+                                                None, # citing_pub_date,
+                                                None, # cited_url,
+                                                None, # cited_pub_date,
+                                                None, # creation,
+                                                None, # timespan,
+                                                None, # prov_entity_number,
+                                                agent, # prov_agent_url,
+                                                source, # source,
+                                                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                                                service_name, # service_name,
+                                                index_identifier, # id_type,
+                                                idbase_url + "([[XXX__decode]])", # id_shape,
+                                                "reference", # citation_type,
+                                                None, # journal_sc=False,
+                                                None,# author_sc=False,
+                                                None, # prov_inv_date=None,
+                                                "Creation of the citation", # prov_description=None,
+                                                None, # prov_update=None,
+                                            )
+                                        )
+
+                                    else:
+                                        if citing_omid == None:
+                                            entities_with_no_omid.add(citing_id)
+                                        if cited_omid == None:
+                                            entities_with_no_omid.add(cited_id)
+
+
+                                # (2) GET ALL OMID-OCIs not processed yet
+                                ocis_to_process = dict()
+                                brs_to_process = []
+                                for oci_omid, in_redis in zip(index_ocis.keys(), redis_cits.mget(index_ocis.keys())):
+
+                                    # it has been already processed
+                                    if in_redis != None:
+                                        citations_duplicated += 1
+                                    else:
+                                        #check if is not in the cache too
+                                        if oci_omid not in ocis_processed_buffer:
+                                            brs_to_process.append(index_ocis[oci_omid][0])
+                                            brs_to_process.append(index_ocis[oci_omid][1])
+                                            ocis_to_process[oci_omid] = [index_ocis[oci_omid][0], index_ocis[oci_omid][1]]
+
+
+                                # (3) GET ALL METADATA
+                                # Create a dict which maps the omid_brs to their metadata
+                                # br_meta = {key: value for key, value in zip(brs_to_process, redis_br.mget(brs_to_process))}
+                                resources = redis_index.mget(brs_to_process)
+                                rf_handler = ResourceFinderHandler([OMIDResourceFinder(resources)])
+                                for oci_omid in ocis_to_process:
+
+                                    citing_omid, cited_omid = ocis_to_process[oci_omid][0], ocis_to_process[oci_omid][1]
+
+                                    citing_date = rf_handler.get_date(citing_omid)
+                                    cited_date = rf_handler.get_date(cited_omid)
+                                    journal_sc, citing_issn, cited_issn = rf_handler.share_issn(citing_omid, cited_omid)
+                                    author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(citing_omid, cited_omid)
+
+                                    index_citations.append(
+                                        Citation(
+                                            "oci:"+oci_omid, # oci,
+                                            idbase_url + quote(citing_omid), # citing_url,
+                                            citing_date, # citing_pub_date,
+                                            idbase_url + quote(cited_omid), # cited_url,
+                                            cited_date, # cited_pub_date,
+                                            None, # creation,
+                                            None, # timespan,
+                                            1, # prov_entity_number,
+                                            agent, # prov_agent_url,
+                                            source, # source,
+                                            datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                                            service_name, # service_name,
+                                            index_identifier, # id_type,
+                                            idbase_url + "([[XXX__decode]])", # id_shape,
+                                            "reference", # citation_type,
+                                            journal_sc, # journal_sc=False,
+                                            author_sc,# author_sc=False,
+                                            None, # prov_inv_date=None,
+                                            "Creation of the citation", # prov_description=None,
+                                            None, # prov_update=None,
+                                        )
+                                    )
+
+                                    # update cache var
+                                    ocis_processed_buffer[oci_omid] = 1
+
+                                # reset buffer
+                                cits_buffer = []
+
+                            # write on redis cache var
+                            if len(ocis_processed_buffer.keys()) >= REDIS_W_BUFFER:
+                                redis_cits.mset(ocis_processed_buffer)
+                                ocis_processed_buffer = dict()
+
+                    logger.info("[STATS] duplicated citations="+str(citations_duplicated))
+                    logger.info("[STATS] entities with no OMID="+str(len(entities_with_no_omid)))
+                    logger.info("[STATS] number of citations lost="+str(len(l_cits) - len(service_citations)))
+
+                    # write on redis cache var when done
+                    if len(ocis_processed_buffer.keys()) > 0:
+                        redis_cits.mset(ocis_processed_buffer)
+
+                    # Store entities_with_no_omid
+                    logger.info("Saving entities with no omid...")
+                    with open(output_dir+'entities_with_no_omid.csv', 'a+') as f:
+                        write = csv.writer(f)
+                        write.writerows([[e] for e in entities_with_no_omid])
+
+                    BATCH_SAVE = 100000
+                    index_ts_storer = CitationStorer(output_dir+"/index-dump", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0))
+                    logger.info("Saving Index citations to dump...")
+                    for idx in range(0, len(index_citations), BATCH_SAVE):
+                        batch_citations = index_citations[idx:idx+BATCH_SAVE]
+                        index_ts_storer.store_citation(batch_citations)
+                    logger.info(f"{len(index_citations)} citations saved")
+
+                    service_storer = CitationStorer(output_dir + "/service-rdf", baseurl + "/" if not baseurl.endswith("/") else baseurl, suffix=str(0), store_as=["rdf_data"])
+                    logger.info("Saving service citations (in RDF)...")
+                    for idx in range(0, len(service_citations), BATCH_SAVE):
+                        batch_citations = service_citations[idx:idx+BATCH_SAVE]
+                        service_storer.store_citation(batch_citations)
+                    logger.info(f"{len(service_citations)} citations saved")
+
+                    # Store files_processed
+                    logger.info("Saving file processed...")
+                    with open(output_dir+'files_processed.csv', 'a+') as f:
+                        write = csv.writer(f)
+                        write.writerow([str(fzip),str(csv_name)])
+
+
+    # remove duplicates from entities_with_no_omid
+    index_entities = set()
+    with open(output_dir+'entities_with_no_omid.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            index_entities.add(row[0])
+    with open(output_dir+'entities_with_no_omid.csv', 'w') as f_out:
+        csv.writer(f_out).writerows([[e] for e in index_entities])
 
 def main():
     global _config
+    logger = get_logger()
 
-    arg_parser = ArgumentParser(description="CNC - create new citations")
+    arg_parser = ArgumentParser(description="Create new citations of OC INDEX. This scripts converts citations ANYID-ANYID comming form different data sources (e.g., COCI, DOCI) into OMID-OMID citations. It produces: datasource RDF data, INDEX RDF data, and dump data/prov in RDF,CSV, and SCHOLIX format")
     arg_parser.add_argument(
         "-i",
         "--input",
         required=True,
-        help="The input file/directory to provide as input",
-    )
-    arg_parser.add_argument(
-        "-o",
-        "--output",
-        required=True,
-        help="The output directory where citations will be stored",
+        help="The input directory contatining compressed file(s) (ZIP format) having all the CSV file(s) of the datasource citations",
     )
     arg_parser.add_argument(
         "-s",
         "--service",
-        required=True,
-        choices=_config.get("cnc", "services").split(","),
-        help="Service config to use, e.g. for parser, identifier type, etc..",
+        default="COCI",
+        help="The datasource of the dump to process (e.g. COCI, DOCI)",
     )
     arg_parser.add_argument(
-        "-w",
-        "--workers",
-        type=int,
-        default=1,
-        help="Number of workers to use, default is 1",
+        "-o",
+        "--output",
+        default="out",
+        help="The destination directory to save outputs",
     )
+    arg_parser.add_argument(
+        '--newdump',
+        action='store_true',
+        default=False,
+        help='Specify it in case the source of the data to convert is not an old dump of OpenCitations (rather a new dump)'
+    )
+
     args = arg_parser.parse_args()
-
-    logger = get_logger()
-
-    # Arguments
-    input = args.input
-    output = args.output
     service = args.service
-    workers = args.workers
 
-    if not os.path.exists(input):
-        logger.error(
-            "The path specified as input value is not present in the file system."
-        )
-
-    logger.info("Browse input to find files to parse")
+    # input directory/file
     input_files = []
-    parser = CitationParser.get_parser(service)
-    if os.path.isdir(input):
-        for current_dir, _, current_files in os.walk(input):
-            for current_file in current_files:
-                file_path = os.path.join(current_dir, current_file)
-                if parser.is_valid(file_path):
-                    input_files.append(file_path)
-    elif parser.is_valid(input):
-        input_files.append(input)
-    logger.info(f"{len(input_files)} files were found")
+    if os.path.isdir(args.input):
+        input = args.input + "/" if args.input[-1] != "/" else args.input
+        for filename in os.listdir(input):
+            input_files.append(os.path.join(input, filename))
+    else:
+        input_files.append(args.input)
 
-    start = time.time()
-    workers_list = []
-    last_index = 0
-    multiprocess = workers > 1
-    if multiprocess:
-        # Disable tqdm for multithreading
-        logger.info(f"Multitprocessing ON, starting {workers} workers")
-        chunk_size = math.ceil(len(input_files) / workers)
-        for tid in range(workers - 1):
-            process = multiprocessing.Process(
-                target=worker_body,
-                args=(
-                    input_files[last_index: (last_index + chunk_size)],
-                    output,
-                    service,
-                    tid + 1,
-                    multiprocess,
-                ),
-            )
-            last_index += chunk_size
-            process.name = "Process:" + str(tid + 1)
-            workers_list.append(process)
-            process.start()
-        logger.info("All workers have been started")
+    # output directory
+    output_dir = args.output + "/" if args.output[-1] != "/" else args.output
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-    # No active wait also the main thread work on processing file
-    worker_body(
-        input_files[last_index: len(
-            input_files)], output, service, 0, multiprocess
-    )
-    if multiprocess:
-        for worker in workers_list:
-            worker.join()
+    # call the normalize_dump function
+    normalize_dump(service, input_files, output_dir, args.newdump)
 
-    logger.info(
-        f"All the files have been processed in {(time.time() - start)/ 60} minutes"
-    )
+    logger.info("Done !!")
