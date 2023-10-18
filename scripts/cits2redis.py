@@ -101,4 +101,4 @@ def main():
         db_cits = _config.get("cnc", "db_cits")
     )
 
-    logger.info("A total of unique "+str(res[0])+" BRs and "+str(res[1])+" RAs have been found and added to Redis.")
+    logger.info("Done!")
