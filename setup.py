@@ -54,6 +54,7 @@ setup(
     entry_points={
         "console_scripts": [
             "oc.index.meta2redis=oc.index.scripts.meta2redis:main",
+            "oc.index.cits2redis=oc.index.scripts.cits2redis:main",
             "oc.index.check_entities=oc.index.scripts.check_entities:main",
             "oc.index.cnc=oc.index.scripts.cnc:main",
             "oc.index.datasource=oc.index.scripts.datasource:main",
