@@ -55,12 +55,11 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
     baseurl = _config.get("INDEX", "baseurl")
 
     # service variables
-    identifier = ""
+    identifier = _config.get(service, "identifier") + ":"
     source = _config.get(service, "source")
     citing_col = "citing"
     cited_col = "referenced"
     if not newdump:
-        identifier = _config.get(service, "identifier") + ":"
         source = _config.get(service, "ocdump")
         citing_col = "citing"
         cited_col = "cited"
