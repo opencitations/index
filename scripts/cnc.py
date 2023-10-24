@@ -60,6 +60,7 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
     citing_col = "citing"
     cited_col = "cited"
     if not newdump:
+        identifier = ""
         source = _config.get(service, "ocdump")
         citing_col = "citing"
         cited_col = "cited"
