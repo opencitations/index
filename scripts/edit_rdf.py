@@ -33,14 +33,14 @@ arg_parser.add_argument(
     "-o",
     "--out",
     required=True,
-    help="The output directorys",
+    help="The output directory",
 )
 arg_parser.add_argument(
     "-c",
     "--convert",
-    required=False,
+    required=True,
     default= "index",
-    help="Convert RDF files into: (1) INDEX RDF files, or (2) any [[SOURCE]] RDF files (e.g., COCI, CROCI, etc.) ",
+    help="Convert RDF data produced by CNC into: (1) RDF data ready to be ingested into the INDEX triplestore, or (2) RDF data regarding the citaion [[SOURCE]]s (e.g., COCI, DOCI, CROCI, etc.)",
 )
 args = arg_parser.parse_args()
 
