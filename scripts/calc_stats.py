@@ -32,7 +32,7 @@ from oc.index.utils.config import get_config
 csv.field_size_limit(sys.maxsize)
 
 
-def calc_stats(dump_path=None)
+def calc_stats(dump_path=None):
 
     str_stats = "Dump not found!"
 
