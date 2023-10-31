@@ -40,7 +40,7 @@ arg_parser.add_argument(
     "--convert",
     required=True,
     default= "index",
-    help="Convert RDF data produced by CNC into: (1) RDF data ready to be ingested into the INDEX triplestore, or (2) RDF data regarding the citaion [[SOURCE]]s (e.g., COCI, DOCI, CROCI, etc.)",
+    help="Convert RDF data produced by CNC into: (1) RDF data for the unified citations INDEX => 'index'; (2) RDF data for a specific the citaion [[DATA SOURCE]]s => 'coci' | 'doci' | etc ",
 )
 args = arg_parser.parse_args()
 
