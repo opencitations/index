@@ -33,6 +33,7 @@ csv.field_size_limit(sys.maxsize)
 
 
 def calc_stats(dump_path=None):
+    logger = get_logger()
 
     str_stats = "Dump not found!"
 
