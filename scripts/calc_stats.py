@@ -64,8 +64,8 @@ def calc_stats(dump_path=None):
 
         with open('refrences.csv', 'w') as f:
             write = csv.writer(f)
-            for id in citing_entites:
-                write.writerow([id,citing_entites[id]])
+            for id in citing_entities:
+                write.writerow([id,citing_entities[id]])
 
         with open('citations.csv', 'w') as f:
             write = csv.writer(f)
@@ -73,8 +73,8 @@ def calc_stats(dump_path=None):
                 write.writerow([id,cited_entities[id]])
 
         str_stats = "#entites = "+str(len(all_entities)) + "\n"
-        str_stats = "#citing_entites = "+str(len(citing_entities)) + "\n"
-        str_stats = "#cited_entites = "+str(len(cited_entities)) + "\n"
+        str_stats = "#citing_entities = "+str(len(citing_entities)) + "\n"
+        str_stats = "#cited_entities = "+str(len(cited_entities)) + "\n"
 
     print(str_stats)
     return 1
