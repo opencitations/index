@@ -31,9 +31,40 @@ from oc.index.utils.config import get_config
 
 csv.field_size_limit(sys.maxsize)
 
+def export_redis_to_csv(redis_host, redis_port, redis_db, output_file):
+    r = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db)
+    keys = r.keys('*')
+    index = defaultdict(list)
+    for key in keys:
+        value = r.get(key)
+        if value:
+            omid = value.decode('utf-8')
+            anyid = key.decode('utf-8')
+            index[omid].append(anyid)
+
+    data = []
+    for omid in index:
+        data.append(
+            {
+                "omid": omid,
+                "id": " ".join(index[omid])
+            }
+        )
+
+    with open(output_file, 'w', newline='', encoding='utf-8') as csv_file:
+        fieldnames = ['omid', 'id']
+        writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data)
 
 def calc_stats(dump_path=None):
     logger = get_logger()
+
+    logger.info("Create OMID mapper CSV ...")
+    # OMID > ID(s)
+    # E.G. omid:br/100, doi:10.123/12 pmid:123
+    export_redis_to_csv("localhost", 6379, 10, "omid.csv")
+    logger.info("Done!")
 
     str_stats = "Dump not found!"
 
@@ -62,13 +93,15 @@ def calc_stats(dump_path=None):
                                 cited_entities[o_row["cited"]] += 1
                                 citing_entities[o_row["citing"]] += 1
 
-        with open('refrences.csv', 'w') as f:
+        with open('references.csv', 'w') as f:
             write = csv.writer(f)
+            write.writerow(["omid","references"])
             for id in citing_entities:
                 write.writerow([id,citing_entities[id]])
 
         with open('citations.csv', 'w') as f:
             write = csv.writer(f)
+            write.writerow(["omid","citations"])
             for id in cited_entities:
                 write.writerow([id,cited_entities[id]])
 
@@ -83,8 +116,8 @@ def calc_stats(dump_path=None):
 def main():
     global _config
 
-    parser = argparse.ArgumentParser(description='Calculate basic stats over the CSV dump of INDEX')
-    parser.add_argument('--dump', type=str, required=True,help='Path to the directory containing the ZIP files of the CSV dump of INDEX')
+    parser = argparse.ArgumentParser(description='Calculates basic stats over the CSV dump of INDEX and produces the 3 support files (CSV): (1) citations.csv (citation count of each OMID), references.csv (reference count of each OMID), and omid.csv (OMID > ID(s) mapping)')
+    parser.add_argument('--dump', type=str, required=True,help='Path to the directory containing the ZIP files of the CSV dump of INDEX (as it is represented in the figshare dump)')
 
     args = parser.parse_args()
     logger = get_logger()
