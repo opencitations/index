@@ -29,7 +29,7 @@ def re_get_ids(val, identifiers, multi_ids = False, group_ids= False):
 def get_omid_map(fzip, wanted_id):
     omid_map = dict()
     with ZipFile(fzip) as archive:
-        logger.info("Total number of files in the archive is:"+str(len(archive.namelist())))
+        print("Total number of files in the archive is:"+str(len(archive.namelist())))
         for csv_name in tqdm(archive.namelist()):
             with archive.open(csv_name) as csv_file:
                 l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
