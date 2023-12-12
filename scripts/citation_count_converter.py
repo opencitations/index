@@ -20,7 +20,7 @@ with open(args.omid, mode='r') as input_csvfile:
                 if any_id.startswith(wanted_id):
                     omid = row[0]
                     if omid.startswith("omid:"):
-                        omid.replace("omid:","")
+                        omid = omid.replace("omid:","")
                     any_id = any_id.replace("doi:","")
                     omid_map[omid] = any_id
 
@@ -40,7 +40,7 @@ with open(args.citations, mode='r') as input_csvfile:
         if len(row) == 2:
             omid = row[0]
             if omid.startswith("omid:"):
-                omid.replace("omid:","")
+                omid = omid.replace("omid:","")
             if omid in omid_map:
                 any_id = omid_map[omid]
                 citation_count_by_id[any_id] = row[1]
