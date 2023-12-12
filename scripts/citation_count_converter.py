@@ -3,6 +3,7 @@ import argparse
 from collections import defaultdict
 from zipfile import ZipFile
 import io
+from tqdm import tqdm
 
 def re_get_ids(val, identifiers, multi_ids = False, group_ids= False):
     res = []
