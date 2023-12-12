@@ -6,6 +6,8 @@ import io
 from tqdm import tqdm
 import re
 
+csv.field_size_limit(sys.maxsize)
+
 def re_get_ids(val, identifiers, multi_ids = False, group_ids= False):
     res = []
     items = [val]
@@ -34,6 +36,7 @@ def get_omid_map(fzip, wanted_id):
         print("Total number of files in the archive is:"+str(len(archive.namelist())))
         for csv_name in tqdm(archive.namelist()):
             with archive.open(csv_name) as csv_file:
+
                 l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
                 for o_row in l_cits:
                     omid_ids = re_get_ids(o_row["id"],["omid"])
