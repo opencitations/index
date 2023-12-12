@@ -24,7 +24,7 @@ with open(args.omid, mode='r') as input_csvfile:
                     any_id = any_id.replace("doi:","")
                     omid_map[omid] = any_id
 
-citation_count_by_id = dict()
+citation_count_by_id = []
 # Open the input and output CSV files
 with open(args.citations, mode='r') as input_csvfile:
     reader = csv.reader(input_csvfile)
@@ -35,12 +35,12 @@ with open(args.citations, mode='r') as input_csvfile:
                 omid = omid.replace("omid:","")
             if omid in omid_map:
                 any_id = omid_map[omid]
-                citation_count_by_id[any_id] = row[1]
+                citation_count_by_id.append( (any_id,row[1]) )
 
 with open(args.out, mode='w', newline='') as output_csvfile:
     writer = csv.writer(output_csvfile)
     writer.writerow([wanted_id, 'citation_count'])
-    for cited in citation_count_by_id:
-        writer.writerow([cited,str(citation_count_by_id[cited])])
+    for c in citation_count_by_id:
+        writer.writerow([c[0],str(c[1])])
 
 print(f'New CSV file with the citation counts "{args.out}" has been created.')
