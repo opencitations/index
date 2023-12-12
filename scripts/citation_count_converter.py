@@ -17,6 +17,7 @@ with open(args.omid, mode='r') as input_csvfile:
             for any_id in row[1].split(" "):
                 if any_id.startswith(args.id):
                     omid = row[0].replace("omid:","")
+                    any_id = any_id.replace("doi:","")
                     omid_map[omid] = any_id
 
 
