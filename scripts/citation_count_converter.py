@@ -84,7 +84,7 @@ with open(args.citations, mode='r') as input_csvfile:
 
 with open(args.out, mode='w', newline='') as output_csvfile:
     writer = csv.writer(output_csvfile)
-    writer.writerow([wanted_id, 'citation_count'])
+    writer.writerow([args.id, 'citation_count'])
     for c in citation_count_by_id:
         writer.writerow([c[0],str(c[1])])
 
