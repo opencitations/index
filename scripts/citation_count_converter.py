@@ -38,4 +38,4 @@ with open(args.out, mode='w', newline='') as output_csvfile:
     for cited in citation_count_by_id:
         writer.writerow([cited,str(citation_count_by_id[cited])])
 
-print(f'New CSV file with the citation counts "{args.output_file}" has been created.')
+print(f'New CSV file with the citation counts "{args.out}" has been created.')
