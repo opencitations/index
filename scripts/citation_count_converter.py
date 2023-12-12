@@ -34,7 +34,7 @@ with open(args.citations, mode='r') as input_csvfile:
 with open(args.out, mode='w', newline='') as output_csvfile:
     writer = csv.writer(output_csvfile)
     writer.writerow(['id', 'citation_count'])
-    for cited in cits_index:
-        writer.writerow([cited,str(cits_index[cited])])
+    for cited in citation_count_by_id:
+        writer.writerow([cited,str(citation_count_by_id[cited])])
 
 print(f'New CSV file with the citation counts "{args.output_file}" has been created.')
