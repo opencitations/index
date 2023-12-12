@@ -16,7 +16,8 @@ with open(args.omid, mode='r') as input_csvfile:
         if len(row) == 2:
             for any_id in row[1].split(" "):
                 if any_id.startswith(args.id):
-                    omid_map[row[0]] = any_id
+                    omid = row[0].replace("omid:","")
+                    omid_map[omid] = any_id
 
 
 citation_count_by_id = dict()
@@ -25,9 +26,9 @@ with open(args.citations, mode='r') as input_csvfile:
     reader = csv.reader(input_csvfile)
     for row in reader:
         if len(row) == 2:
-
-            if row[0] in omid_map:
-                any_id = omid_map[row[0]]
+            omid = row[0]
+            if omid in omid_map:
+                any_id = omid_map[omid]
                 citation_count_by_id[any_id] = row[1]
 
 with open(args.out, mode='w', newline='') as output_csvfile:

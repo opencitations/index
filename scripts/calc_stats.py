@@ -103,6 +103,7 @@ def calc_stats(dump_path=None):
             write = csv.writer(f)
             write.writerow(["omid","citations"])
             for id in cited_entities:
+                id = id.replace("omid:","")
                 write.writerow([id,cited_entities[id]])
 
         str_stats = "#entites = "+str(len(all_entities)) + "\n"
