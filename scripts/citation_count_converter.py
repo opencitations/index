@@ -5,6 +5,7 @@ from zipfile import ZipFile
 import io
 from tqdm import tqdm
 import re
+import sys
 
 csv.field_size_limit(sys.maxsize)
 
