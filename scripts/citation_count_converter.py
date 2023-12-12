@@ -3,8 +3,8 @@ import argparse
 from collections import defaultdict
 
 parser = argparse.ArgumentParser(description='Takes a CSV containing the list of all citations in OC INDEX expressed as OMID-OMID')
-parser.add_argument('--citations', help='Path to the CSV file containing the citation count in the OpenCitations INDEX expressed as OMID > [COUNT]')
-parser.add_argument('--omid', help='Path to the CSV file containing a mapping of the OMID(s) in the OpenCitations INDEX expressed as OMID > ANY-ID(s), e.g. omid:br/123,doi:10.123 pmid:2345')
+parser.add_argument('--citations', required=True, help='Path to the CSV file containing the citation count in the OpenCitations INDEX expressed as OMID > [COUNT]')
+parser.add_argument('--omid', required=True, help='Path to the CSV file containing a mapping of the OMID(s) in the OpenCitations INDEX expressed as OMID > ANY-ID(s), e.g. omid:br/123,doi:10.123 pmid:2345')
 parser.add_argument('--id',  default='doi', help='Convert OMID(s) to a given ID')
 parser.add_argument('--out', default='citation_count.csv', help='Path to the output CSV file (default: citation_count.csv)')
 args = parser.parse_args()
