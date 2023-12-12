@@ -9,16 +9,25 @@ parser.add_argument('--id',  default='doi', help='Convert OMID(s) to a given ID'
 parser.add_argument('--out', default='citation_count.csv', help='Path to the output CSV file (default: citation_count.csv)')
 args = parser.parse_args()
 
+wanted_id = args.id
+
 omid_map = dict()
 with open(args.omid, mode='r') as input_csvfile:
     reader = csv.reader(input_csvfile)
     for row in reader:
         if len(row) == 2:
             for any_id in row[1].split(" "):
-                if any_id.startswith(args.id):
+                if any_id.startswith(wanted_id):
                     omid = row[0].replace("omid:","")
                     any_id = any_id.replace("doi:","")
                     omid_map[omid] = any_id
+
+c = 5
+for a in omid_map:
+    print(a,omid_map[a])
+    c = c -1
+    if c == 0:
+         break
 
 
 citation_count_by_id = dict()
@@ -32,9 +41,16 @@ with open(args.citations, mode='r') as input_csvfile:
                 any_id = omid_map[omid]
                 citation_count_by_id[any_id] = row[1]
 
+c = 5
+for a in citation_count_by_id:
+    print(a,citation_count_by_id[a])
+    c = c -1
+    if c == 0:
+         break
+
 with open(args.out, mode='w', newline='') as output_csvfile:
     writer = csv.writer(output_csvfile)
-    writer.writerow(['id', 'citation_count'])
+    writer.writerow([wanted_id, 'citation_count'])
     for cited in citation_count_by_id:
         writer.writerow([cited,str(citation_count_by_id[cited])])
 
