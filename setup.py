@@ -53,6 +53,7 @@ setup(
     exclude_package_data={"": ["./test_data"]},
     entry_points={
         "console_scripts": [
+            "oc.index.norm=oc.index.scripts.norm:main",
             "oc.index.calc_stats=oc.index.scripts.calc_stats:main",
             "oc.index.edit_rdf=oc.index.scripts.edit_rdf:main",
             "oc.index.meta2redis=oc.index.scripts.meta2redis:main",
