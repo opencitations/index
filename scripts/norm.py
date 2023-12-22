@@ -100,7 +100,12 @@ def normalize_dump(input_dir, output_dir, mapping_file):
                         duplicated_omid = duplicated_omid.split("https://w3id.org/oc/meta/br/")[1]
                         omid_mapper[duplicated_omid] = correct_omid
 
-    files_to_process =  [file for file in os.listdir(input_dir) if file.endswith('.ttl')]
+    files_to_process = []
+    for root, dirs, files in os.walk(input_dir):
+        for file in files:
+            if file.endswith('.ttl'):
+                files_to_process.append(os.path.join(root, file))
+
     for idx,file in enumerate(files_to_process):
         with open(os.path.join(input_dir, file), 'r') as ttl_file:
             lines = ttl_file.readlines()
