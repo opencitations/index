@@ -100,6 +100,8 @@ def normalize_dump(input_dir, output_dir, mapping_file):
                         duplicated_omid = duplicated_omid.split("https://w3id.org/oc/meta/br/")[1]
                         omid_mapper[duplicated_omid] = correct_omid
 
+    #omid_mapper = a dictionary which maps all the duplicated OMIDs with their corresponding **correct OMID**
+
     files_to_process = []
     for root, dirs, files in os.walk(input_dir):
         for file in files:
@@ -132,6 +134,8 @@ def normalize_dump(input_dir, output_dir, mapping_file):
 
                         #check if the citation has been modified
                         if new_oci != oci:
+                            # then the original oci must be invalidated
+                            # and a corresponding new citation *new_oci* (with the correct OCIs) must be considered instead
                             invalidated_cits.append(oci)
                             valid_cits.append(new_oci)
 
