@@ -2,6 +2,7 @@ from redis import Redis
 import argparse
 import csv
 from tqdm import tqdm
+import os
 
 parser = argparse.ArgumentParser(description='Export a DB from Redis')
 parser.add_argument('--db', type=str, required=True,help='DB to populate')
