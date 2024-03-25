@@ -50,10 +50,3 @@ for filename in os.listdir(args.csv):
                 r_db.mset(w_buffer)
 
 print("Done!")
-
-
-
-csv_files = []
-    for filename in os.listdir(directory):
-        if filename.endswith('.csv'):
-            csv_files.append(os.path.join(directory, filename))
