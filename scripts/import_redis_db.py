@@ -32,9 +32,13 @@ args = parser.parse_args()
 r_db = Redis(host="localhost", port="6379", db=args.db)
 
 print("Insert in redis DB="+str(args.db)+", the data inside the CSVs in the directoy="+str(args.csv)+" .")
-for filename in os.listdir(args.csv):
+dir_csvs= args.csv
+if dir_csvs[-1] != "/":
+    dir_csvs = dir_csvs + "/"
+
+for filename in os.listdir(dir_csvs):
     if filename.endswith('.csv'):
-        with open(filename,'r') as f:
+        with open(dir_csvs+filename,'r') as f:
             reader = csv.reader(f)
             w_buffer = dict()
             REDIS_W_BUFFER = 10000
