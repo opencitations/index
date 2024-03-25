@@ -9,14 +9,22 @@ parser.add_argument('--csv', type=str, required=True,help='Input file in CSV for
 parser.add_argument('--key', type=str, required=True,help='column (i.e. number of column) to use as key in redis')
 parser.add_argument('--value', type=str, required=True,help='column (i.e. number of column) to use as value in redis')
 
-# The following example add the names as keys and the ages aas values into the DB=0 of Redis
-# ******************
+# ****************** <CALL EXAMPLE> ******************
+
+# Having a CSV file (file.csv) containing something like this:
+# james,32
+# nicolas,44
+# david,14
+# ...
+
+# Then the following call adds the names as keys and the ages as values into DB=0 of Redis
 # --db 0
 # --in file.csv >
-#   "james,32
-#   nicolas,44"
 # --key 0
 # --value 1
+
+# ****************** </CALL EXAMPLE> ******************
+
 
 args = parser.parse_args()
 
