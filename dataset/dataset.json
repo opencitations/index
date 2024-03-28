@@ -1,0 +1,22 @@
+{
+  "@context": "https://w3id.org/oc/index/context.json",
+  "iri": "gindex:",
+  "a": "index_dataset",
+  "label": "INDEX",
+  "title": "The OpenCitations Index",
+  "description": "An open citation index built on the bibliographic metadata for citing and cited publications that are stored in OpenCitations Meta, using information available from a number of open bibliographic databases",
+  "pub_date": "2023-12-01T00:00:00",
+  "mod_date": "2023-12-01T00:00:00",
+  "keyword": [
+    "INDEX",
+    "OpenCitations",
+    "OpenCitations Index",
+    "citations"
+  ],
+  "subject": [
+    "scholarly_communication",
+    "bibliographic_database",
+    "open_access",
+    "citations"
+  ]
+}

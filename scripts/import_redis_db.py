@@ -19,10 +19,8 @@ parser.add_argument('--value', type=str, required=True,help='column (i.e. number
 # ...
 
 # Then the following call adds the names as keys and the ages as values into DB=0 of Redis
-# --db 0
-# --in file.csv >
-# --key 0
-# --value 1
+# --db 0 --in /PATH/TO/CSVS --key 0 --value 1
+
 
 # ****************** </CALL EXAMPLE> ******************
 
