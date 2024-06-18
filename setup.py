@@ -57,7 +57,7 @@ setup(
             "oc.index.calc_stats=oc.index.scripts.calc_stats:main",
             "oc.index.edit_rdf=oc.index.scripts.edit_rdf:main",
             "oc.index.meta2redis=oc.index.scripts.meta2redis:main",
-            "oc.index.cits2redis=oc.index.scripts.cits2redis:main",
+            "oc.index.cits2redis=oc.index.scripts.redis_cits_glob:main",
             "oc.index.check_entities=oc.index.scripts.check_entities:main",
             "oc.index.cnc=oc.index.scripts.cnc:main",
             "oc.index.datasource=oc.index.scripts.datasource:main",
