@@ -1,8 +1,12 @@
-import os
-from argparse import ArgumentParser
-from tqdm import tqdm
-from collections import defaultdict
 import csv
+from argparse import ArgumentParser
+from collections import defaultdict
+from zipfile import ZipFile
+import io
+from tqdm import tqdm
+import re
+import sys
+import os
 
 # _config = get_config()
 
@@ -92,9 +96,11 @@ def calc_ocindex_citation_count(input_files):
                 if line.strip() != "":
                     citing=  extract_str_part(line, "citing")
                     cited = extract_str_part(line, "cited")
-                    omid_cits_count[citing].add(cited)
+                    omid_cits_dict[citing].add(cited)
 
-    omid_cits_count = [ [omid_citing, omid_cits_dict[omid_citing]] for omid_citing in omid_cits_dict ]
+        break
+
+    omid_cits_count = [ [omid_citing, len(omid_cits_dict[omid_citing])] for omid_citing in omid_cits_dict ]
     return omid_cits_count
 
 
@@ -131,11 +137,15 @@ def main():
                 # Add the full path of the file to the list
                 input_files.append(os.path.join(dirpath, filename))
 
-    comid_cits_count = alc_ocindex_citation_count(input_files)
+    omid_cits_count = calc_ocindex_citation_count(input_files)
 
     with open("citations.csv", mode='w', newline='') as file:
         writer = csv.writer(file)
+        omid_cits_count.insert(0, ["omid","citations"])
         writer.writerows(omid_cits_count)
 
 
     print("Done!")
+
+if __name__ == "__main__":
+    main()
