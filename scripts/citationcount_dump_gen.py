@@ -46,9 +46,9 @@ def calc_ocindex_citation_count(input_files):
                 if line.strip() != "":
                     citing=  extract_str_part(line, "citing")
                     cited = extract_str_part(line, "cited")
-                    omid_cits_dict[citing].add(cited)
+                    omid_cits_dict[cited].add(citing)
 
-    omid_cits_count = [ [omid_citing, len(omid_cits_dict[omid_citing])] for omid_citing in omid_cits_dict ]
+    omid_cits_count = [ [omid_cited, len(omid_cits_dict[omid_cited])] for omid_cited in omid_cits_dict ]
     return omid_cits_count
 
 
