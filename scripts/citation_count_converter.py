@@ -78,6 +78,8 @@ def main():
                 omid = row[0]
                 if omid.startswith("omid:"):
                     omid = omid.replace("omid:","")
+                if not omid.startswith("br/"):
+                    omid = "br/"+omid
                 if omid in omid_map:
                     any_id = omid_map[omid]
                     citation_count_by_id.append( (any_id,row[1]) )
