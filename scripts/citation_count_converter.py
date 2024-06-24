@@ -7,6 +7,7 @@ from tqdm import tqdm
 import re
 import sys
 import requests
+from time import sleep
 
 csv.field_size_limit(sys.maxsize)
 
@@ -97,11 +98,12 @@ def main():
                         multi_any_ids[any_id] += 1
 
                         if args.check:
-                            # call META triplestore on test.opencitations.net and get list of citations
-                            url = 'https://opencitations.net/index/api/v2/citations/'+any_id_pre+":"+any_id
-                            response = requests.get(url)
                             print("Get citations via API for: "+str(any_id_pre+":"+any_id))
                             try:
+
+                                # call META triplestore on test.opencitations.net and get list of citations
+                                url = 'https://opencitations.net/index/api/v2/citations/'+any_id_pre+":"+any_id
+                                response = requests.get(url)
 
                                 l_citing = [set(cit["citing"].split(" ")) for cit in response.json()]
                                 # filter only any_id
@@ -113,6 +115,7 @@ def main():
 
                                 cits_count = len(citings_any_id)
 
+                                sleep(1)
                             except:
                                 pass
 
