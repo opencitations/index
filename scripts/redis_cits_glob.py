@@ -48,8 +48,8 @@ def process_file(input_file):
             cited = extract_str_part(line, "cited")
             source = extract_str_part(line, "source")
             if cited not in cits_buffer[citing]:
-                cits_buffer[citing][cited] = []
-            cits_buffer[citing][cited].append(source)
+                cits_buffer[citing][source] = []
+            cits_buffer[citing][source].append(cited)
 
     # cits_buffer
     # E.G. {'CITING-1': {'CITED-1': [SOURCE], 'CITED-2': [SOURCE]} ... }
@@ -65,11 +65,11 @@ def process_file(input_file):
 
     # update the ones that are already in REDIS
     for k_citing in inredis_citing:
-        for cited in cits_buffer[k_citing]:
-            inredis_citing[k_citing][cited] = list(
-                set(inredis_citing[k_citing][cited]).union(cits_buffer[k_citing][cited])
+        for source in cits_buffer[k_citing]:
+            inredis_citing[k_citing][source] = list(
+                set(inredis_citing[k_citing][source]).union(cits_buffer[k_citing][source])
             )
-            
+
     redis_cits.mset(inredis_citing)
 
 

@@ -61,12 +61,14 @@ def main():
 
     omid_map = get_omid_map(args.metacsv, args.id)
 
-    c = 10
-    for a in omid_map:
-        print(a,omid_map[a])
-        c -= 1
-        if c == 0:
-            break
+    # Print a sample
+    # -----
+    # c = 10
+    # for a in omid_map:
+    #     print(a,omid_map[a])
+    #     c -= 1
+    #     if c == 0:
+    #         break
 
 
     citation_count_by_id = []
