@@ -40,7 +40,7 @@ def extract_str_part(s_ttl, part = "citing"):
 def process_file(input_file):
 
     # redis DB of citations glob
-    redis_cits = redis.Redis(
+    redis_cits = Redis(
         host="127.0.0.1",
         port="6379",
         #db=_config.get("cnc", "db_cits")
