@@ -89,17 +89,18 @@ def main():
                     any_id = omid_map[omid]
 
                     cits_count = row[1]
+
+                    # check in case this any_id was already processed we need to dissambiguate
                     if any_id in citation_count_by_id:
 
-                        # in case this any_id was already processed we need to dissambiguate
                         # get the any_ids of all the citing entities
                         multi_any_ids[any_id] += 1
 
                         if args.check:
                             # call META triplestore on test.opencitations.net and get list of citations
-                            url = 'https://test.opencitations.net/index/api/v2/citations/'+any_id_pre+":"+any_id
+                            url = 'https://opencitations.net/index/api/v2/citations/'+any_id_pre+":"+any_id
                             response = requests.get(url)
-
+                            print("Get citations via API for: "+str(any_id_pre+":"+any_id))
                             try:
 
                                 l_citing = [set(cit["citing"].split(" ")) for cit in response.json()]
