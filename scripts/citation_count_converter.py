@@ -6,6 +6,7 @@ import io
 from tqdm import tqdm
 import re
 import sys
+import requests
 
 csv.field_size_limit(sys.maxsize)
 
@@ -57,9 +58,11 @@ def main():
     parser.add_argument('--metacsv', required=True, help='Path to the Zipped META CSV dump')
     parser.add_argument('--id',  default='doi', help='Convert OMID(s) to a given ID')
     parser.add_argument('--out', default='citation_count.csv', help='Path to the output CSV file (default: citation_count.csv)')
+    parser.add_argument('--check', action='store_true', help='Set this param if you want a further check for duplicated entities')
     args = parser.parse_args()
 
-    omid_map = get_omid_map(args.metacsv, args.id)
+    any_id_pre = args.id
+    omid_map = get_omid_map(args.metacsv, any_id_pre)
 
     # Print a sample
     # -----
@@ -70,8 +73,8 @@ def main():
     #     if c == 0:
     #         break
 
-
-    citation_count_by_id = []
+    multi_any_ids = defaultdict(int)
+    citation_count_by_id = dict()
     # Open the input and output CSV files
     with open(args.citations, mode='r') as input_csvfile:
         reader = csv.reader(input_csvfile)
@@ -84,7 +87,39 @@ def main():
                     omid = "br/"+omid
                 if omid in omid_map:
                     any_id = omid_map[omid]
-                    citation_count_by_id.append( (any_id,row[1]) )
+
+                    cits_count = row[1]
+                    if any_id in citation_count_by_id:
+
+                        # in case this any_id was already processed we need to dissambiguate
+                        # get the any_ids of all the citing entities
+                        multi_any_ids[any_id] += 1
+
+                        if args.check:
+                            # call META triplestore on test.opencitations.net and get list of citations
+                            url = 'https://test.opencitations.net/index/api/v2/citations/'+any_id_pre+":"+any_id
+                            response = requests.get(url)
+
+                            try:
+
+                                l_citing = [set(cit["citing"].split(" ")) for cit in response.json()]
+                                # filter only any_id
+                                citings_any_id = set()
+                                for citing_obj in l_citing:
+                                  for k_citing in citing_obj:
+                                    if k_citing.startswith(any_id_pre+":"):
+                                      citings_any_id.add(k_citing.replace(any_id_pre+":",""))
+
+                                cits_count = len(citings_any_id)
+
+                            except:
+                                pass
+
+                    citation_count_by_id[any_id] = cits_count
+
+
+    # convert it to a list of tuples
+    citation_count_by_id = [(k,citation_count_by_id[k]) for k in citation_count_by_id]
 
     with open(args.out, mode='w', newline='') as output_csvfile:
         writer = csv.writer(output_csvfile)
@@ -93,6 +128,18 @@ def main():
             writer.writerow([c[0],str(c[1])])
 
     print(f'New CSV file with the citation counts "{args.out}" has been created.')
+
+
+    # write also duplicates
+    with open(any_id_pre+"_dupilcates.csv", mode='w', newline='') as output_csvfile:
+        writer = csv.writer(output_csvfile)
+        l_duplicates = [ (any_id,multi_any_ids[any_id]) for any_id in multi_any_ids]
+        writer.writerow([args.id, 'num_duplicates'])
+        for c in l_duplicates:
+            writer.writerow([c[0],str(c[1])])
+
+    print(f'The number of duplicated entities is "{str(len(multi_any_ids.keys()))}" ')
+
 
 if __name__ == "__main__":
     main()
