@@ -37,6 +37,19 @@ def extract_str_part(s_ttl, part = "citing"):
     return None
 
 
+def norm_citations(dict_citations):
+    l_res = []
+    for k_cited in dict_citations:
+        l_res.append( str(k_cited)+":"+";".join(dict_citations[k_cited]) )
+    return " ".join(l_res)
+
+def dict_citations(val_citations):
+    l_res = {}
+    for val_citing in val_citations.decode().split(" "):
+        citing_sources = val_citing.split(":")[1].split(";")
+        l_res[ val_citing.split(":")[0] ] = [ str(a) for a in citing_sources ]
+    return l_res
+
 def process_file(input_file):
 
     # redis DB of citations glob
@@ -58,30 +71,39 @@ def process_file(input_file):
             citing=  extract_str_part(line, "citing")
             cited = extract_str_part(line, "cited")
             source = extract_str_part(line, "source")
-            if cited not in cits_buffer[citing]:
-                cits_buffer[citing][source] = []
-            cits_buffer[citing][source].append(cited)
+            if citing not in cits_buffer[cited]:
+                cits_buffer[cited][citing] = []
+            cits_buffer[cited][citing].append(source)
 
     # cits_buffer
     # E.G. {'CITING-1': {'CITED-1': [SOURCE], 'CITED-2': [SOURCE]} ... }
-    # E.G. {'06501832922': {'06801258849': ['coci'], '0680125232': ['coci']}, '06501832111': {'06501545348': ['coci']}}
+    # E.G.
+    # {
+    #     "06501832922": "06501832922:coci;doci 0680125232:coci 06501832111:coci;poci"
+    # }
 
     # update redis
-    infile_citing = cits_buffer.keys()
-    inredis_citing = {key: value for key, value in zip(infile_citing, redis_cits.mget(infile_citing))}
+    infile_cited = cits_buffer.keys()
+    inredis_cited = {key: dict_citations(value) for key, value in zip(infile_cited, redis_cits.mget(infile_cited)) if value is not None}
 
     # first insert new ones in REDIS
-    diff_new_items = {key: value for key, value in cits_buffer.items() if key not in inredis_citing}
-    redis_cits.mset(diff_new_items)
+    diff_new_items = {key: norm_citations(value) for key, value in cits_buffer.items() if key not in inredis_cited}
+    if len(diff_new_items.keys()) > 0:
+        redis_cits.mset(diff_new_items)
 
     # update the ones that are already in REDIS
-    for k_citing in inredis_citing:
-        for source in cits_buffer[k_citing]:
-            inredis_citing[k_citing][source] = list(
-                set(inredis_citing[k_citing][source]).union(cits_buffer[k_citing][source])
+    for k_cited in inredis_cited:
+        for citing in cits_buffer[k_cited]:
+            if citing not in inredis_cited[k_cited]:
+                inredis_cited[k_cited][citing] = set()
+            inredis_cited[k_cited][citing] = list(
+                set(inredis_cited[k_cited][citing]).union(cits_buffer[k_cited][citing])
             )
 
-    redis_cits.mset(inredis_citing)
+    # second insert updated ones in REDIS
+    inredis_cited = {key: norm_citations(value) for key, value in inredis_cited.items()}
+    if len(inredis_cited.keys()) > 0:
+        redis_cits.mset(inredis_cited)
 
 
 def main():
@@ -109,3 +131,7 @@ def main():
                 process_file(file_path)
 
     print("Done!")
+
+
+if __name__ == "__main__":
+    main()
