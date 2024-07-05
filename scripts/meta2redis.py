@@ -169,8 +169,8 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
 def main():
     global _config
 
-    parser = argparse.ArgumentParser(description='Upload the data of META to Redis. Creates 3 DB on Redis: (DB-1)BRs in META; (DB-2)RAs in META; (DB-3)Metadata (e.g., publication date) of BRs in META')
-    parser.add_argument('--dump', type=str, required=True,help='Path to the directory containing the ZIP files of the META dump')
+    parser = argparse.ArgumentParser(description='Store the metadata of OpenCitations Meta in Redis')
+    parser.add_argument('--dump', type=str, required=True,help='The ZIP file containing the CSV dump with the data (metadata) of OpenCitations Meta')
     #parser.add_argument('--db', type=str, required=True,help='The destination DB in redis. The specified DB is used to store <any-id>:<omid> data, while DB+1 is used to store <omid>:{METADATA}')
     #parser.add_argument('--port', type=str, required=False,help='The port of redis', default="6379")
 
@@ -181,10 +181,13 @@ def main():
 
     res = upload2redis(
         dump_path = args.dump,
+        # Redis main conf
         redishost = _config.get("redis", "host"),
         redisport = _config.get("redis", "port"),
         redisbatchsize = _config.get("redis", "batch_size"),
+        # BR IDs type handled
         br_ids = _config.get("cnc", "br_ids").split(","),
+        # RA IDs type handled
         ra_ids = _config.get("cnc", "ra_ids").split(","),
         db_br = _config.get("cnc", "db_br"),
         db_ra = _config.get("cnc", "db_ra"),
