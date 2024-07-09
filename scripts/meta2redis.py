@@ -68,10 +68,11 @@ def re_get_ids(val, identifiers, multi_ids = True, group_ids= False):
                     res.append(_id)
     return res
 
-def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_br="10", db_ra="11", db_metadata="12"):
+def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_omid = "9", db_br="10", db_ra="11", db_metadata="12"):
     global _config
     logger = get_logger()
 
+    rconn_db_omid =  RedisDB(redishost, redisport, redisbatchsize, db_omid)
     rconn_db_br =  RedisDB(redishost, redisport, redisbatchsize, db_br)
     rconn_db_ra = RedisDB(redishost, redisport, redisbatchsize, db_ra)
     rconn_db_metadata = RedisDB(redishost, redisport, redisbatchsize, db_metadata)
@@ -105,11 +106,11 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                 multi_ids_bool = col == "venue"
                                 omid_ids = re_get_ids(o_row[col],["omid"], multi_ids = multi_ids_bool, group_ids= False)
                                 if len(omid_ids) > 0:
-                                    omid_br = omid_ids[0].replace("omid:","")
+                                    omid_br = omid_ids[0].replace("omid:br/","")
                                     other_ids = re_get_ids(o_row[col],br_ids, multi_ids = multi_ids_bool, group_ids= False)
                                     for oid in other_ids:
                                         db_br_buffer.append( (oid,omid_br) )
-                                        br_index[oid].add(omid_br) #update glob index
+                                        br_index[omid_br].add(oid) #update glob index
 
                                     # add metadata only if the BR entity is in the ID column
                                     if col == "id":
@@ -128,11 +129,11 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                                 for item in o_row[col].split("; "):
                                     omid_ids = re_get_ids(item,["omid"])
                                     if len(omid_ids) > 0:
-                                        omid_ra = omid_ids[0].replace("omid:","")
+                                        omid_ra = omid_ids[0].replace("omid:ra/","")
                                         other_ids = re_get_ids(item,ra_ids)
                                         for oid in other_ids:
                                             db_ra_buffer.append( (oid,omid_ra) )
-                                            ra_index[oid].add(omid_ra) #update glob index
+                                            ra_index[omid_ra].add(oid) #update glob index
 
                         logger.info("> Total BR-OMIDs found in file: "+str(len(db_br_buffer)))
 
@@ -152,16 +153,18 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
     rconn_db_ra.set_data(db_ra_buffer, True)
 
     #print glob indexes to file
-    logger.info("Saving global indexes...")
+    logger.info("Saving (in CSV) global indexes...")
     with open('meta_br.csv', 'a+') as f:
         write = csv.writer(f)
-        for id in br_index:
-            write.writerow([id,"; ".join(br_index[id])])
+        for omid_br in br_index:
+            # E.G 0601234,doi:10.1234; pmid:12345
+            write.writerow([omid_br,"; ".join(br_index[omid_br])])
 
     with open('meta_ra.csv', 'a+') as f:
         write = csv.writer(f)
-        for id in ra_index:
-            write.writerow([id,"; ".join(ra_index[id])])
+        for omid_ra in ra_index:
+            # E.G 069012996, orcid:0000-0003-2098-4759
+            write.writerow([omid_ra,"; ".join(ra_index[omid_ra])])
 
     return (str(len(br_index)), str(len(ra_index)))
 
@@ -189,9 +192,10 @@ def main():
         br_ids = _config.get("cnc", "br_ids").split(","),
         # RA IDs type handled
         ra_ids = _config.get("cnc", "ra_ids").split(","),
+        db_omid = _config.get("cnc", "db_omid"),
         db_br = _config.get("cnc", "db_br"),
         db_ra = _config.get("cnc", "db_ra"),
         db_metadata = _config.get("INDEX", "db")
     )
 
-    logger.info("A total of unique "+str(res[0])+" BRs and "+str(res[1])+" RAs have been found and added to Redis.")
+    logger.info("A total of unique "+str(res[0])+" BR OMIDs and "+str(res[1])+" RA OMIDs have been found and added to Redis.")

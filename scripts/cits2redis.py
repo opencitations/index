@@ -30,7 +30,7 @@ from oc.index.utils.config import get_config
 _config = get_config()
 csv.field_size_limit(sys.maxsize)
 
-def upload2redis(dump_zip="", redishost="localhost", redisport="6379", redisbatchsize="10000", db_cits="8"):
+def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", db_cits="8"):
     global _config
     logger = get_logger()
     rconn = Redis(host=redishost, port=redisport, db=db_cits)
@@ -40,19 +40,25 @@ def upload2redis(dump_zip="", redishost="localhost", redisport="6379", redisbatc
     index_cited = defaultdict(list)
     citing_entities_set = set()
     all_entities_set = set()
-    if fzip.endswith(".zip"):
-        with ZipFile(fzip) as archive:
-            for csv_name in tqdm(archive.namelist()):
-                with archive.open(csv_name) as csv_file:
-                    l_cits = list(csv.reader(io.TextIOWrapper(csv_file)))
-                    for o_row in tqdm(l_cits):
-                        oci = o_row[0]
-                        citing = oci.split("-")[0]
-                        cited = oci.split("-")[1]
-                        index_cited[cited].append(citing)
-                        citing_entities_set.add(citing)
-                        all_entities_set.add(citing)
-                        all_entities_set.add(cited)
+
+    for filename in os.listdir(dump_path):
+        fzip = os.path.join(dump_path, filename)
+        # checking if it is a file
+        if fzip.endswith(".zip"):
+            logger.info("Reading "+str(fzip)+ " ...")
+            with ZipFile(fzip) as archive:
+                for csv_name in tqdm(archive.namelist()):
+                    with archive.open(csv_name) as csv_file:
+                        l_cits = list(csv.reader(io.TextIOWrapper(csv_file)))
+                        # read all rows (exclude header)
+                        for o_row in l_cits[1:]:
+                            oci = o_row[0].replace("oci:","")
+                            citing = oci.split("-")[0]
+                            cited = oci.split("-")[1]
+                            index_cited[cited].append(citing)
+                            citing_entities_set.add(citing)
+                            all_entities_set.add(citing)
+                            all_entities_set.add(cited)
 
     tot_cited_entities = str(len(index_cited.keys()))
 
@@ -66,19 +72,37 @@ def upload2redis(dump_zip="", redishost="localhost", redisport="6379", redisbatc
             str(len(index_cited.keys()))
         ])
 
-    logger.info("Store in Redis and in CSV ...")
-    with open('citations_index.csv', 'w') as f:
-        write = csv.writer(f)
-        write.writerow(["cited","citing"])
-        for _k, _v in data.items():
-            rconn.set(_k, _v)
-            write.writerow([_k,"; ".join(_v)])
+    logger.info("Store citations in CSV ...")
+    f_idx = 0
+    BUUFER_WR = 100000
+    row_count = 0
+    wr_f = None
+    for _k, _v in index_cited.items():
+        if row_count % BUUFER_WR == 0:
+            if wr_f:
+                wr_f.close()
+            f_idx += 1
+            wr_f = open(str(f_idx)+'__citations_index.csv', 'w')
+            write = csv.writer(wr_f)
+            write.writerow(["cited","citing"])
+
+        write.writerow([_k,"; ".join(_v)])
+        row_count += 1
+
+    if wr_f:
+        wr_f.close()
+
+
+
+    logger.info("Store citations in Redis ...")
+    redis_entries = { _k:json.dumps(_v) for _k, _v in index_cited.items() }
+    rconn.mset(redis_entries)
 
     logger.info("Store citation count (OMIDs) in CSV ...")
-    with open('citations_index.csv', 'w') as f:
+    with open('citation_count.csv', 'w') as f:
         write = csv.writer(f)
         write.writerow(["omid","citations"])
-        for _k, _v in data.items():
+        for _k, _v in index_cited.items():
             write.writerow([_k,str(len(_v))])
 
 
@@ -86,7 +110,7 @@ def main():
     global _config
 
     parser = argparse.ArgumentParser(description='Store the citations of OpenCitations Index in Redis')
-    parser.add_argument('--dump', type=str, required=True,help='The ZIP file containing the CSV dump with the data (citations) of OpenCitations Index')
+    parser.add_argument('--dump', type=str, required=True,help='The directory containing ZIP files storing the CSV dump with the data (citations) of OpenCitations Index')
 
     args = parser.parse_args()
     logger = get_logger()
@@ -95,7 +119,7 @@ def main():
 
     res = upload2redis(
         # ZIP DUMP
-        dump_zip = args.dump,
+        dump_path = args.dump,
         # REDIS conf
         redishost = _config.get("redis", "host"),
         redisport = _config.get("redis", "port"),
