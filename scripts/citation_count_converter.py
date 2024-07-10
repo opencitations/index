@@ -133,10 +133,12 @@ def main():
                     otherwise, use APIs to get the citing entities
                     '''
                     if redis_cits:
-                        logger.info("Get citations form Redis for: "+str(anyid_pref+":"+any_id))
-                        citing_omids = json.loads(redis_cits.get(omid).decode('utf-8'))
-                        citing_dois = set( [omid_map["br/"+__c] for __c in citing_omids] )
-                        cits_count = len(set(citing_dois))
+                        logger.info("Get citations form Redis for: "+str(anyid_pref+":"+any_id)+ " (omid:"+omid+")" )
+                        __b_cits = redis_cits.get(omid.replace("br/",""))
+                        if cits:
+                            citing_omids = json.loads(__b_cits.decode('utf-8'))
+                            citing_anyid = set( [omid_map["br/"+__c] for __c in citing_omids] )
+                            cits_count = len(set(citing_anyid))
 
                     else:
                         logger.info("Get citations via API for: "+str(anyid_pref+":"+any_id))
