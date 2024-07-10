@@ -15,6 +15,8 @@ from oc.index.utils.logging import get_logger
 
 csv.field_size_limit(sys.maxsize)
 
+ANYID = ["doi","issn","isbn","pmid","pmcid","url","wikidata","wikipedia","jid","arxiv"]
+
 '''
 Regex to get all the IDs in the Meta CSV dump
 '''
@@ -55,7 +57,7 @@ def get_omid_map(fzip, wanted_id):
                     omid_ids = re_get_ids(o_row["id"],["omid"])
                     if len(omid_ids) > 0:
                         omid = omid_ids[0].replace("omid:","")
-                        other_ids = re_get_ids(o_row["id"], ["doi","issn","isbn","pmid","pmcid","url","wikidata","wikipedia","jid","arxiv"])
+                        other_ids = re_get_ids(o_row["id"], ANYID)
                         for any_id in other_ids:
                             if any_id.startswith(wanted_id):
                                 any_id = any_id.replace(wanted_id+":","")
@@ -66,16 +68,19 @@ def get_omid_map(fzip, wanted_id):
 To create the omid map using the META BRs index (in CSV)
 The META BRs index should be previously generated using 'meta2redis' command
 '''
-def read_omid_map(f_omidmap, anyid_pref):
-    omid_map = dict()
+def read_omid_map(f_omidmap):
+    omid_map = defaultdict(set)
     with open(f_omidmap, mode='r') as file:
         csv_reader = csv.reader(file)
         for row in tqdm(csv_reader):
             if len(row) == 2:  # Ensure there are exactly two columns
                 br_omid, anyids = row
+                br_omid = "br/"+br_omid
                 for _id in anyids.split("; "):
-                    if _id.startswith(anyid_pref+":"):
-                        omid_map["br/"+br_omid] = _id.replace(anyid_pref+":","")
+                    for anyid_pref in ANYID:
+                        if _id.startswith(anyid_pref):
+                            omid_map[br_omid].add( _id.replace(anyid_pref+":","") )
+
     return omid_map
 
 def main():
@@ -136,9 +141,24 @@ def main():
                         logger.info("Get citations form Redis for: "+str(anyid_pref+":"+any_id)+ " (omid:"+omid+")" )
                         __b_cits = redis_cits.get(omid.replace("br/",""))
                         citing_omids = json.loads(__b_cits.decode('utf-8'))
-                        citing_anyid = set( [omid_map["br/"+__c] for __c in citing_omids if "br/"+__c in omid_map] )
-                        citing_not_anyid = set( ["br/"+__c for __c in citing_omids if "br/"+__c not in omid_map] )
-                        cits_count = len(set(citing_anyid)) + len(set(citing_not_anyid))
+
+                        l_citing_anyids = [omid_map["br/"+__c] for __c in citing_omids if "br/"+__c in omid_map]
+
+                        __element_count = dict()
+                        for s in l_citing_anyids:
+                            for elem in s:
+                                if elem in __element_count:
+                                    __element_count[elem] += 1
+                                else:
+                                    __element_count[elem] = 1
+
+                        unique_citing_anyids = []
+                        for s in l_citing_anyids:
+                            if all(__element_count[elem] == 1 for elem in s):
+                                unique_citing_anyids.append(s)
+
+
+                        cits_count = len(unique_citing_anyids)
 
                     else:
                         logger.info("Get citations via API for: "+str(anyid_pref+":"+any_id))
