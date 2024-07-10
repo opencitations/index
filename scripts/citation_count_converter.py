@@ -9,6 +9,7 @@ import sys
 import requests
 from time import sleep
 import json
+import redis
 
 from oc.index.utils.logging import get_logger
 
