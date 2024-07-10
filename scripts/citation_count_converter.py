@@ -109,6 +109,7 @@ def main():
     anyid_citation_count = dict()
 
     # Convert OMIDs in the citation count dump
+    logger.info("Convert OMIDs of the citation count dump ...")
     with open(args.citations, mode='r') as input_csvfile:
         for row in tqdm(csv.reader(input_csvfile)):
             omid = row[0]
