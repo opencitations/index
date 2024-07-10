@@ -100,7 +100,7 @@ def main():
     # DICT => { <OMID>: <anyid_pref>:<ANYID> }
     logger.info("Build OMID map ...")
     if args.metabrs:
-        omid_map = read_omid_map(args.metabrs, anyid_pref)
+        omid_map = read_omid_map(args.metabrs)
     elif args.metacsv:
         omid_map = get_omid_map(args.metacsv, anyid_pref)
 
