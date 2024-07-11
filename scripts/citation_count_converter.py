@@ -79,7 +79,7 @@ def read_omid_map(f_omidmap):
                 for _id in anyids.split("; "):
                     for anyid_pref in ANYID:
                         if _id.startswith(anyid_pref):
-                            omid_map[br_omid].add( _id.replace(anyid_pref+":","") )
+                            omid_map[br_omid].add( _id )
 
     return omid_map
 
@@ -131,7 +131,8 @@ def main():
                 any_id = None
                 for __anyid in s_any_id:
                     if __anyid.startswith(anyid_pref):
-                        any_id = __anyid
+                        any_id = __anyid.replace(anyid_pref+":","")
+                        break
 
                 # check in case this any_id was already processed we need to dissambiguate
                 if any_id:
