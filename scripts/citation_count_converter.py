@@ -48,7 +48,7 @@ To create the omid map using the original OC META CSV dump
 '''
 def get_omid_map(fzip):
     global conf_br_ids
-    
+
     omid_map = dict()
     with ZipFile(fzip) as archive:
         logger.info("Total number of files in the archive is:"+str(len(archive.namelist())))
@@ -115,7 +115,7 @@ def main():
         redis_cits = redis.Redis(host='localhost', port=6379, db=args.redisindex)
 
     # Variables to dump
-    multi_any_ids = defaultdict(int)
+    multi_any_ids = defaultdict(set)
     anyid_citation_count = dict()
 
     # Convert OMIDs in the citation count dump
@@ -141,56 +141,59 @@ def main():
                 # check in case this any_id was already processed we need to dissambiguate
                 if any_id:
                     if any_id in anyid_citation_count:
+                        multi_any_ids[any_id].add(omid.replace("br/",""))
+                    else:
+                        anyid_citation_count[any_id] = cits_count
 
-                        # get the any_ids of all the citing entities
-                        multi_any_ids[any_id] += 1
+    # Walk through duplicated ones
+    for any_id in multi_any_ids:
+        '''
+        if the DB of redis storing the citations of OpenCitations is specified use that
+        otherwise, use APIs to get the citing entities
+        '''
+        if redis_cits:
+            logger.info("Get citations form Redis for: "+str(anyid_pref+":"+any_id)+ " (omid: "+" ".join(multi_any_ids[any_id])+")" )
+            citing_omids = []
+            for omid in multi_any_ids[any_id]:
+                __b_cits = redis_cits.get(omid.replace("br/",""))
+                citing_omids += json.loads(__b_cits.decode('utf-8'))
 
-                        '''
-                        if the DB of redis storing the citations of OpenCitations is specified use that
-                        otherwise, use APIs to get the citing entities
-                        '''
-                        if redis_cits:
-                            logger.info("Get citations form Redis for: "+str(anyid_pref+":"+any_id)+ " (omid:"+omid+")" )
-                            __b_cits = redis_cits.get(omid.replace("br/",""))
-                            citing_omids = json.loads(__b_cits.decode('utf-8'))
+            l_citing_anyids = [omid_map["br/"+__c] for __c in set(citing_omids) if "br/"+__c in omid_map]
 
-                            l_citing_anyids = [omid_map["br/"+__c] for __c in citing_omids if "br/"+__c in omid_map]
+            unique_citing_anyids = []
+            for s in l_citing_anyids:
+                # check the unique citing anyids
+                _c_intersection = 0
+                for __unique in unique_citing_anyids:
+                    _c_intersection += len(__unique.intersection(s))
+                # if there is no common anyids with the other citing entities
+                if _c_intersection == 0:
+                    unique_citing_anyids.append(s)
 
-                            unique_citing_anyids = []
-                            for s in l_citing_anyids:
-                                # check the unique citing anyids
-                                _c_intersection = 0
-                                for __unique in unique_citing_anyids:
-                                    _c_intersection += len(__unique.intersection(s))
-                                # if there is no common anyids with the other citing entities
-                                if _c_intersection == 0:
-                                    unique_citing_anyids.append(s)
+            cits_count = len(unique_citing_anyids)
+            anyid_citation_count[any_id] = cits_count
 
-                            cits_count = len(unique_citing_anyids)
+        else:
+            logger.info("Get citations via API for: "+str(anyid_pref+":"+any_id))
+            try:
 
-                        else:
-                            logger.info("Get citations via API for: "+str(anyid_pref+":"+any_id))
-                            try:
+                # call META triplestore on test.opencitations.net and get list of citations
+                url = 'https://opencitations.net/index/api/v2/citations/'+anyid_pref+":"+any_id
+                response = requests.get(url)
 
-                                # call META triplestore on test.opencitations.net and get list of citations
-                                url = 'https://opencitations.net/index/api/v2/citations/'+anyid_pref+":"+any_id
-                                response = requests.get(url)
+                l_citing = [set(cit["citing"].split(" ")) for cit in response.json()]
+                # filter only any_id
+                citings_any_id = set()
+                for citing_obj in l_citing:
+                  for k_citing in citing_obj:
+                    if k_citing.startswith(anyid_pref+":"):
+                      citings_any_id.add(k_citing.replace(anyid_pref+":",""))
 
-                                l_citing = [set(cit["citing"].split(" ")) for cit in response.json()]
-                                # filter only any_id
-                                citings_any_id = set()
-                                for citing_obj in l_citing:
-                                  for k_citing in citing_obj:
-                                    if k_citing.startswith(anyid_pref+":"):
-                                      citings_any_id.add(k_citing.replace(anyid_pref+":",""))
+                cits_count = len(citings_any_id)
 
-                                cits_count = len(citings_any_id)
-
-                                sleep(1)
-                            except:
-                                pass
-
-                    anyid_citation_count[any_id] = cits_count
+                sleep(1)
+            except:
+                pass
 
 
     # dump anyid - citation count
