@@ -157,10 +157,16 @@ def main():
             logger.info("Get citations form Redis for: "+str(anyid_pref+":"+any_id)+ " (omid: "+" ".join(multi_any_ids[any_id])+")" )
             citing_omids = []
             for omid in multi_any_ids[any_id]:
-                __b_cits = redis_cits.get(omid)
-                citing_omids += json.loads(__b_cits.decode('utf-8'))
 
-            l_citing_anyids = [omid_map["br/"+__c] for __c in set(citing_omids) if "br/"+__c in omid_map]
+            #__b_cits = redis_cits.mget(multi_any_ids[any_id])
+            __b_cits = [_g.decode('utf-8') for _g in redis_cits.mget(multi_any_ids[any_id])]
+
+            citing_omids = {}
+            for _g in __b_cits:
+                for _c in _g:
+                    citing_omids.add(_c)
+
+            l_citing_anyids = [omid_map["br/"+__c] for __c in citing_omids if "br/"+__c in omid_map]
 
             unique_citing_anyids = []
             for s in l_citing_anyids:
