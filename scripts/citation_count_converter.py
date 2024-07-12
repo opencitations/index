@@ -115,7 +115,7 @@ def main():
         redis_cits = redis.Redis(host='localhost', port=6379, db=args.redisindex)
 
     # Variables to dump
-    multi_any_ids = defaultdict(set)
+    anyids_map = defaultdict(set)
     anyid_citation_count = dict()
 
     # Convert OMIDs in the citation count dump
@@ -140,13 +140,15 @@ def main():
 
                 # check in case this any_id was already processed we need to dissambiguate
                 if any_id:
-                    if any_id in anyid_citation_count:
-                        multi_any_ids[any_id].add(omid.replace("br/",""))
-                    else:
-                        anyid_citation_count[any_id] = cits_count
+                    anyid_citation_count[any_id] = cits_count
+                    anyids_map[any_id].add(omid.replace("br/",""))
 
     # Walk through duplicated ones
-    for any_id in multi_any_ids:
+    logger.info("Calculate citation count of duplicated BRs ...")
+    # filter those that have multiple OMIDs
+    multi_any_ids = {_anyid:anyids_map[_anyid] for _anyid in anyids_map if len(anyids_map[_anyid]) > 1}
+
+    for any_id in tqdm(multi_any_ids):
         '''
         if the DB of redis storing the citations of OpenCitations is specified use that
         otherwise, use APIs to get the citing entities
@@ -155,7 +157,7 @@ def main():
             logger.info("Get citations form Redis for: "+str(anyid_pref+":"+any_id)+ " (omid: "+" ".join(multi_any_ids[any_id])+")" )
             citing_omids = []
             for omid in multi_any_ids[any_id]:
-                __b_cits = redis_cits.get(omid.replace("br/",""))
+                __b_cits = redis_cits.get(omid)
                 citing_omids += json.loads(__b_cits.decode('utf-8'))
 
             l_citing_anyids = [omid_map["br/"+__c] for __c in set(citing_omids) if "br/"+__c in omid_map]
