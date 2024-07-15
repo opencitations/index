@@ -157,7 +157,7 @@ def main():
             logger.info("Get citations form Redis for: "+str(anyid_pref+":"+any_id)+ " (omid: "+" ".join(multi_any_ids[any_id])+")" )
 
             #__b_cits = redis_cits.mget(multi_any_ids[any_id])
-            __b_cits = [_g.decode('utf-8') for _g in redis_cits.mget( list(multi_any_ids[any_id]) ) ]
+            __b_cits = [json.loads(_g.decode('utf-8')) for _g in redis_cits.mget( list(multi_any_ids[any_id]) ) ]
 
             citing_omids = set()
             for _g in __b_cits:
