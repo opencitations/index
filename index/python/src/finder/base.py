@@ -28,7 +28,7 @@ class ResourceFinder(metaclass=ABCMeta):
     the signatures of the methods that should be implemented, and a basic
     constructor."""
 
-    def __init__(self, data={}, use_api_service=True, id_type="doi"):
+    def __init__(self, data={}, use_api_service=False, id_type="doi"):
         """Resource finder constructor.
 
         Args:
@@ -72,8 +72,26 @@ class ResourceFinder(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def get_unified_id(self, id_string):
+        """Returns the omid associated to a specific id.
+
+        Args:
+            id_string (str): id
+        """
+        pass
+
+    @abstractmethod
     def get_container_issn(self, id_string):
         """It returns the container issn.
+
+        Args:
+            id_string (_type_): id
+        """
+        pass
+
+    @abstractmethod
+    def get_container_citations(self, id_string):
+        """It returns the container citations.
 
         Args:
             id_string (_type_): id
@@ -102,7 +120,6 @@ class ResourceFinder(metaclass=ABCMeta):
         """
         pass
 
-
 class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
     """This is the abstract class that must be implemented by any resource finder
     for a particular service which is based on DOI retrieving via HTTP REST APIs
@@ -118,6 +135,17 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         pass
 
     def _get_issn(self, json_obj):
+        """_summary_
+
+        Args:
+            json_obj (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return []
+
+    def _get_citations(self, json_obj):
         """_summary_
 
         Args:
@@ -175,6 +203,20 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
         else:
             return self._data[id_string]["date"]
 
+    def get_unified_id(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return None
+        else:
+            return self._data[id_string]["omid"]
+
     def get_container_issn(self, id_string):
         """_summary_
 
@@ -188,6 +230,20 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
             return self._get_item(id_string, "issn")
         else:
             return self._data[id_string]["issn"]
+
+    def get_container_citations(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return self._get_item(id_string, "citations")
+        else:
+            return self._data[id_string]["citations"]
 
     def is_valid(self, id_string):
         """_summary_
@@ -228,9 +284,107 @@ class ApiDOIResourceFinder(ResourceFinder, metaclass=ABCMeta):
                         return self._get_date(json_obj)
                     elif column == "orcid":
                         return self._get_orcid(json_obj)
+                    elif column == "citations":
+                        return self._get_citations(json_obj)
                 return None
 
             return self._data[doi][column]
+
+class OMIDResourceFinder(ResourceFinder, metaclass=ABCMeta):
+    """This is the abstract class that must be implemented by a resource finder
+    which uses the internal OpenCitations META IDs (OMID) usen in the OpenCitations Index"""
+
+    def get_orcid(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return None
+        else:
+            return self._data[id_string]["orcid"]
+
+    def get_pub_date(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return None
+        else:
+            return self._data[id_string]["date"]
+
+    def get_container_issn(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return None
+        else:
+            return self._data[id_string]["issn"]
+
+    def get_container_citations(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return None
+        else:
+            return self._data[id_string]["citations"]
+
+    def is_valid(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if not id_string in self._data or self._data[id_string] is None:
+            return None
+        else:
+            return self._data[id_string]["valid"]
+
+    def normalise(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return self._dm.normalise(id_string, include_prefix=True)
+
+    def get_unified_id(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return id_string
 
 
 class ResourceFinderHandler(object):
@@ -272,6 +426,29 @@ class ResourceFinderHandler(object):
         #     for finder in self.resource_finders:
         #         if finder.is_valid(id_string):
         #             finder.date.add_value(finder.normalise(id_string), "")
+
+        return result
+
+    def get_omid(self, id_string):
+        """_summary_
+
+        Args:
+            id_string (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        result = None
+        finders = deque(self.resource_finders)
+
+        while result is None and finders:
+            finder = finders.popleft()
+            result_set = finder.get_unified_id(id_string)
+            if result_set:
+                if isinstance(result_set, list):
+                    result = result_set.pop()
+                else:
+                    result = result_set
 
         return result
 

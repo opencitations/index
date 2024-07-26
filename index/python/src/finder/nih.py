@@ -16,7 +16,7 @@
 from requests import get
 from datetime import datetime
 import re
-from urllib.parse import quote, unquote
+from urllib.parse import quote
 from bs4 import BeautifulSoup
 
 import oc.index.utils.dictionary as dict_utils
@@ -35,7 +35,6 @@ class NIHResourceFinder(ApiDOIResourceFinder):
         self._p = "pmid:"
         self._data = data
         self._issn_regex = r"(?<=^IS\s{2}-\s)[0-9]{4}-[0-9]{3}[0-9X]"
-        self._jtitle_regex = r"(?<=^JT\s{2}-\s)(.*)(?<!\n)$"
         self._date_regex = r"DP\s+-\s+(\d{4}(\s?(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))?(\s?((3[0-1])|([1-2][0-9])|([0]?[1-9])))?)"
 
 
@@ -49,15 +48,6 @@ class NIHResourceFinder(ApiDOIResourceFinder):
                 if norm_issn is not None:
                     result.add(norm_issn)
         return result
-
-    def _get_extended_j_title(self, txt_obj):
-        matches = re.finditer(self._jtitle_regex, txt_obj, re.MULTILINE)
-        for matchNum, match in enumerate(matches, start=1):
-            m = match.group()
-            if m:
-                m = unquote(m.strip())
-                return m
-
 
     def _get_date(self, txt_obj):
         pmid_date = None

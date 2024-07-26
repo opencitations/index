@@ -19,7 +19,7 @@ def worker_body(input_files, service, oci_dir, moph_dir, queue, pid, multiproces
     result_map = {}
     for filename in input_files:
         query = validator.build_oci_query(filename, result_map, multiprocess)
-
+        
         # Create input file
         with open("input" + str(pid) + ".csv", "w") as f:
             for oci in query:
@@ -41,11 +41,13 @@ def worker_body(input_files, service, oci_dir, moph_dir, queue, pid, multiproces
             ).split()[0]
         )
         query_result = query_result[1:].replace("'", "")
+
         i = 0
         for result in query_result.split(","):
             result_map[query[i]] = int(result) == 1
             i += 1
         logger.info("Result map updated")
+
 
     queue.put(result_map)
 
@@ -178,7 +180,7 @@ def main():
     logger.info("Result map built")
 
     # Validate citations according to the result map
-    validator.validate_citations(input_files, result_map, args.output)
+    validator.validate_citations(args.input, result_map, args.output)
 
     logger.info(
         f"All the files have been processed in {(time.time() - start)/ 60} minutes"

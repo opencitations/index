@@ -43,11 +43,7 @@ setup(
         "lxml",
         "regex",
         "zstandard",
-        "oc_graphenricher",
-        "Levenshtein",
-        "requests_cache",
-        "oc_meta",
-        "wget"
+        "oc-idmanager"
     ],
     packages=[
         f"oc.index.{mod}"
@@ -57,6 +53,11 @@ setup(
     exclude_package_data={"": ["./test_data"]},
     entry_points={
         "console_scripts": [
+            "oc.index.norm=oc.index.scripts.norm:main",
+            "oc.index.edit_rdf=oc.index.scripts.edit_rdf:main",
+            "oc.index.meta2redis=oc.index.scripts.meta2redis:main",
+            "oc.index.cits2redis=oc.index.scripts.cits2redis:main",
+            "oc.index.citscount2anyid=oc.index.scripts.citation_count_converter:main",
             "oc.index.cnc=oc.index.scripts.cnc:main",
             "oc.index.datasource=oc.index.scripts.datasource:main",
             "oc.index.glob.crossref=oc.index.scripts.glob_crossref:main",

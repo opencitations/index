@@ -115,7 +115,7 @@ class Citation(object):
     description = URIRef(dc_base + "description")
 
     header_citation_data = [
-        "oci",
+        "id",
         "citing",
         "cited",
         "creation",
@@ -124,7 +124,7 @@ class Citation(object):
         "author_sc",
     ]
     header_provenance_data = [
-        "oci",
+        "id",
         "snapshot",
         "agent",
         "source",
@@ -262,9 +262,9 @@ class Citation(object):
 
         self.prov_entity_number = prov_entity_number
         self.prov_agent_url = prov_agent_url
-        self.prov_date = Citation.check_datetime(prov_date)
+        self.prov_date = Citation.check_datetime_with_timezone(prov_date)
         self.service_name = service_name
-        self.prov_inv_date = Citation.check_datetime(prov_inv_date)
+        self.prov_inv_date = Citation.check_datetime_with_timezone(prov_inv_date)
         self.prov_description = Citation.check_string(prov_description)
         self.prov_update = Citation.check_string(prov_update)
 
@@ -310,6 +310,15 @@ class Citation(object):
         return datetime
 
     @staticmethod
+    def check_datetime_with_timezone(s):
+        datetime = sub("\s+", "", s) if s is not None else ""
+        if not match(
+            "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\+[0-9]{2}\:[0-9]{2}$", datetime
+        ):
+            datetime = None
+        return datetime
+
+    @staticmethod
     def check_string(s):
         if not match("^.+$", sub("\s+", "", s) if s is not None else ""):
             return None
@@ -343,9 +352,6 @@ class Citation(object):
             prov_entity,
         ) = self.__get_citation_rdf_entity(baseurl)
 
-        citing_br = URIRef(self.citing_url)
-        cited_br = URIRef(self.cited_url)
-
         if include_label:
             citation_graph.add(
                 (
@@ -360,8 +366,13 @@ class Citation(object):
         if self.journal_sc == "yes":
             citation_graph.add((citation, RDF.type, self.journal_self_citation))
 
-        citation_graph.add((citation, self.has_citing_entity, citing_br))
-        citation_graph.add((citation, self.has_cited_entity, cited_br))
+        if self.citing_url is not None:
+            citing_br = URIRef(self.citing_url)
+            citation_graph.add((citation, self.has_citing_entity, citing_br))
+
+        if self.cited_url is not None:
+            cited_br = URIRef(self.cited_url)
+            citation_graph.add((citation, self.has_cited_entity, cited_br))
 
         if self.creation_date is not None:
             if Citation.contains_days(self.creation_date):
@@ -606,9 +617,10 @@ class Citation(object):
             str: citation in json format.
         """
         result = {
-            "oci": self.oci.replace("oci:", ""),
-            "citing": self.get_id(self.citing_url),
-            "cited": self.get_id(self.cited_url),
+            #"oci": self.oci.replace("oci:", ""),
+            "id": self.oci,
+            "citing": self.get_id(self.citing_url,include_type=True),
+            "cited": self.get_id(self.cited_url,include_type=True),
             "creation": self.creation_date,
             "timespan": self.duration,
             "journal_sc": self.journal_sc,
@@ -625,7 +637,8 @@ class Citation(object):
         """
         result = {
             "snapshot": self.prov_entity_number,
-            "oci": self.oci.replace("oci:", ""),
+            #"oci": self.oci.replace("oci:", ""),
+            "id": self.oci,
             "agent": self.prov_agent_url,
             "source": self.source,
             "created": self.prov_date,
@@ -684,7 +697,7 @@ class Citation(object):
 
         return dumps(result, indent=4, ensure_ascii=False)
 
-    def get_id(self, entity_url):
+    def get_id(self, entity_url, include_type=False):
         """It returns the id associated to a specific entity url.
 
         Returns:
@@ -693,7 +706,11 @@ class Citation(object):
         decode = "XXX__decode]]" in self.id_shape
         entity_regex = sub("\[\[[^\]]+\]\]", ".+", self.id_shape)
         entity_token = sub(entity_regex, "\\1", entity_url)
-        return unquote(entity_token) if decode else entity_token
+        if decode:
+            entity_token = unquote(entity_token)
+        if include_type:
+            entity_token = self.id_type + ":" + entity_token
+        return entity_token
 
     @staticmethod
     def contains_years(date):
@@ -774,9 +791,10 @@ class OCIManager(object):
         oci_string=None,
         lookup_file=None,
         conf_file=None,
-        doi_1=None,
-        doi_2=None,
+        entity_1=None,
+        entity_2=None,
         prefix="",
+        entity_identifier="doi",
     ):
         """OCI manager constructor.
 
@@ -784,10 +802,12 @@ class OCIManager(object):
             oci_string (str, optional): _description_. Defaults to None.
             lookup_file (str, optional): path to the lookup file. Defaults to None.
             conf_file (str, optional): path to the config file. Defaults to None.
-            doi_1 (str, optional): _description_. Defaults to None.
-            doi_2 (str, optional): _description_. Defaults to None.
+            entity_1 (str, optional): _description_. Defaults to None.
+            entity_2 (str, optional): _description_. Defaults to None.
             prefix (str, optional): prefix to use. Defaults to "".
+            entity_identifier (str, optional): the identifier of the entities. Default to "doi".
         """
+        self.entity_identifier = entity_identifier
         self.is_valid = None
         self.messages = []
         self.f = {
@@ -837,8 +857,8 @@ class OCIManager(object):
 
         if oci_string:
             self.oci = oci_string.lower().strip()
-        elif doi_1 and doi_2:
-            self.oci = self.get_oci(doi_1, doi_2, prefix)
+        elif entity_1 and entity_2:
+            self.oci = self.get_oci(entity_1, entity_2, prefix)
         else:
             self.oci = None
             self.add_message("__init__", W, "No OCI specified!")
@@ -896,22 +916,30 @@ class OCIManager(object):
     def __decode_inverse(self, doi):
         return self.__match_str_to_lookup(doi.replace("10.", ""))
 
-    def get_oci(self, doi_1, doi_2, prefix):
+    def get_oci(self, entity_1, entity_2, prefix):
         """It returns the oci associated to the citation.
 
         Args:
-            doi_1 (str): citing
-            doi_2 (str): cited
+            entity_1 (str): citing
+            entity_2 (str): cited
             prefix (str): prefix
 
         Returns:
             str: the oci
         """
+        _citing = entity_1
+        _cited = entity_2
+
+        # decode using lookup table only if entity identifier is "doi"
+        if self.entity_identifier == "doi":
+            _citing = self.__decode_inverse(entity_1),
+            _cited = self.__decode_inverse(entity_2),
+
         self.oci = "oci:%s%s-%s%s" % (
             prefix,
-            self.__decode_inverse(doi_1),
+            _citing,
             prefix,
-            self.__decode_inverse(doi_2),
+            _cited,
         )
         return self.oci
 

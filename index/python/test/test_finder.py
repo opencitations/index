@@ -233,6 +233,7 @@ class ResourceFinderTest(unittest.TestCase):
         self.assertNotIn("0000-0002-1825-0097", nf_1.get_orcid("7189714"))
         self.assertEqual([], nf_1.get_orcid("29998776"))
         self.assertEqual([], nf_1.get_orcid("1509982"))
+
         # Do use support files, but avoid using APIs
         nf_2 = NIHResourceFinder(
             self.data,
@@ -244,15 +245,6 @@ class ResourceFinderTest(unittest.TestCase):
         # Do not use support files neither APIs
         nf_3 = NIHResourceFinder(use_api_service=False)
         self.assertIsNone(nf_3.get_orcid("7189714"))
-        
-    def test_nih_get_extended_jt(self):
-        nf5 = NIHResourceFinder()
-        pmid5_api_response = nf5._call_api("5")
-        self.assertEqual("Biochemical and biophysical research communications", nf5._get_extended_j_title(pmid5_api_response))
-        pmid5377256_api_response = nf5._call_api("5377256")
-        self.assertEqual("Medicinski pregled", nf5._get_extended_j_title(pmid5377256_api_response))
-        pmid7258346_api_response = nf5._call_api("7258346")
-        self.assertEqual("American journal of physical anthropology", nf5._get_extended_j_title(pmid7258346_api_response))
 
     def test_nationalinstititeofhealth_get_issn(self):
         # Do not use support files, only APIs
