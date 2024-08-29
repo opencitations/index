@@ -132,14 +132,13 @@ def main():
                 cits_count = row[1]
 
                 # check if the omid has a corresponding anyid with the wanted prefix
-                any_id = None
+                l_any_id = []
                 for __anyid in s_any_id:
                     if __anyid.startswith(anyid_pref):
-                        any_id = __anyid.replace(anyid_pref+":","")
-                        break
+                        l_any_id.append(__anyid.replace(anyid_pref+":",""))
 
                 # check in case this any_id was already processed we need to dissambiguate
-                if any_id:
+                for any_id in l_any_id:
                     anyid_citation_count[any_id] = cits_count
                     anyids_map[any_id].add(omid.replace("br/",""))
 
