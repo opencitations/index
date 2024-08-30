@@ -57,7 +57,7 @@ setup(
             "oc.index.edit_rdf=oc.index.scripts.edit_rdf:main",
             "oc.index.meta2redis=oc.index.scripts.meta2redis:main",
             "oc.index.cits2redis=oc.index.scripts.cits2redis:main",
-            "oc.index.citscount2anyid=oc.index.scripts.citation_count_converter:main",
+            "oc.index.citscount2anyid=oc.index.scripts.anyid_citation_count:main",
             "oc.index.cnc=oc.index.scripts.cnc:main",
             "oc.index.datasource=oc.index.scripts.datasource:main",
             "oc.index.glob.crossref=oc.index.scripts.glob_crossref:main",
