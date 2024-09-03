@@ -12,6 +12,12 @@
 # DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
+#
+# v2.1
+# Citations map could be created also using a CSV dump instead of Redis only
+#
+# v2
+# A count of all unique citations is done to all the BRs (not only the ANYIDs that have multi OMIDs)
 
 import csv
 import argparse
@@ -33,53 +39,6 @@ from oc.index.utils.config import get_config
 csv.field_size_limit(sys.maxsize)
 config = get_config()
 
-
-# '''
-# Regex to get all the IDs in the Meta CSV dump
-# '''
-# def re_get_ids(val, identifiers, multi_ids = False, group_ids= False):
-#     res = []
-#     items = [val]
-#     if multi_ids:
-#         items = [item for item in val.split("; ")]
-#
-#     for item in items:
-#         re_rule = "(.*)"
-#         if multi_ids:
-#             re_rule = "\[(.*)\]"
-#
-#         re_ids_container = re.search(re_rule,item)
-#         if re_ids_container:
-#             re_ids = re.findall("(("+"|".join(identifiers)+")\:\S[^\s]+)", re_ids_container.group(1))
-#             oids = [oid[0] for oid in re_ids]
-#             if group_ids:
-#                 res.append(oids)
-#             else:
-#                 for _id in oids:
-#                     res.append(_id)
-#     return res
-#
-# '''
-# To create the omid map using the original OC META CSV dump
-# '''
-# def get_omid_map(fzip):
-#     global conf_br_ids
-#
-#     omid_map = dict()
-#     with ZipFile(fzip) as archive:
-#         logger.info("Total number of files in the archive is:"+str(len(archive.namelist())))
-#         for csv_name in tqdm(archive.namelist()):
-#             with archive.open(csv_name) as csv_file:
-#
-#                 l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
-#                 for o_row in l_cits:
-#                     omid_ids = re_get_ids(o_row["id"],["omid"])
-#                     if len(omid_ids) > 0:
-#                         omid = omid_ids[0].replace("omid:","")
-#                         other_ids = re_get_ids(o_row["id"], conf_br_ids)
-#                         omid_map[omid] = set(other_ids)
-#     return omid_map
-
 '''
 To create the omid map using the META BRs index (in CSV)
 The META BRs index should be previously generated using 'meta2redis' command
@@ -95,7 +54,7 @@ def read_omid_map(f_omidmap):
         for row in csv_reader:
             if len(row) == 2:  # Ensure there are exactly two columns
                 br_omid, anyids = row
-                br_omid = "br/"+br_omid
+                br_omid = br_omid
                 for _id in anyids.split("; "):
                     for anyid_pref in conf_br_ids:
                         if _id.startswith(anyid_pref):
@@ -104,21 +63,42 @@ def read_omid_map(f_omidmap):
     return omid_map
 
 '''
+Create the omid citations index using the omid citations index CSV file
+The omid citations index CSV file should be previously generated using 'cits2redis' command
+RETURNS:
+    * omid_citations_index: {<CITED_OMID>: [<CITING_OMID_1>, <CITING_OMID_2>, ... <CITING_OMID_N>]}
+'''
+def read_omid_citations_index(f_omid_citations_index):
+
+    omid_citations_index = defaultdict(list)
+    with open(f_omid_citations_index, mode='r') as file:
+        csv_reader = csv.reader(file)
+
+        #TEST
+        # csv_reader = csv_reader[:45000]
+
+        for row in csv_reader:
+            if len(row) == 2:  # Ensure there are exactly two columns
+                cited_omid, str_citing_omids = row
+                omid_citations_index[cited_omid] = str_citing_omids.split("; ")
+
+    return omid_citations_index
+
+'''
 PARAMS:
-    + cited_omid: the cited OMID
-    + citing_omids: the list of OMIDs citing *cited_omid*
+    + citing_omids: the list of citing OMIDs
     + omid_map: the map of OMID > ANYIDs
 RETURNS:
     The unique number of citation count
 '''
-def count_unique_cits(cited_omid, citing_omids, omid_map):
+def count_unique_cits(citing_omids, omid_map):
 
     # Get the ANYIDs of the citing OMIDS
     # Count the unique ones
     unique_brs_anyid = []
     for a_citing_omid in citing_omids:
         _c_intersection = 0
-        s_citing_anyids = omid_map[a_citing_omid]
+        s_citing_anyids = omid_map[a_citing_omid].copy()
         for __unique in unique_brs_anyid:
             _c_intersection += len(__unique.intersection(s_citing_anyids))
         # if there is no common anyids with the other br entities
@@ -131,8 +111,10 @@ def count_unique_cits(cited_omid, citing_omids, omid_map):
 def main():
 
     parser = argparse.ArgumentParser(description='Converts the citation count dump of OpenCitations Index based on BR OMIDs to any other ID (e.g., DOI, PMID)')
-    parser.add_argument('--redisindex', required=True, help='Redis DB storing all the citations of opencitations (*Note: populated by cits2redis)')
-    parser.add_argument('--metabrs', required=True, help='Path to CSV dump containing the index/map of all BR in Meta (OMIDs) (*Note: generated by meta2redis)')
+    parser.add_argument('--omidmap', required=True, help='Path to CSV dump containing the index/map of all BR in Meta (OMIDs) (*Note: generated by meta2redis)')
+    # Data source in the format: <TYPE>:<VALUE>
+    # E.G. REDIS:8 | CSV:/PATH/TO/OMID_CITAIONS_INDEX.csv
+    parser.add_argument('--citations', default='redis:8', help='Either the Redis DB or CSV file storing all the citations of opencitations (*Note: populated by cits2redis). Specified in the form: <TYPE>:<VALUE>. E.G. REDIS:8 | CSV:/PATH/TO/OMID_CITAIONS_INDEX.csv')
     parser.add_argument('--id',  default='doi', help='Convert OMID(s) to a given ID')
     parser.add_argument('--out', default='./', help='Path to the output destination dir')
     args = parser.parse_args()
@@ -141,61 +123,123 @@ def main():
     # get ANYID Prefix. E:G. "doi"
     anyid_pref = args.id
 
+    logger.info("Build a citation count for ANYID starting with the prefix: "+str(anyid_pref))
+
     # Build OMID map
     # FORMAT:
     #   <OMID>: SET(<anyid_pref>:<anyid_val>)
     # EXAMPLE:
     #   06804319241: {"doi:10.17615/3my7-0q76","pmid:18650518","pmid:18650512","doi:10.1056/nejme0804289","doi:10.1056/nejmoa0708975"}
     logger.info("Build OMID BR map ...")
-    omid_map = read_omid_map(args.metabrs)
-
+    omid_map = read_omid_map(args.omidmap)
+    logger.info("OMID MAP = "+str(len(omid_map.keys())))
     # Redis DB storing OC Index citations
     # FORMAT:
     #   <CITED-OMID>:[ <CITING-OMID-1>, <CITING-OMID-2>, ..., <CITING-OMID-N> ]
     # EXAMPLE:
     #   "06503922554": [\"062403812713\", \"0610298487\", \"06250181491\"]
-    redis_cits = redis.Redis(host='localhost', port=6379, db=args.redisindex)
+
+    ds_cits_type, ds_cits_source = args.citations.lower().split(":")
+    ds_cits_data = None
+    logger.info("Build OMID Cits map via "+ds_cits_type+" ...")
+    if ds_cits_type == "redis":
+        ds_cits_data = redis.Redis(host='localhost', port=6379, db=ds_cits_source)
+    elif ds_cits_type == "csv":
+        ds_cits_data = read_omid_citations_index(ds_cits_source)
 
     # Results to dump at the end
-    anyid_citation_count = defaultdict(set)
+    anyid_citation_count = dict()
     anyid_map = defaultdict(set)
+
+    # PARAMS
+    CHUNCK_SIZE = 10000
 
     # (1) Walk through all OMIDS in the OMID map (i.e. omid_map)
     logger.info("Walk through all OMIDS in the OMID map (i.e. omid_map) ...")
-    for cited_omid in tqdm(omid_map):
+    l_br_omids = list(omid_map.keys())
 
-        # Get all citing OMIDs of a given OMID
-        citing_omids = set( json.loads(redis_cits.get( cited_omid ).decode('utf-8')) )
+    #TEST
+    # l_br_omids = l_br_omids[:45000]
 
-        # Get the citation count of *cited_omid*
-        citation_count = count_unique_cits(cited_omid, citing_omids, omid_map)
+    #for cited_omid in tqdm(list(omid_map.keys())):
+    for i in tqdm(range(0, len(l_br_omids), CHUNCK_SIZE)):
 
-        # Save the citation count for each ANYID of the cited OMID if it starts with prefix needed (e.g., "doi")
-        # and update the ANYID map, to monitor the number of OMIDs for each ANYID
-        for _anyid in omid_map[cited_omid]:
-            if _anyid.startswith(anyid_pref):
-                anyid_map[_anyid].add(cited_omid)
-                anyid_citation_count[_anyid] = citation_count
+        # get the chunck list of omids
+        cited_omid_chunk = l_br_omids[i:i + CHUNCK_SIZE]
 
+        # a dict > OMID: REDIS-VAL
+        if ds_cits_type == "redis":
+            omid_cits = dict(zip(cited_omid_chunk, ds_cits_data.mget(cited_omid_chunk)))
+        elif ds_cits_type == "csv":
+            omid_cits = {k_cited_omid:ds_cits_data[k_cited_omid] for k_cited_omid in cited_omid_chunk}
+
+        for cited_omid in omid_cits:
+
+            # Get all citing OMIDs of a given OMID
+            # citing_val = ds_cits_data.get( cited_omid )
+            citing_val = omid_cits[cited_omid]
+
+            if citing_val != None:
+
+                citing_omids = None
+                if ds_cits_type == "redis":
+                    citing_omids = set( json.loads(citing_val.decode('utf-8')) )
+                elif ds_cits_type == "csv":
+                    citing_omids = set( citing_val )
+
+                # Get the citation count of *cited_omid*
+                citation_count = count_unique_cits(citing_omids, omid_map)
+
+                # Save the citation count for each ANYID of the cited OMID if it starts with prefix needed (e.g., "doi")
+                # and update the ANYID map, to monitor the number of OMIDs for each ANYID
+                cited_anyids = omid_map[cited_omid].copy()
+                for _anyid in cited_anyids:
+                    if _anyid.startswith(anyid_pref):
+                        anyid_map[_anyid].add(cited_omid)
+                        anyid_citation_count[_anyid] = citation_count
 
     # (2) Work with ANYIDs that have multiple OMIDs
     # Filter the anyid_map previously created to include only ANYIDs that have multi OMIDs
-    multi_any_ids = {_anyid:anyids_map[_anyid] for _anyid in anyid_map if len(anyid_map[_anyid]) > 1}
+    multi_any_ids = {_anyid:anyid_map[_anyid] for _anyid in anyid_map if len(anyid_map[_anyid]) > 1}
 
     # Walk throuh this new DICT multi_any_ids
     logger.info("Walk through all ANYIDs that have multiple OMIDs ...")
-    for _anyid in tqdm(multi_any_ids):
+    l_br_anyids = list(multi_any_ids.keys())
 
-        # Create a set with all citing OMIDs
-        citing_omids = set()
-        for cited_omid in multi_any_ids[_anyid]:
-            citing_omids.union( set( json.loads(redis_cits.get( cited_omid ).decode('utf-8')) ) )
+    #for _anyid in tqdm(list(multi_any_ids.keys())):
+    for i in tqdm(range(0, len(l_br_anyids), CHUNCK_SIZE)):
 
-        # Get the citation count of *cited_omid*
-        citation_count = count_unique_cits(cited_omid, citing_omids, omid_map)
+        # get the chunck list of omids
+        cited_anyid_chunk = l_br_anyids[i:i + CHUNCK_SIZE]
 
-        # update the numer of citations of the ANYIDs with multi OMIDs with the new citation count
-        anyid_citation_count[_anyid] = citation_count
+        l_cited_omids = [_omid for _anyid in cited_anyid_chunk for _omid in multi_any_ids[_anyid]]
+
+        # a dict > OMID: REDIS-VAL
+        omid_cits_map = None
+        if ds_cits_type == "redis":
+            omid_cits_map = dict(zip(l_cited_omids, ds_cits_data.mget(l_cited_omids)))
+        elif ds_cits_type == "csv":
+            omid_cits_map = {_omid:ds_cits_data[_omid] for _omid in l_cited_omids}
+
+        # Elaborate each ANYID in the chunck using the redis map above
+        for _anyid in cited_anyid_chunk:
+
+            # Create a set with all citing OMIDs of _anyid OMIDs
+            citing_omids = set()
+            for cited_omid in multi_any_ids[_anyid]:
+                citing_val = omid_cits_map[cited_omid]
+
+                if citing_val != None:
+                    if ds_cits_type == "redis":
+                        citing_omids.union( set( json.loads(citing_val.decode('utf-8')) ) )
+                    elif ds_cits_type == "csv":
+                        citing_omids.union( set(citing_val) )
+
+            # Get the citation count of *_anyid*
+            citation_count = count_unique_cits(citing_omids, omid_map)
+
+            # update the numer of citations of the ANYIDs with multi OMIDs with the new citation count
+            anyid_citation_count[_anyid] = citation_count
 
 
     # dump anyid - citation count
@@ -211,7 +255,13 @@ def main():
     with open(args.out+anyid_pref+"_dupilcates.csv", mode='w', newline='') as output_csvfile:
         writer = csv.writer(output_csvfile)
         writer.writerow([anyid_pref, 'num_duplicates'])
-        for c in [ (any_id, len(multi_any_ids[any_id]) ) for any_id in multi_any_ids]:
+
+        # Print length
+        #for c in [ (any_id, len(multi_any_ids[any_id]) ) for any_id in multi_any_ids]:
+        #    writer.writerow([c[0],str(c[1])])
+
+        # Print content
+        for c in [ (any_id, multi_any_ids[any_id] ) for any_id in multi_any_ids]:
             writer.writerow([c[0],str(c[1])])
 
 
