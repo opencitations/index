@@ -13,6 +13,9 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 #
+# v2.2
+# New strategy to check unique citing entites
+#
 # v2.1
 # Citations map could be created also using a CSV dump instead of Redis only
 #
@@ -38,15 +41,14 @@ from oc.index.utils.config import get_config
 
 csv.field_size_limit(sys.maxsize)
 config = get_config()
+conf_br_ids = config.get("cnc", "br_ids").split(",")
 
 '''
 To create the omid map using the META BRs index (in CSV)
 The META BRs index should be previously generated using 'meta2redis' command
 '''
 def read_omid_map(f_omidmap):
-    global config
-
-    conf_br_ids = config.get("cnc", "br_ids").split(",")
+    global conf_br_ids
 
     omid_map = defaultdict(set)
     with open(f_omidmap, mode='r') as file:
@@ -93,19 +95,46 @@ RETURNS:
 '''
 def count_unique_cits(citing_omids, omid_map):
 
-    # Get the ANYIDs of the citing OMIDS
-    # Count the unique ones
-    unique_brs_anyid = []
-    for a_citing_omid in citing_omids:
-        _c_intersection = 0
-        s_citing_anyids = omid_map[a_citing_omid].copy()
-        for __unique in unique_brs_anyid:
-            _c_intersection += len(__unique.intersection(s_citing_anyids))
-        # if there is no common anyids with the other br entities
-        if _c_intersection == 0:
-            unique_brs_anyid.append(s_citing_anyids)
+    global conf_br_ids
+    cits_count = 0
 
-    return len(unique_brs_anyid)
+    # create a set for each different any_id
+    idpref_index = {id_pref: {} for id_pref in conf_br_ids}
+
+    # check if each anyid value of the citing entity is unique
+    for a_citing_omid in citing_omids:
+        is_unique_citing = True
+        for __a_citing_anyid in omid_map[a_citing_omid]:
+            for id_pref in conf_br_ids:
+                if __a_citing_anyid.startswith(id_pref):
+                    is_unique_citing = is_unique_citing and (not (__a_citing_anyid in idpref_index[id_pref]))
+                    idpref_index[id_pref].add( __a_citing_anyid )
+
+        if is_unique_citing:
+            cits_count += 1
+
+    # empty all
+    for id_pref in idpref_index:
+        idpref_index[id_pref] = None
+    idpref_index = None
+
+    return cits_count
+
+    # --- Previous version
+    # --------------------
+    # # Get the ANYIDs of the citing OMIDS
+    # # Count the unique ones
+    # unique_brs_anyid = []
+    # for a_citing_omid in citing_omids:
+    #     _c_intersection = 0
+    #     s_citing_anyids = omid_map[a_citing_omid].copy()
+    #     for __unique in unique_brs_anyid:
+    #         _c_intersection += len(__unique.intersection(s_citing_anyids))
+    #     # if there is no common anyids with the other br entities
+    #     if _c_intersection == 0:
+    #         unique_brs_anyid.append(s_citing_anyids)
+    #
+    # return len(unique_brs_anyid)
 
 
 def main():
