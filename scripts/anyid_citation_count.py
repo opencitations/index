@@ -99,7 +99,7 @@ def count_unique_cits(citing_omids, omid_map):
     cits_count = 0
 
     # create a set for each different any_id
-    idpref_index = {id_pref: {} for id_pref in conf_br_ids}
+    idpref_index = {id_pref: set() for id_pref in conf_br_ids}
 
     # check if each anyid value of the citing entity is unique
     for a_citing_omid in citing_omids:
