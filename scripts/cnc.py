@@ -153,9 +153,12 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
                                     # check if both citing and cited entities have omid
                                     if citing_omid != None and cited_omid != None:
 
+                                        citing_omid = citing_omid.decode("utf-8")
+                                        cited_omid = cited_omid.decode("utf-8")
                                         oci_omid = citing_omid+"-"+cited_omid
-                                        citing_omid = "br/"+citing_omid.decode("utf-8")
-                                        cited_omid = "br/"+cited_omid.decode("utf-8")
+
+                                        citing_omid = "br/"+citing_omid
+                                        cited_omid = "br/"+cited_omid
 
                                         index_ocis[oci_omid] = (citing_omid,cited_omid)
 
