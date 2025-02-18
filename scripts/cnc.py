@@ -158,9 +158,6 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
                                         oci_omid = citing_omid+"-"+cited_omid
                                         index_ocis[oci_omid] = (citing_omid,cited_omid)
 
-                                        citing_omid = "br/"+citing_omid
-                                        cited_omid = "br/"+cited_omid
-
                                         service_citations.append(
                                             Citation(
                                                 "oci:"+oci_omid, # oci,
@@ -222,6 +219,9 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
                                     cited_date = rf_handler.get_date(cited_omid)
                                     journal_sc, citing_issn, cited_issn = rf_handler.share_issn(citing_omid, cited_omid)
                                     author_sc, citing_orcid, cited_orcid = rf_handler.share_orcid(citing_omid, cited_omid)
+
+                                    citing_omid = "br/"+citing_omid
+                                    cited_omid = "br/"+cited_omid
 
                                     index_citations.append(
                                         Citation(
