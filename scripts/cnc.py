@@ -156,11 +156,10 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
                                         citing_omid = citing_omid.decode("utf-8")
                                         cited_omid = cited_omid.decode("utf-8")
                                         oci_omid = citing_omid+"-"+cited_omid
+                                        index_ocis[oci_omid] = (citing_omid,cited_omid)
 
                                         citing_omid = "br/"+citing_omid
                                         cited_omid = "br/"+cited_omid
-
-                                        index_ocis[oci_omid] = (citing_omid,cited_omid)
 
                                         service_citations.append(
                                             Citation(
