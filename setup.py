@@ -53,20 +53,25 @@ setup(
     exclude_package_data={"": ["./test_data"]},
     entry_points={
         "console_scripts": [
-            "oc.index.norm=oc.index.scripts.norm:main",
-            "oc.index.edit_rdf=oc.index.scripts.edit_rdf:main",
-            "oc.index.meta2redis=oc.index.scripts.meta2redis:main",
-            "oc.index.cits2redis=oc.index.scripts.cits2redis:main",
-            "oc.index.citscount2anyid=oc.index.scripts.anyid_citation_count:main",
-            "oc.index.cnc=oc.index.scripts.cnc:main",
-            "oc.index.datasource=oc.index.scripts.datasource:main",
-            "oc.index.glob.crossref=oc.index.scripts.glob_crossref:main",
-            "oc.index.glob.doci=oc.index.scripts.glob_doci:main",
-            "oc.index.glob.noci=oc.index.scripts.glob_noci:main",
-            "oc.index.trim_crossref=oc.index.scripts.trim_crossref:main",
-            "oc.index.validate=oc.index.scripts.validate_citations:main",
-            "oc.index.metadata.crossref=oc.index.scripts.metadata_crossref:main",
+
+            # main operations
             "oc.index.oci=oc.index.scripts.oci:main",
+            "oc.index.cnc=oc.index.scripts.cnc:main",
+
+            # redis operations
+            "oc.index.redis.meta2redis=oc.index.scripts.redis.meta2redis:main",
+            "oc.index.redis.cits2redis=oc.index.scripts.redis.cits2redis:main",
+
+            # util operations
+            "oc.index.util.citscount2anyid=oc.index.scripts.util.anyid_citation_count:main",
+            "oc.index.util.edit_rdf=oc.index.scripts.util.edit_rdf:main",
+
+            # crossref operations
+            "oc.index.crossref.trim_crossref=oc.index.scripts.crossref.trim_crossref:main",
+            "oc.index.metadata.crossref.metadata_crossref=oc.index.scripts.crossref.metadata_crossref:main",
+
+            # upload operations
+            "oc.index.upload.internet_archive=oc.index.scripts.upload.internet_archive:main",
         ],
     },
 )
