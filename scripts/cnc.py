@@ -76,7 +76,7 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
     redis_cits = redis.Redis(
         host="127.0.0.1",
         port="6379",
-        db=_config.get("cnc", "db_cits")
+        db=_config.get("cnc", "db_omid")
     )
 
     # redis DB of <OMID>:<METADATA>

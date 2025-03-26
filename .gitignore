@@ -7,8 +7,9 @@ oc_index.egg-info
 .DS_Store
 venv
 input.csv
+__stats__
 
-# Reference: 
+# Reference:
 # https://github.com/github/gitignore
 
 ########################################################

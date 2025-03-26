@@ -169,7 +169,6 @@ def main():
     #   "06503922554": [\"062403812713\", \"0610298487\", \"06250181491\"]
 
     ds_cits_type, ds_cits_source = args.citations.lower().split(":")
-    ds_cits_data = None
     logger.info("Build OMID Cits map via "+ds_cits_type+" ...")
     if ds_cits_type == "redis":
         ds_cits_data = redis.Redis(host='localhost', port=6379, db=ds_cits_source)
