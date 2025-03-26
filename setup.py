@@ -59,19 +59,19 @@ setup(
             "oc.index.cnc=oc.index.scripts.cnc:main",
 
             # redis operations
-            "oc.index.redis.meta2redis=oc.index.scripts.redis.meta2redis:main",
-            "oc.index.redis.cits2redis=oc.index.scripts.redis.cits2redis:main",
+            "oc.index.meta2redis=oc.index.scripts.redis.meta2redis:main",
+            "oc.index.cits2redis=oc.index.scripts.redis.cits2redis:main",
 
             # util operations
-            "oc.index.util.citscount2anyid=oc.index.scripts.util.anyid_citation_count:main",
-            "oc.index.util.edit_rdf=oc.index.scripts.util.edit_rdf:main",
+            "oc.index.citscount2anyid=oc.index.scripts.util.anyid_citation_count:main",
+            "oc.index.edit_rdf=oc.index.scripts.util.edit_rdf:main",
 
             # crossref operations
-            "oc.index.crossref.trim_crossref=oc.index.scripts.crossref.trim_crossref:main",
-            "oc.index.metadata.crossref.metadata_crossref=oc.index.scripts.crossref.metadata_crossref:main",
+            "oc.index.trim_crossref=oc.index.scripts.crossref.trim_crossref:main",
+            "oc.index.metadata_crossref=oc.index.scripts.crossref.metadata_crossref:main",
 
             # upload operations
-            "oc.index.upload.internet_archive=oc.index.scripts.upload.internet_archive:main",
+            "oc.index.internet_archive=oc.index.scripts.upload.internet_archive:main",
         ],
     },
 )
