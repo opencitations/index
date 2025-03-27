@@ -96,7 +96,7 @@ def main(config_path, article_id = None, files_to_upload = []):
         print("Nothing to be done!")
         return False
 
-    token = config["TOKEN"]
+    token = config["figshare_token"]
     article_id = article_id
     files_to_upload = files_to_upload
 
