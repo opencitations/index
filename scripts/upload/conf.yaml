@@ -13,17 +13,17 @@ file_paths:
 
 # Metadata for the Internet Archive item
 metadata:
-  title: "Meta triplestore data, archived on 2025-02-02"
-  creator: "Arcangelo Massari"
+  title: "__"
+  creator: "__"
   mediatype: "data"
-  collection: "opensource"
-  description: "The OpenCitations Meta database stores and delivers bibliographic metadata for all publications involved in the OpenCitations Index."
-  subject: "open citations;OpenCitations;OpenCitations Meta;RDF;triplestore;open data;CC0"
-  date: "2025-02-02"
-  language: "eng"
-  licenseurl: "https://creativecommons.org/publicdomain/zero/1.0/"
-  website: "https://opencitations.net/meta"
-  year: "2025"
+  collection: "__"
+  description: "__"
+  subject: "__"
+  date: "__"
+  language: "__"
+  licenseurl: "__"
+  website: "__"
+  year: "__"
 
 access_key: "__"
 secret_key: "__"

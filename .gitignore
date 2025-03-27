@@ -8,6 +8,7 @@ oc_index.egg-info
 venv
 input.csv
 __stats__
+conf.yaml
 
 # Reference:
 # https://github.com/github/gitignore
