@@ -88,9 +88,13 @@ def complete_upload(article_id, file_id, token):
     print(f"  Upload completion confirmed for file {file_id}")
 
 
-def main(config_path, article_id, files_to_upload):
-    with open("conf.json") as f:
+def main(config_path, article_id = None, files_to_upload = []):
+    with open(config_path) as f:
         config = yaml.safe_load(f)
+
+    if article_id != None and len(files_to_upload) == 0:
+        print("Nothing to be done!")
+        return False
 
     token = config["TOKEN"]
     article_id = article_id
