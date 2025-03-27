@@ -1,0 +1,29 @@
+# Figshare
+figshare_token: "1ab2009f83351ca5c3d093ff1b563798b04d33b576bf7be5142f2d42bf7c41dcf6d058349be87c5f2cfcbb000ae2c6c158ab2c2a60869e2748c98e6edb46b9e9"
+
+
+# Configuration file for Internet Archive uploads
+
+# Unique identifier for your Internet Archive item
+identifier: "__"
+
+# List of files to upload - add your file paths here
+file_paths:
+  - "__"
+
+# Metadata for the Internet Archive item
+metadata:
+  title: "Meta triplestore data, archived on 2025-02-02"
+  creator: "Arcangelo Massari"
+  mediatype: "data"
+  collection: "opensource"
+  description: "The OpenCitations Meta database stores and delivers bibliographic metadata for all publications involved in the OpenCitations Index."
+  subject: "open citations;OpenCitations;OpenCitations Meta;RDF;triplestore;open data;CC0"
+  date: "2025-02-02"
+  language: "eng"
+  licenseurl: "https://creativecommons.org/publicdomain/zero/1.0/"
+  website: "https://opencitations.net/meta"
+  year: "2025"
+
+access_key: "__"
+secret_key: "__"
