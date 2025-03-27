@@ -117,6 +117,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Upload files to Figshare.")
     parser.add_argument("config", help="Path to the YAML configuration file.")
     parser.add_argument("article", help="Article id")
-    parser.add_argument("files", help="file")
+    parser.add_argument("files", nargs="+", help="file")
     args = parser.parse_args()
     main(args.config, args.article, args.files)
