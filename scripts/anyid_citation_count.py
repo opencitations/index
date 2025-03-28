@@ -228,7 +228,7 @@ def main():
                         anyid_citation_count[_anyid] = citation_count
 
         # JUST to test
-        break
+        # break
 
     # (2) Work with ANYIDs that have multiple OMIDs
     # Filter the anyid_map previously created to include only ANYIDs that have multi OMIDs
