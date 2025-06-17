@@ -253,7 +253,7 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
                                             )
                                         )
                                     except Exception as e:
-                                        print(f"An error to oci= {oci_omid} occurred: {e}")
+                                        logger.info(f"An error to oci= {oci_omid} occurred: {e}")
 
                                     # update cache var
                                     ocis_processed_buffer[oci_omid] = 1

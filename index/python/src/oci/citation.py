@@ -390,13 +390,16 @@ class Citation(object):
                 )
             )
             if self.duration is not None:
-                citation_graph.add(
-                    (
-                        citation,
-                        self.has_citation_time_span,
-                        Literal(self.duration, datatype=XSD.duration),
+                try:
+                    citation_graph.add(
+                        (
+                            citation,
+                            self.has_citation_time_span,
+                            Literal(self.duration, datatype=XSD.duration),
+                        )
                     )
-                )
+                except Exception as e:
+                    print(f"An error to oci= {citation} occurred: {e}")
 
         if include_oci:
             for s, p, o in self.get_oci_rdf(
