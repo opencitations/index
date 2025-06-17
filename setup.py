@@ -44,7 +44,7 @@ setup(
         "regex",
         "zstandard",
         "oc-idmanager",
-        "tarfile"
+        "xtarfile"
     ],
     packages=[
         f"oc.index.{mod}"
