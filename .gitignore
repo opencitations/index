@@ -9,6 +9,7 @@ venv
 input.csv
 __stats__
 conf.yaml
+sh/*
 
 # Reference:
 # https://github.com/github/gitignore

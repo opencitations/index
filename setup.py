@@ -43,7 +43,8 @@ setup(
         "lxml",
         "regex",
         "zstandard",
-        "oc-idmanager"
+        "oc-idmanager",
+        "tarfile"
     ],
     packages=[
         f"oc.index.{mod}"

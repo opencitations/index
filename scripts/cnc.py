@@ -158,30 +158,34 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
                                         oci_omid = citing_omid+"-"+cited_omid
                                         index_ocis[oci_omid] = (citing_omid,cited_omid)
 
-                                        service_citations.append(
-                                            Citation(
-                                                "oci:"+oci_omid, # oci,
-                                                None, # citing_url,
-                                                None, # citing_pub_date,
-                                                None, # cited_url,
-                                                None, # cited_pub_date,
-                                                None, # creation,
-                                                None, # timespan,
-                                                None, # prov_entity_number,
-                                                agent, # prov_agent_url,
-                                                source, # source,
-                                                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
-                                                service_name, # service_name,
-                                                index_identifier, # id_type,
-                                                idbase_url + "([[XXX__decode]])", # id_shape,
-                                                "reference", # citation_type,
-                                                None, # journal_sc=False,
-                                                None,# author_sc=False,
-                                                None, # prov_inv_date=None,
-                                                "Creation of the citation", # prov_description=None,
-                                                None, # prov_update=None,
+                                        try:
+                                            service_citations.append(
+                                                Citation(
+                                                    "oci:"+oci_omid, # oci,
+                                                    None, # citing_url,
+                                                    None, # citing_pub_date,
+                                                    None, # cited_url,
+                                                    None, # cited_pub_date,
+                                                    None, # creation,
+                                                    None, # timespan,
+                                                    None, # prov_entity_number,
+                                                    agent, # prov_agent_url,
+                                                    source, # source,
+                                                    datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                                                    service_name, # service_name,
+                                                    index_identifier, # id_type,
+                                                    idbase_url + "([[XXX__decode]])", # id_shape,
+                                                    "reference", # citation_type,
+                                                    None, # journal_sc=False,
+                                                    None,# author_sc=False,
+                                                    None, # prov_inv_date=None,
+                                                    "Creation of the citation", # prov_description=None,
+                                                    None, # prov_update=None,
+                                                )
                                             )
-                                        )
+                                        except Exception as e:
+                                            print(f"An error to oci= {oci_omid} occurred: {e}")
+
 
                                     else:
                                         if citing_omid == None:
@@ -223,30 +227,33 @@ def normalize_dump(service, input_files, output_dir, newdump = False):
                                     citing_omid = "br/"+citing_omid
                                     cited_omid = "br/"+cited_omid
 
-                                    index_citations.append(
-                                        Citation(
-                                            "oci:"+oci_omid, # oci,
-                                            idbase_url + quote(citing_omid), # citing_url,
-                                            citing_date, # citing_pub_date,
-                                            idbase_url + quote(cited_omid), # cited_url,
-                                            cited_date, # cited_pub_date,
-                                            None, # creation,
-                                            None, # timespan,
-                                            1, # prov_entity_number,
-                                            agent, # prov_agent_url,
-                                            source, # source,
-                                            datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
-                                            service_name, # service_name,
-                                            index_identifier, # id_type,
-                                            idbase_url + "([[XXX__decode]])", # id_shape,
-                                            "reference", # citation_type,
-                                            journal_sc, # journal_sc=False,
-                                            author_sc,# author_sc=False,
-                                            None, # prov_inv_date=None,
-                                            "Creation of the citation", # prov_description=None,
-                                            None, # prov_update=None,
+                                    try:
+                                        index_citations.append(
+                                            Citation(
+                                                "oci:"+oci_omid, # oci,
+                                                idbase_url + quote(citing_omid), # citing_url,
+                                                citing_date, # citing_pub_date,
+                                                idbase_url + quote(cited_omid), # cited_url,
+                                                cited_date, # cited_pub_date,
+                                                None, # creation,
+                                                None, # timespan,
+                                                1, # prov_entity_number,
+                                                agent, # prov_agent_url,
+                                                source, # source,
+                                                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                                                service_name, # service_name,
+                                                index_identifier, # id_type,
+                                                idbase_url + "([[XXX__decode]])", # id_shape,
+                                                "reference", # citation_type,
+                                                journal_sc, # journal_sc=False,
+                                                author_sc,# author_sc=False,
+                                                None, # prov_inv_date=None,
+                                                "Creation of the citation", # prov_description=None,
+                                                None, # prov_update=None,
+                                            )
                                         )
-                                    )
+                                    except Exception as e:
+                                        print(f"An error to oci= {oci_omid} occurred: {e}")
 
                                     # update cache var
                                     ocis_processed_buffer[oci_omid] = 1

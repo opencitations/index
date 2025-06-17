@@ -16,6 +16,7 @@
 import csv
 import json
 from zipfile import ZipFile
+import tarfile
 import os
 import datetime
 import io
@@ -72,7 +73,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
     global _config
     logger = get_logger()
 
-    rconn_db_omid =  RedisDB(redishost, redisport, redisbatchsize, db_omid)
+    #rconn_db_omid =  RedisDB(redishost, redisport, redisbatchsize, db_omid)
     rconn_db_br =  RedisDB(redishost, redisport, redisbatchsize, db_br)
     rconn_db_ra = RedisDB(redishost, redisport, redisbatchsize, db_ra)
     rconn_db_metadata = RedisDB(redishost, redisport, redisbatchsize, db_metadata)
@@ -86,66 +87,166 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
     br_index = defaultdict(set)
     ra_index = defaultdict(set)
 
-    for filename in os.listdir(dump_path):
-        fzip = os.path.join(dump_path, filename)
-        # checking if it is a file
-        if fzip.endswith(".zip"):
-            with ZipFile(fzip) as archive:
-                logger.info("Total number of files in the archive is:"+str(len(archive.namelist())))
-                # Each CSV file contain (i.e., CSV header):
-                # "id","title","author","pub_date","venue","volume","issue","page","type","publisher","editor"
+
+    # Check if dump_path is a single archive file
+    if os.path.isfile(dump_path):
+        if dump_path.endswith(".zip"):
+            # Handle single ZIP file
+            with ZipFile(dump_path) as archive:
+                logger.info(f"ZIP: Total number of files in {os.path.basename(dump_path)}: {len(archive.namelist())}")
                 for csv_name in archive.namelist():
-                    with archive.open(csv_name) as csv_file:
-                        l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
-                        # walk through each citation in the CSV
-                        logger.info("Walking through the citations of: "+str(csv_name))
-                        for o_row in tqdm(l_cits):
-                            #check BRs from the columns: "id" and "venue"
-                            for col in ["id","venue"]:
-                                # "venue" is a field with multiple ids
-                                multi_ids_bool = col == "venue"
-                                omid_ids = re_get_ids(o_row[col],["omid"], multi_ids = multi_ids_bool, group_ids= False)
-                                if len(omid_ids) > 0:
-                                    omid_br = omid_ids[0].replace("omid:br/","")
-                                    other_ids = re_get_ids(o_row[col],br_ids, multi_ids = multi_ids_bool, group_ids= False)
-                                    for oid in other_ids:
-                                        db_br_buffer.append( (oid,omid_br) )
-                                        br_index[omid_br].add(oid) #update glob index
+                    if csv_name.endswith('.csv'):
+                        with archive.open(csv_name) as csv_file:
+                            _p_csvfile(csv_file)
 
-                                    # add metadata only if the BR entity is in the ID column
-                                    if col == "id":
-                                        orcids = re_get_ids(o_row["author"],["orcid"])
-                                        issns = re_get_ids(o_row["venue"],["issn"])
-                                        entity_value = {
-                                            "date": str(o_row["pub_date"]),
-                                            "valid": True,
-                                            "orcid": [a.replace("orcid:","") for a in orcids] if len(orcids) > 0 else [],
-                                            "issn": [a.replace("issn:","") for a in issns] if len(issns) > 0 else []
-                                        }
-                                        db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
+        elif dump_path.endswith(".tar.gz") or dump_path.endswith(".tgz"):
+            # Handle single TAR.GZ file
+            with tarfile.open(dump_path, 'r:gz') as archive:
+                logger.info(f"TAR.GZ: Total number of files in {os.path.basename(dump_path)}: {len(archive.getnames())}")
+                for csv_name in archive.getnames():
+                    if csv_name.endswith('.csv'):
+                        csv_file = archive.extractfile(csv_name)
+                        if csv_file:
+                            _p_csvfile(csv_file)
 
-                            #check RAs from the columns: "author","publisher", and "editor"
-                            for col in ["author","publisher","editor"]:
-                                for item in o_row[col].split("; "):
-                                    omid_ids = re_get_ids(item,["omid"])
-                                    if len(omid_ids) > 0:
-                                        omid_ra = omid_ids[0].replace("omid:ra/","")
-                                        other_ids = re_get_ids(item,ra_ids)
-                                        for oid in other_ids:
-                                            db_ra_buffer.append( (oid,omid_ra) )
-                                            ra_index[omid_ra].add(oid) #update glob index
+        elif dump_path.endswith(".csv"):
+            # Handle single CSV file
+            logger.info(f"CSV: Processing direct CSV file: {os.path.basename(dump_path)}")
+            with open(dump_path, 'r', encoding='utf-8') as csv_file:
+                _p_csvfile(csv_file)
+        else:
+            logger.warning(f"Unsupported file type: {dump_path}")
 
-                        logger.info("> Total BR-OMIDs found in file: "+str(len(db_br_buffer)))
+    # Check if dump_path is a directory
+    elif os.path.isdir(dump_path):
+        # Directory contains only CSV files
+        for filename in os.listdir(dump_path):
+            filepath = os.path.join(dump_path, filename)
+            # Skip if it's not a file
+            if not os.path.isfile(filepath):
+                continue
 
-                        #update redis DBs
-                        if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
-                            db_metadata_buffer = []
+            if filename.endswith(".csv"):
+                logger.info(f"CSV: Processing direct CSV file: {filename}")
+                with open(filepath, 'r', encoding='utf-8') as csv_file:
+                    _p_csvfile(csv_file)
+    else:
+        logger.error(f"Path does not exist or is neither a file nor directory: {dump_path}")
 
-                        if rconn_db_br.set_data(db_br_buffer) > 0:
-                            db_br_buffer = []
 
-                        if rconn_db_ra.set_data(db_ra_buffer) > 0:
-                            db_ra_buffer = []
+    def _p_csvfile(a_csv_file):
+        l_cits = list(csv.DictReader(io.TextIOWrapper(a_csv_file)))
+        # walk through each citation in the CSV
+        logger.info("Walking through the citations of: "+str(csv_name))
+        for o_row in tqdm(l_cits):
+            #check BRs from the columns: "id" and "venue"
+            for col in ["id","venue"]:
+                # "venue" is a field with multiple ids
+                multi_ids_bool = col == "venue"
+                omid_ids = re_get_ids(o_row[col],["omid"], multi_ids = multi_ids_bool, group_ids= False)
+                if len(omid_ids) > 0:
+                    omid_br = omid_ids[0].replace("omid:br/","")
+                    other_ids = re_get_ids(o_row[col],br_ids, multi_ids = multi_ids_bool, group_ids= False)
+                    for oid in other_ids:
+                        db_br_buffer.append( (oid,omid_br) )
+                        br_index[omid_br].add(oid) #update glob index
+
+                    # add metadata only if the BR entity is in the ID column
+                    if col == "id":
+                        orcids = re_get_ids(o_row["author"],["orcid"])
+                        issns = re_get_ids(o_row["venue"],["issn"])
+                        entity_value = {
+                            "date": str(o_row["pub_date"]),
+                            "valid": True,
+                            "orcid": [a.replace("orcid:","") for a in orcids] if len(orcids) > 0 else [],
+                            "issn": [a.replace("issn:","") for a in issns] if len(issns) > 0 else []
+                        }
+                        db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
+
+            #check RAs from the columns: "author","publisher", and "editor"
+            for col in ["author","publisher","editor"]:
+                for item in o_row[col].split("; "):
+                    omid_ids = re_get_ids(item,["omid"])
+                    if len(omid_ids) > 0:
+                        omid_ra = omid_ids[0].replace("omid:ra/","")
+                        other_ids = re_get_ids(item,ra_ids)
+                        for oid in other_ids:
+                            db_ra_buffer.append( (oid,omid_ra) )
+                            ra_index[omid_ra].add(oid) #update glob index
+
+        logger.info("> Total BR-OMIDs found in file: "+str(len(db_br_buffer)))
+
+        #update redis DBs
+        if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
+            db_metadata_buffer = []
+
+        if rconn_db_br.set_data(db_br_buffer) > 0:
+            db_br_buffer = []
+
+        if rconn_db_ra.set_data(db_ra_buffer) > 0:
+            db_ra_buffer = []
+
+
+    # for filename in os.listdir(dump_path):
+    #     fzip = os.path.join(dump_path, filename)
+    #     # checking if it is a file
+    #     if fzip.endswith(".zip"):
+    #         with ZipFile(fzip) as archive:
+    #             logger.info("Total number of files in the archive is:"+str(len(archive.namelist())))
+    #             # Each CSV file contain (i.e., CSV header):
+    #             # "id","title","author","pub_date","venue","volume","issue","page","type","publisher","editor"
+    #             for csv_name in archive.namelist():
+    #                 with archive.open(csv_name) as csv_file:
+    #                     l_cits = list(csv.DictReader(io.TextIOWrapper(csv_file)))
+    #                     # walk through each citation in the CSV
+    #                     logger.info("Walking through the citations of: "+str(csv_name))
+    #                     for o_row in tqdm(l_cits):
+    #                         #check BRs from the columns: "id" and "venue"
+    #                         for col in ["id","venue"]:
+    #                             # "venue" is a field with multiple ids
+    #                             multi_ids_bool = col == "venue"
+    #                             omid_ids = re_get_ids(o_row[col],["omid"], multi_ids = multi_ids_bool, group_ids= False)
+    #                             if len(omid_ids) > 0:
+    #                                 omid_br = omid_ids[0].replace("omid:br/","")
+    #                                 other_ids = re_get_ids(o_row[col],br_ids, multi_ids = multi_ids_bool, group_ids= False)
+    #                                 for oid in other_ids:
+    #                                     db_br_buffer.append( (oid,omid_br) )
+    #                                     br_index[omid_br].add(oid) #update glob index
+    #
+    #                                 # add metadata only if the BR entity is in the ID column
+    #                                 if col == "id":
+    #                                     orcids = re_get_ids(o_row["author"],["orcid"])
+    #                                     issns = re_get_ids(o_row["venue"],["issn"])
+    #                                     entity_value = {
+    #                                         "date": str(o_row["pub_date"]),
+    #                                         "valid": True,
+    #                                         "orcid": [a.replace("orcid:","") for a in orcids] if len(orcids) > 0 else [],
+    #                                         "issn": [a.replace("issn:","") for a in issns] if len(issns) > 0 else []
+    #                                     }
+    #                                     db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
+    #
+    #                         #check RAs from the columns: "author","publisher", and "editor"
+    #                         for col in ["author","publisher","editor"]:
+    #                             for item in o_row[col].split("; "):
+    #                                 omid_ids = re_get_ids(item,["omid"])
+    #                                 if len(omid_ids) > 0:
+    #                                     omid_ra = omid_ids[0].replace("omid:ra/","")
+    #                                     other_ids = re_get_ids(item,ra_ids)
+    #                                     for oid in other_ids:
+    #                                         db_ra_buffer.append( (oid,omid_ra) )
+    #                                         ra_index[omid_ra].add(oid) #update glob index
+    #
+    #                     logger.info("> Total BR-OMIDs found in file: "+str(len(db_br_buffer)))
+    #
+    #                     #update redis DBs
+    #                     if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
+    #                         db_metadata_buffer = []
+    #
+    #                     if rconn_db_br.set_data(db_br_buffer) > 0:
+    #                         db_br_buffer = []
+    #
+    #                     if rconn_db_ra.set_data(db_ra_buffer) > 0:
+    #                         db_ra_buffer = []
 
     # Set last data in Redis
     rconn_db_metadata.set_data(db_metadata_buffer, True)
@@ -173,7 +274,7 @@ def main():
     global _config
 
     parser = argparse.ArgumentParser(description='Store the metadata of OpenCitations Meta in Redis')
-    parser.add_argument('--dump', type=str, required=True,help='The ZIP file containing the CSV dump with the data (metadata) of OpenCitations Meta')
+    parser.add_argument('--dump', type=str, required=True,help='The directory containing a ZIP file storing the CSV dump with the data (metadata) of OpenCitations Meta')
     #parser.add_argument('--db', type=str, required=True,help='The destination DB in redis. The specified DB is used to store <any-id>:<omid> data, while DB+1 is used to store <omid>:{METADATA}')
     #parser.add_argument('--port', type=str, required=False,help='The port of redis', default="6379")
 
