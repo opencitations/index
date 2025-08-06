@@ -38,6 +38,8 @@ rconn_db_ra = None
 rconn_db_metadata = None
 
 # glob indexes
+br_ids = []
+ra_ids = []
 br_index = defaultdict(set)
 ra_index = defaultdict(set)
 
@@ -134,7 +136,7 @@ def _p_csvfile(a_csv_file,csv_name):
     rconn_db_ra.set_data(db_ra_buffer, True)
 
 
-def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", br_ids =[], ra_ids=[], db_omid = "9", db_br="10", db_ra="11", db_metadata="12"):
+def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", db_omid = "9", db_br="10", db_ra="11", db_metadata="12"):
     global _config
     logger = get_logger()
 
@@ -217,6 +219,10 @@ def main():
     args = parser.parse_args()
     logger = get_logger()
 
+    # BR and RA IDs
+    br_ids = _config.get("cnc", "br_ids").split(",")
+    ra_ids = _config.get("cnc", "ra_ids").split(",")
+
     logger.info("Start uploading data to Redis.")
 
     res = upload2redis(
@@ -225,10 +231,6 @@ def main():
         redishost = _config.get("redis", "host"),
         redisport = _config.get("redis", "port"),
         redisbatchsize = _config.get("redis", "batch_size"),
-        # BR IDs type handled
-        br_ids = _config.get("cnc", "br_ids").split(","),
-        # RA IDs type handled
-        ra_ids = _config.get("cnc", "ra_ids").split(","),
         db_omid = _config.get("cnc", "db_omid"),
         db_br = _config.get("cnc", "db_br"),
         db_ra = _config.get("cnc", "db_ra"),
