@@ -33,10 +33,6 @@ from oc.index.utils.config import get_config
 _config = get_config()
 csv.field_size_limit(sys.maxsize)
 
-rconn_db_br =  None
-rconn_db_ra = None
-rconn_db_metadata = None
-
 # glob indexes
 br_ids = []
 ra_ids = []
@@ -79,7 +75,7 @@ def re_get_ids(val, identifiers, multi_ids = True, group_ids= False):
                     res.append(_id)
     return res
 
-def _p_csvfile(a_csv_file,csv_name):
+def _p_csvfile(a_csv_file,csv_name,rconn_db_br, rconn_db_ra, rconn_db_metadata):
 
     global _config
     logger = get_logger()
@@ -154,7 +150,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                 for csv_name in archive.namelist():
                     if csv_name.endswith('.csv'):
                         with archive.open(csv_name) as csv_file:
-                            _p_csvfile(csv_file,csv_name)
+                            _p_csvfile(csv_file, csv_name, rconn_db_br, rconn_db_ra, rconn_db_metadata)
 
         elif dump_path.endswith(".tar.gz") or dump_path.endswith(".tgz"):
             # Handle single TAR.GZ file
@@ -164,14 +160,14 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
                     if csv_name.endswith('.csv'):
                         csv_file = archive.extractfile(csv_name)
                         if csv_file:
-                            _p_csvfile(csv_file,csv_name)
+                            _p_csvfile(csv_file, csv_name, rconn_db_br, rconn_db_ra, rconn_db_metadata)
 
         elif dump_path.endswith(".csv"):
             # Handle single CSV file
             csv_name = os.path.basename(dump_path)
             logger.info(f"CSV: Processing direct CSV file: {csv_name}")
             with open(dump_path, 'r', encoding='utf-8') as csv_file:
-                _p_csvfile(csv_file,csv_name)
+                _p_csvfile(csv_file,csv_name, rconn_db_br, rconn_db_ra, rconn_db_metadata)
         else:
             logger.warning(f"Unsupported file type: {dump_path}")
 
@@ -187,7 +183,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
             if filename.endswith(".csv"):
                 logger.info(f"CSV: Processing direct CSV file: {filename}")
                 with open(filepath, 'r', encoding='utf-8') as csv_file:
-                    _p_csvfile(csv_file)
+                    _p_csvfile(csv_file, filename, rconn_db_br, rconn_db_ra, rconn_db_metadata)
     else:
         logger.error(f"Path does not exist or is neither a file nor directory: {dump_path}")
 
