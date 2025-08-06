@@ -79,6 +79,9 @@ def re_get_ids(val, identifiers, multi_ids = True, group_ids= False):
 
 def _p_csvfile(a_csv_file,csv_name):
 
+    global _config
+    logger = get_logger()
+
     # set buffers
     db_br_buffer = []
     db_ra_buffer = []
