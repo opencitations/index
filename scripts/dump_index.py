@@ -1,35 +1,51 @@
+#!python
+# Copyright (c) 2025 Ivan Heibi.
+#
+# Permission to use, copy, modify, and/or distribute this software for any purpose
+# with or without fee is hereby granted, provided that the above copyright notice
+# and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
+# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+# SOFTWARE.
+
 import redis
 import os
 import zipfile
-from typing import List
 from datetime import datetime
-from math import ceil
-
-from tqdm import tqdm
 from argparse import ArgumentParser
+# from tqdm import tqdm
+
+# Libraries needed
 from oc.index.oci.citation import Citation, OCIManager
 from oc.index.utils.config import get_config
 from oc.index.utils.logging import get_logger
 from oc.index.oci.storer import CitationStorer
 
+# Globals
 _config = get_config()
 _logger = get_logger()
 
-# def dump_to_files( data_to_dump, file_id, out_dir ):
-#     # unzip the list of tuples into three separate lists
-#     _csv, _rdf, _slx = zip(*data_to_dump)
-#     # write each column to a separate file
-#     with open(os.path.join(out_dir,"data","csv",file_id+".csv"), "w") as csv_f, \
-#          open(os.path.join(out_dir,"data","rdf",file_id+".ttl"), "w") as rdf_f, \
-#          open(os.path.join(out_dir,"data","slx",file_id+".scholix"), "w") as slx_f:
-#
-#         csv_f.write("\n".join(_csv))
-#         rdf_f.write("\n".join(_rdf))
-#         slx_f.write("\n".join(_slx))
-
 
 def zip_and_cleanup(base_dir, files_per_zip, force = False):
+    """It compresses (zip) the oc index data files (csv,rdf,slx) already in the output directory
+    if the number is higher than <files_per_zip> or if <force> is True
+
+    Args:
+        base_dir (string, mandatory): the output base directory
+        files_per_zip (int, mandatory): number if files per zip
+        force (bool, optional): when true the compression is always done
+
+    Returns:
+        tuple: the full path of the zipped files
+    """
+
     global _logger
+    res = []
     data_formats = {
         "csv": "data/csv",
         "ttl": "data/rdf",
@@ -57,36 +73,9 @@ def zip_and_cleanup(base_dir, files_per_zip, force = False):
                     file_path = os.path.join(dir_path, filename)
                     zipf.write(file_path, arcname=filename)
                     os.remove(file_path)  # Remove after adding
+            res.append(zip_path)
 
-
-# def gen_cit_raw_data(cit):
-#     """
-#     Returns: a dict, <key> represents the data format, and the value is the string to be writen in the file
-#     """
-#     return None
-
-# def init_fs(out_dir):
-#     """
-#         Init the file system to be ready for writing the files
-#     """
-#     subdirs = [
-#         "data", "data/csv", "data/rdf", "data/scholix"
-#     ]
-#     for subdir in subdirs:
-#         os.makedirs(os.path.join(out_dir, subdir), exist_ok=True)
-
-
-# def fetch_redis_values(redis_db, keys: List[str]) -> dict:
-#     """Fetch values for all keys from <redis_db> """
-#     pipeline = redis_db.pipeline()
-#     for key in keys:
-#         pipeline.get(key)
-#     return dict(zip(keys, pipeline.execute()))
-
-# Citation metadata functions
-
-def get_omid(idbase_url,id):
-    return
+        return tuple(res)
 
 
 def main():
@@ -220,14 +209,10 @@ def main():
                     )
                 )
 
-                # csv_data, rdf_data, slx_data = gen_cit_raw_data(a_citation)
-                # data_to_dump.append( (csv_data, rdf_data, slx_data) )
-
         # write data_to_dump to files when range CITING_PER_FILE is reached
         if len(data_to_dump) >= CITING_PER_FILE :
             _logger.info(f"Storing {len(data_to_dump)} citations data ...")
             # write to files
-            # dump_to_files( data_to_dump, file_id, FILE_OUTPUT_DIR )
             index_ts_storer = CitationStorer(
                 FILE_OUTPUT_DIR,
                 baseurl + "/" if not baseurl.endswith("/") else baseurl,
