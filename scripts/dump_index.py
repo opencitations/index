@@ -5,256 +5,244 @@ from typing import List
 from datetime import datetime
 from math import ceil
 
-from oc.index.oci.citation import Citation
+from tqdm import tqdm
+from argparse import ArgumentParser
+from oc.index.oci.citation import Citation, OCIManager
+from oc.index.utils.config import get_config
+from oc.index.utils.logging import get_logger
+from oc.index.oci.storer import CitationStorer
 
-FILE_EXT = {
-    "csv": "csv",
-    "rdf": "ttl",
-    "slx": "scholix",
-}
+_config = get_config()
+_logger = get_logger()
 
-
-def append_in_file(out_dest, f_id, f_type, f_content, newline=True):
-
-    # Build the full path to the file
-    dir_path = os.path.join(out_dest, f_type)
-    file_path = os.path.join(dir_path, f"{f_id}.{FILE_EXT[f_type]}")
-
-    # Ensure the directory exists
-    os.makedirs(dir_path, exist_ok=True)
-
-    #today_str = datetime.today().strftime('%Y%m%d')
-
-    # Open the file in append mode and write content
-    with open(file_path, "a", encoding="utf-8") as f:
-        f.write(f_content)
-        if newline:
-            f.write("\n")
+# def dump_to_files( data_to_dump, file_id, out_dir ):
+#     # unzip the list of tuples into three separate lists
+#     _csv, _rdf, _slx = zip(*data_to_dump)
+#     # write each column to a separate file
+#     with open(os.path.join(out_dir,"data","csv",file_id+".csv"), "w") as csv_f, \
+#          open(os.path.join(out_dir,"data","rdf",file_id+".ttl"), "w") as rdf_f, \
+#          open(os.path.join(out_dir,"data","slx",file_id+".scholix"), "w") as slx_f:
+#
+#         csv_f.write("\n".join(_csv))
+#         rdf_f.write("\n".join(_rdf))
+#         slx_f.write("\n".join(_slx))
 
 
-def zip_and_cleanup(base_dir, files_per_zip):
-    subdirs = [
-        "data/csv", "data/rdf", "data/slx",
-        "prov/csv", "prov/rdf"
-    ]
+def zip_and_cleanup(base_dir, files_per_zip, force = False):
+    global _logger
+    data_formats = {
+        "csv": "data/csv",
+        "ttl": "data/rdf",
+        "scholix":"data/slx"
+    }
 
-    for subdir in subdirs:
-        dir_path = os.path.join(base_dir, subdir)
+    for _f, _subdir in data_formats.items():
+        dir_path = os.path.join(base_dir, _subdir)
 
-        # List files with non-zip extensions
+        # files with non-zip extensions
         files = [f for f in os.listdir(dir_path)
-                 if os.path.isfile(os.path.join(dir_path, f)) and not f.endswith(".zip")]
+                 if os.path.isfile(os.path.join(dir_path, f)) and f.endswith("."+_f)]
 
-        # Filter files that are named as integers (before extension)
-        numbered_files = []
-        for f in files:
-            name, _ = os.path.splitext(f)
-            if name.isdigit():
-                numbered_files.append((int(name), f))
+        if (len(files) >= files_per_zip) or ( force and (len(files)>0) ):
 
-        if len(numbered_files) >= files_per_zip:
-            # Sort by number
-            numbered_files.sort()
+            zip_files = [f for f in os.listdir(dir_path)
+                     if os.path.isfile(os.path.join(dir_path, f)) and f.endswith(".zip")]
 
-            # Get range
-            min_num = numbered_files[0][0]
-            max_num = numbered_files[-1][0]
-            zip_name = f"{min_num}-{max_num}.zip"
+            zip_name = f"{len(zip_files)}.zip"
             zip_path = os.path.join(dir_path, zip_name)
 
             # Create zip
             with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
-                for _, filename in numbered_files:
+                for _, filename in files:
                     file_path = os.path.join(dir_path, filename)
                     zipf.write(file_path, arcname=filename)
                     os.remove(file_path)  # Remove after adding
 
-            print(f"Created {zip_name} in {dir_path}")
+
+# def gen_cit_raw_data(cit):
+#     """
+#     Returns: a dict, <key> represents the data format, and the value is the string to be writen in the file
+#     """
+#     return None
+
+# def init_fs(out_dir):
+#     """
+#         Init the file system to be ready for writing the files
+#     """
+#     subdirs = [
+#         "data", "data/csv", "data/rdf", "data/scholix"
+#     ]
+#     for subdir in subdirs:
+#         os.makedirs(os.path.join(out_dir, subdir), exist_ok=True)
 
 
-
-def zip_and_cleanup(file_paths: List[str], total_cits: int):
-    """Zip files and remove the originals."""
-    total_k = total_cits // 1000
-    zip_name = f"{today_str}-{total_k}k.zip"
-    with zipfile.ZipFile(zip_name, 'w') as zipf:
-        for file_path in file_paths:
-            zipf.write(file_path, os.path.basename(file_path))
-            os.remove(file_path)
-    print(f"Zipped {len(file_paths)} files ({total_cits} citations) into {zip_name}")
-
-
-def process_cit_data(cit_id,m_citing,m_cited):
-    """
-    Returns: a dict, <key> represents the data format, and the value is the string to be writen in the file
-    """
-    return None
-
-
-def process_cit_prov(cit_id,m_citing,m_cited):
-    """
-    Returns: a dict, <key> represents the data format, and the value is the string to be writen in the file
-    """
-    return None
-
-
-def init_fs(out_dir):
-    """
-        Init the file system to be ready for writing the files
-    """
-    subdirs = [
-        "data", "data/csv", "data/rdf", "data/scholix",
-        "prov", "prov/csv", "prov/rdf"
-    ]
-    for subdir in subdirs:
-        os.makedirs(os.path.join(out_dir, subdir), exist_ok=True)
-
-
-def fetch_redis_values(redis_db, keys: List[str]) -> dict:
-    """Fetch values for all keys from <redis_db> """
-    pipeline = redis_db.pipeline()
-    for key in keys:
-        pipeline.get(key)
-    return dict(zip(keys, pipeline.execute()))
-
+# def fetch_redis_values(redis_db, keys: List[str]) -> dict:
+#     """Fetch values for all keys from <redis_db> """
+#     pipeline = redis_db.pipeline()
+#     for key in keys:
+#         pipeline.get(key)
+#     return dict(zip(keys, pipeline.execute()))
 
 # Citation metadata functions
 
 def get_omid(idbase_url,id):
-    return idbase_url + quote("br/"+id)
-
-def get_date(meta_obj):
-    return meta_obj["pub_date"]
-
-def calc_journal_sc(m_citing,m_cited):
-    return False
-
-def calc_author_sc(m_citing,m_cited):
-    return False
+    return
 
 
 def main():
-    print("Dumping all the citations of OpenCitations ...")
+
+    global _config
+    global _logger
+
+    arg_parser = ArgumentParser(description="Dump OpenCitations Index data. This process reads all the data in Redis and creates a new data dump for the OpenCitations Index. The outputs are compressed, to all dump formats: CSV, RDF, SCHOLIX. **Make sure the Redis datasets are populated before running this script**")
+    arg_parser.add_argument(
+        "-d",
+        "--date",
+        required=False,
+        help="The release date of the dump. Provide the date in format YYYYMMDD",
+    )
+
+    # Date of the dump
+    dump_date = datetime.now().strftime("%Y%m%d") # format: YYYYMMDD
+    args = arg_parser.parse_args()
+    if args.date:
+        dump_date = args.date
+
+
+    _logger.info("Dumping all the citations in OpenCitations Index ...")
 
     # === CONF.INI ===
     idbase_url = _config.get("INDEX", "idbaseurl")
+    baseurl = _config.get("INDEX", "baseurl")
     agent = _config.get("INDEX", "agent")
     source = _config.get("INDEX", "source")
     service_name = _config.get("INDEX", "service")
     index_identifier = _config.get("INDEX", "identifier")
 
+    _logger.info(
+        "--------- Configurations ----------\n"
+        f"idbase_url: {idbase_url}\n"
+        f"agent: {agent}\n"
+        f"source: {source}\n"
+        f"service: {service_name}\n"
+        f"identifier: {index_identifier}"
+    )
+
     # === CONFIGURATION ===
     CITING_BATCH_SIZE = 1000
     CITING_PER_FILE = 50000
     FILES_PER_ZIP = 100
-    FILE_OUTPUT_DIR = 'oc_index_dump'
+
+    _logger.info(
+        "--------- Process ----------\n"
+        f"CITING_BATCH_SIZE: {CITING_BATCH_SIZE}\n"
+        f"CITING_PER_FILE: {CITING_PER_FILE}\n"
+        f"FILES_PER_ZIP: {FILES_PER_ZIP}\n"
+    )
 
     # === REDIS ===
-    REDIS_CITS_DB = 0
-    REDIS_METADATA_DB = 1
+    REDIS_CITS_DB = _config.get("cnc", "db_cits")
+    REDIS_METADATA_DB = _config.get("INDEX", "db_br")
     redis_cits = redis.Redis(host='localhost', port=6379, db=REDIS_CITS_DB, decode_responses=True)
+    # Sample data of redis_metadata:
+    # "0604212254": "{\"date\": \"1967\", \"valid\": true, \"orcid\": [], \"issn\": [\"0371-1838\", \"2433-2895\"]}"
     redis_metadata = redis.Redis(host='localhost', port=6379, db=REDIS_METADATA_DB, decode_responses=True)
 
-    # === Process ===
-    cursor = '0'
-    processed_citing = 0
+    _logger.info(
+        "--------- Redis ----------\n"
+        f"REDIS_CITS_DB: {REDIS_CITS_DB}\n"
+        f"REDIS_METADATA_DB: {REDIS_METADATA_DB}\n"
+    )
 
     # create the output directory
-    init_fs(FILE_OUTPUT_DIR)
+    FILE_OUTPUT_DIR = 'oc_index_dump_'+dump_date
+    # init_fs(FILE_OUTPUT_DIR)
+    _logger.info("Data will be stored in: "+FILE_OUTPUT_DIR)
+
+
+    cursor = 0
+    file_id = 1
+    data_to_dump = []
 
     # iterate over all the citing entities
     while True:
 
-        # check if the number of files already created should be zipped
-        zip_and_cleanup(FILE_OUTPUT_DIR, FILES_PER_ZIP)
+        # index of entites to process
+        # <citing_omid>: [<cited_omid_1>, <cited_omid_2>, <cited_omid_3> ... ]
+        cits_pairs_to_process = []
+        br_meta = {}
 
         # get from redis first CITING_BATCH_SIZE citing entites
-        cursor, keys = redis_cits.scan(cursor=cursor, count=CITING_BATCH_SIZE)
-        if cursor == '0':
-            break
+        cursor, citing_keys = redis_cits.scan(cursor=cursor, count=CITING_BATCH_SIZE)
+        if citing_keys:  # only fetch if we got keys
+            cited_values = redis_cits.mget(citing_keys)
+            for _a_citing, _val_cited in zip(citing_keys, cited_values):
+                # to_process
+                _l_cited = eval( _val_cited.decode("utf-8") )
+                cits_pairs_to_process += [(_a_citing, _a_cited) for _a_cited in _l_cited]
+                # get also the metadata of the BRs involved
+                br_keys = _l_cited.append(_a_citing)
+                metadata_values = redis_metadata.mget(br_keys)
+                br_meta.update( dict(zip(br_keys, metadata_values)) )
 
-        processed_citing += CITING_BATCH_SIZE
-        # get new name to file in case <processed_citing> > CITING_PER_FILE
-        file_id = processed_citing // CITING_PER_FILE
+        # in case there are some entities to process iterate over all citation pairs
+        if len(cits_pairs_to_process) > 0:
+            for citing, cited in cits_pairs_to_process:
+                m_citing = br_meta.get( citing )
+                m_cited = br_meta.get( br_meta[cited] )
 
-        cit_pairs = []
-        brs_involved = set()
+                # in case one of two entites has no metadata move to next citation
+                if not m_citing or not m_cited:
+                    continue
 
-        for a in keys:
-            b_list_raw = redis_cits.get(a)
+                data_to_dump.append(
+                    Citation(
+                        "oci:"+citing+"-"+cited, # oci,
+                        idbase_url + quote("br/"+citing), # citing_url,
+                        m_citing["pub_date"], # citing_pub_date,
+                        idbase_url + quote("br/"+cited), # cited_url,
+                        m_cited["pub_date"], # cited_pub_date,
+                        None, # creation,
+                        None, # timespan,
+                        1, # prov_entity_number,
+                        agent, # prov_agent_url,
+                        source, # source,
+                        datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                        service_name, # service_name,
+                        index_identifier, # id_type,
+                        idbase_url + "([[XXX__decode]])", # id_shape,
+                        "reference", # citation_type,
+                        bool(set(m_citing["issn"]) & set(m_cited["issn"])), # journal_sc=False,
+                        bool(set(m_citing["orcid"]) & set(m_cited["orcid"])), # journal_sc=False,
+                        None, # prov_inv_date=None,
+                        "Creation of the citation", # prov_description=None,
+                        None, # prov_update=None,
+                    )
+                )
 
-            # in case <a> does not exist move to the next citing entity
-            if not b_list_raw:
-                continue
+                # csv_data, rdf_data, slx_data = gen_cit_raw_data(a_citation)
+                # data_to_dump.append( (csv_data, rdf_data, slx_data) )
 
-            # The value of <b_list_raw> is a list of cited entities, e.g. ["061302685395","062403033385" ... ]
-            # update pairs and all keys
-            cit_pairs.extend([(a, b) for b in json.loads(b_list_raw)])
-            brs_involved.update([a] + json.loads(b_list_raw))
-
-        # in case there is no citations mpve to next CITING_BATCH_SIZE of redis
-        if len(cit_pairs) == 0:
-            continue
-
-        # Fetch metadata for all unique keys
-        brs_metadata = fetch_redis_values(redis_metadata, list(brs_involved))
-
-        # For each pair, i.e. citation, get the metadata of the _citing and _cited entity and calculate the attributes of the corresponding citation
-        for citing, cited in cit_pairs:
-            m_citing = brs_metadata.get(citing, "MISSING")
-            m_cited = brs_metadata.get(cited, "MISSING")
-
-            if m_citing == "MISSING" or m_cited == "MISSING":
-                continue
-
-            cit_id = citing+"-"+cited
-            a_citation = Citation(
-                "oci:"+cit_id, # oci,
-                get_omid(idbase_url,citing), # citing_url,
-                get_date(m_citing), # citing_pub_date,
-                get_omid(idbase_url,cited), # cited_url,
-                get_date(m_cited), # cited_pub_date,
-                None, # creation,
-                None, # timespan,
-                1, # prov_entity_number,
-                agent, # prov_agent_url,
-                source, # source,
-                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
-                service_name, # service_name,
-                index_identifier, # id_type,
-                idbase_url + "([[XXX__decode]])", # id_shape,
-                "reference", # citation_type,
-                calc_journal_sc(m_citing,m_cited), # journal_sc=False,
-                calc_author_sc(m_citing,m_cited), # author_sc=False,
-                None, # prov_inv_date=None,
-                "Creation of the citation", # prov_description=None,
-                None, # prov_update=None,
+        # write data_to_dump to files when range CITING_PER_FILE is reached
+        if len(data_to_dump) >= CITING_PER_FILE :
+            _logger.info(f"Storing {len(data_to_dump)} citations data ...")
+            # write to files
+            # dump_to_files( data_to_dump, file_id, FILE_OUTPUT_DIR )
+            index_ts_storer = CitationStorer(
+                FILE_OUTPUT_DIR,
+                baseurl + "/" if not baseurl.endswith("/") else baseurl,
+                store_as=["csv_data","rdf_data","scholix_data"]
             )
+            BATCH_SAVE = 100000
+            for idx in range(0, len(data_to_dump), BATCH_SAVE):
+                batch_citations = data_to_dump[idx:idx+BATCH_SAVE]
+                index_ts_storer.store_citation(batch_citations)
+            # reset data_to_dump
+            data_to_dump = []
 
-            # process_cit_data() returns Data as textual value to write on CSV, RDF, and SCHOLIX files
-            # process_cit_prov() returns Provenance as textual value to write on CSV and RDF files
-            cits_data = process_cit_data(cit_id,m_citing,m_cited)
-            cits_prov = process_cit_prov(cit_id,m_citing,m_cited)
+        # check if the number of files already created should be zipped
+        zip_and_cleanup(FILE_OUTPUT_DIR, FILES_PER_ZIP , force = cursor == 0)
 
-            # dump values (data,prov) on files
-            if cits_data:
-
-                # write data value on file
-                for f_type,f_content in cits_data.items():
-                    append_in_file(
-                        os.path.join(FILE_OUTPUT_DIR, "data"),
-                        file_id,
-                        f_type,
-                        f_content)
-
-                # write prov value on file
-                for f_type,f_content in cits_prov.items():
-                    append_in_file(
-                        os.path.join(FILE_OUTPUT_DIR, "prov"),
-                        file_id,
-                        f_type,
-                        f_content)
-
-
-if __name__ == "__main__":
-    main()
+        # when <cursor> is 0 then break, scan completed
+        if cursor == 0:
+            break

@@ -64,6 +64,7 @@ setup(
             "oc.index.cits2redis=oc.index.scripts.cits2redis:main",
 
             # util operations
+            "oc.index.dump_index=oc.index.scripts.dump_index:main",
             "oc.index.citscount2anyid=oc.index.scripts.anyid_citation_count:main",
             "oc.index.edit_rdf=oc.index.scripts.edit_rdf:main",
 
