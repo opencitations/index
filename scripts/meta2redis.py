@@ -34,8 +34,9 @@ _config = get_config()
 csv.field_size_limit(sys.maxsize)
 
 # glob indexes
-br_ids = []
-ra_ids = []
+br_ids = _config.get("cnc", "br_ids").split(",")
+ra_ids = _config.get("cnc", "ra_ids").split(",")
+
 br_index = defaultdict(set)
 ra_index = defaultdict(set)
 
@@ -45,34 +46,40 @@ class RedisDB(object):
         self.redisbatchsize = int(redisbatchsize)
         self.rconn = Redis(host=redishost, port=redisport, db=_db)
 
-    def set_data(self, data, force=False):
+    def set_data(self, data, force=False, type=None):
         if len(data) >= self.redisbatchsize or force:
             for item in data:
-                self.rconn.set(item[0], item[1])
+                _k = item[0]
+                _v = item[1]
+
+                if type == "br":
+                    if _k in br_index:
+                        br_index[_k].update( set(_v) )
+                    _v = "; ".join(_v)
+
+                elif type == "ra":
+                    if _k in ra_index:
+                        ra_index[_k].update( set(_v) )
+                    _v = "; ".join(_v)
+
+                self.rconn.set(_k, _v)
+
             return len(data)
         return 0
 
-# get IDs defined in the CSV dump of META using Regex
-def re_get_ids(val, identifiers, multi_ids = True, group_ids= False):
+def get_key_ids(text):
+    return text.split(" ")
+
+def get_att_ids(text):
+    bracket_contents = re.findall(r'\[(.*?)\]', text)
+    return [part.split() for part in bracket_contents]
+
+def get_id_val(l_ids,l_id_type = []):
     res = []
-    items = [val]
-    if multi_ids:
-        items = [item for item in val.split("; ")]
-
-    for item in items:
-        re_rule = "(.*)"
-        if multi_ids:
-            re_rule = "\[(.*)\]"
-
-        re_ids_container = re.search(re_rule,item)
-        if re_ids_container:
-            re_ids = re.findall("(("+"|".join(identifiers)+")\:\S[^\s]+)", re_ids_container.group(1))
-            oids = [oid[0] for oid in re_ids]
-            if group_ids:
-                res.append(oids)
-            else:
-                for _id in oids:
-                    res.append(_id)
+    for _id in l_ids:
+        for _id_type in l_id_type:
+            if _id.startswith(_id_type):
+                res.append(_id)
     return res
 
 def _p_csvfile(a_csv_file,csv_name,rconn_db_br, rconn_db_ra, rconn_db_metadata):
@@ -85,51 +92,64 @@ def _p_csvfile(a_csv_file,csv_name,rconn_db_br, rconn_db_ra, rconn_db_metadata):
     db_ra_buffer = []
     db_metadata_buffer = []
 
-    l_cits = list(csv.DictReader(io.TextIOWrapper(a_csv_file)))
+    l_brs = list(csv.DictReader(io.TextIOWrapper(a_csv_file)))
+
     # walk through each citation in the CSV
-    logger.info("Walking through the citations of: "+str(csv_name))
-    for o_row in tqdm(l_cits):
-        #check BRs from the columns: "id" and "venue"
-        for col in ["id","venue"]:
-            # "venue" is a field with multiple ids
-            multi_ids_bool = col == "venue"
-            omid_ids = re_get_ids(o_row[col],["omid"], multi_ids = multi_ids_bool, group_ids= False)
-            if len(omid_ids) > 0:
-                omid_br = omid_ids[0].replace("omid:br/","")
-                other_ids = re_get_ids(o_row[col],br_ids, multi_ids = multi_ids_bool, group_ids= False)
-                for oid in other_ids:
-                    db_br_buffer.append( (oid,omid_br) )
-                    br_index[omid_br].add(oid) #update glob index
+    logger.info("Walking through all the "+str( len(l_brs) )+" BRs (rows) in: "+str(csv_name) )
+    for o_row in tqdm(l_brs):
 
-                # add metadata only if the BR entity is in the ID column
-                if col == "id":
-                    orcids = re_get_ids(o_row["author"],["orcid"])
-                    issns = re_get_ids(o_row["venue"],["issn"])
-                    entity_value = {
-                        "date": str(o_row["pub_date"]),
-                        "valid": True,
-                        "orcid": [a.replace("orcid:","") for a in orcids] if len(orcids) > 0 else [],
-                        "issn": [a.replace("issn:","") for a in issns] if len(issns) > 0 else []
-                    }
-                    db_metadata_buffer.append( (omid_br,json.dumps(entity_value)) )
+        # list of BR ids
+        # > update the <db_br_buffer> to be added in REDIS (<rconn_db_br>)
+        br_ids = get_key_ids(o_row["id"])
+        br_ids_omid = get_id_val(br_ids,"omid")
+        br_ids_other = [x for x in br_ids if x not in br_ids_omid]
+        # Add it to the list of BRs
+        for __oid in br_ids_other:
+            db_br_buffer.append(
+                (
+                    __oid,
+                    br_ids_omid
+                )
+            )
 
-        #check RAs from the columns: "author","publisher", and "editor"
-        for col in ["author","publisher","editor"]:
-            for item in o_row[col].split("; "):
-                omid_ids = re_get_ids(item,["omid"])
-                if len(omid_ids) > 0:
-                    omid_ra = omid_ids[0].replace("omid:ra/","")
-                    other_ids = re_get_ids(item,ra_ids)
-                    for oid in other_ids:
-                        db_ra_buffer.append( (oid,omid_ra) )
-                        ra_index[omid_ra].add(oid) #update glob index
+        # list of RA ids
+        # > update the <db_ra_buffer> to be added in REDIS (<rconn_db_ra>)
+        ra_ids = get_att_ids(o_row["author"])
+        ra_ids_omid = get_id_val(ra_ids,"omid")
+        ra_ids_other = [x for x in ra_ids if x not in ra_ids_omid]
+        # Add it to the list of RAs
+        for __oid in ra_ids_other:
+            db_ra_buffer.append(
+                (
+                    __oid,
+                    ra_ids_omid
+                )
+            )
 
-    logger.info("> Total BR-OMIDs found in file: "+str(len(db_br_buffer)))
+        # metadata of each br
+        # > update the <db_metadata_buffer> to be added in REDIS (<rconn_db_metadata>)
+        for _omid in br_ids_omid:
+            orcids = get_id_val(ra_ids,"orcid")
+            issns = get_id_val( get_att_ids(o_row["venue"]), "issn" )
+            db_metadata_buffer.append(
+                (
+                    _omid,
+                    json.dumps(
+                            {
+                                "date": str(o_row["pub_date"]),
+                                "valid": True,
+                                "orcid": [a.replace("orcid:","") for a in orcids] if len(orcids) > 0 else [],
+                                "issn": [a.replace("issn:","") for a in issns] if len(issns) > 0 else []
+                            }
+                    )
+                )
+            )
 
     # Set last data in Redis
+    logger.info("Updating Redis ... ")
     rconn_db_metadata.set_data(db_metadata_buffer, True)
-    rconn_db_br.set_data(db_br_buffer, True)
-    rconn_db_ra.set_data(db_ra_buffer, True)
+    rconn_db_br.set_data(db_br_buffer, True, type= "br")
+    rconn_db_ra.set_data(db_ra_buffer, True, type= "ra")
 
 
 def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", db_omid = "9", db_br="10", db_ra="11", db_metadata="12"):
@@ -191,15 +211,13 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
     logger.info("Saving (in CSV) global indexes...")
     with open('meta_br.csv', 'a+') as f:
         write = csv.writer(f)
-        for omid_br in br_index:
-            # E.G 0601234,doi:10.1234; pmid:12345
-            write.writerow([omid_br,"; ".join(br_index[omid_br])])
+        for any_id in br_index:
+            write.writerow([any_id,"; ".join(list(br_index[any_id]))])
 
     with open('meta_ra.csv', 'a+') as f:
         write = csv.writer(f)
-        for omid_ra in ra_index:
-            # E.G 069012996, orcid:0000-0003-2098-4759
-            write.writerow([omid_ra,"; ".join(ra_index[omid_ra])])
+        for any_id in ra_index:
+            write.writerow([any_id,"; ".join(list(ra_index[any_id]))])
 
     return (str(len(br_index)), str(len(ra_index)))
 
@@ -214,10 +232,6 @@ def main():
 
     args = parser.parse_args()
     logger = get_logger()
-
-    # BR and RA IDs
-    br_ids = _config.get("cnc", "br_ids").split(",")
-    ra_ids = _config.get("cnc", "ra_ids").split(",")
 
     logger.info("Start uploading data to Redis.")
 
