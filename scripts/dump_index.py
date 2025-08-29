@@ -132,10 +132,14 @@ def main():
     # === REDIS ===
     REDIS_CITS_DB = _config.get("cnc", "db_cits")
     REDIS_METADATA_DB = _config.get("INDEX", "db_br")
+
     redis_cits = redis.Redis(host='localhost', port=6379, db=REDIS_CITS_DB, decode_responses=True)
-    # Sample data of redis_metadata:
-    # "0604212254": "{\"date\": \"1967\", \"valid\": true, \"orcid\": [], \"issn\": [\"0371-1838\", \"2433-2895\"]}"
+    # Sample data of redis_cits:
+    # "06304836421": "[\"06290442260\", \"0606973973\", \"06290442260\", \"061204315925\"]"
+
     redis_metadata = redis.Redis(host='localhost', port=6379, db=REDIS_METADATA_DB, decode_responses=True)
+    # Sample data of redis_metadata:
+    # "omid:br/061601556475": "{\"date\": \"2019\", \"valid\": true, \"orcid\": [\"0000-0002-6819-0387\"], \"issn\": [\"0886-022X\", \"1525-6049\"]}"
 
     _logger.info(
         "--------- Redis ----------\n"
@@ -167,10 +171,13 @@ def main():
             cited_values = redis_cits.mget(citing_keys)
             for _a_citing, _val_cited in zip(citing_keys, cited_values):
                 # to_process
+                _a_citing = "omid:br/"+_a_citing
                 _l_cited = eval( _val_cited.decode("utf-8") )
+                _l_cited = ["omid:br/"+_a for _a in _l_cited]
+
                 cits_pairs_to_process += [(_a_citing, _a_cited) for _a_cited in _l_cited]
                 # get also the metadata of the BRs involved
-                br_keys = _l_cited.append(_a_citing)
+                br_keys = _l_cited + [_a_citing]
                 metadata_values = redis_metadata.mget(br_keys)
                 br_meta.update( dict(zip(br_keys, metadata_values)) )
 
@@ -178,7 +185,7 @@ def main():
         if len(cits_pairs_to_process) > 0:
             for citing, cited in cits_pairs_to_process:
                 m_citing = br_meta.get( citing )
-                m_cited = br_meta.get( br_meta[cited] )
+                m_cited = br_meta.get( cited )
 
                 # in case one of two entites has no metadata move to next citation
                 if not m_citing or not m_cited:
@@ -186,10 +193,10 @@ def main():
 
                 data_to_dump.append(
                     Citation(
-                        "oci:"+citing+"-"+cited, # oci,
-                        idbase_url + quote("br/"+citing), # citing_url,
+                        "oci:"+citing.replace("omid:br/","")+"-"+cited.replace("omid:br/",""), # oci,
+                        idbase_url + quote(citing.replace("omid:","")), # citing_url,
                         m_citing["pub_date"], # citing_pub_date,
-                        idbase_url + quote("br/"+cited), # cited_url,
+                        idbase_url + quote(cited.replace("omid:","")), # cited_url,
                         m_cited["pub_date"], # cited_pub_date,
                         None, # creation,
                         None, # timespan,
