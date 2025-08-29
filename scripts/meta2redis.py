@@ -51,18 +51,23 @@ class RedisDB(object):
             for item in data:
                 _k = item[0]
                 _v = item[1]
+                _v_val = _v
 
                 if type == "br":
                     if _k in br_index:
                         br_index[_k].update( set(_v) )
-                    _v = "; ".join(_v)
+                    else:
+                        br_index[_k] = set(_v)
+                    _v_val = "; ".join(br_index[_k])
 
                 elif type == "ra":
                     if _k in ra_index:
                         ra_index[_k].update( set(_v) )
-                    _v = "; ".join(_v)
+                    else:
+                        ra_index[_k] = set(_v)
+                    _v_val = "; ".join(ra_index[_k])
 
-                self.rconn.set(_k, _v)
+                self.rconn.set(_k, _v_val)
 
             return len(data)
         return 0
@@ -101,7 +106,7 @@ def _p_csvfile(a_csv_file,csv_name,rconn_db_br, rconn_db_ra, rconn_db_metadata):
         # list of BR ids
         # > update the <db_br_buffer> to be added in REDIS (<rconn_db_br>)
         br_ids = get_key_ids(o_row["id"])
-        br_ids_omid = get_id_val(br_ids,"omid")
+        br_ids_omid = get_id_val(br_ids,["omid"])
         br_ids_other = [x for x in br_ids if x not in br_ids_omid]
         # Add it to the list of BRs
         for __oid in br_ids_other:
@@ -114,23 +119,35 @@ def _p_csvfile(a_csv_file,csv_name,rconn_db_br, rconn_db_ra, rconn_db_metadata):
 
         # list of RA ids
         # > update the <db_ra_buffer> to be added in REDIS (<rconn_db_ra>)
-        ra_ids = get_att_ids(o_row["author"])
-        ra_ids_omid = get_id_val(ra_ids,"omid")
-        ra_ids_other = [x for x in ra_ids if x not in ra_ids_omid]
-        # Add it to the list of RAs
-        for __oid in ra_ids_other:
-            db_ra_buffer.append(
-                (
-                    __oid,
-                    ra_ids_omid
+        l_ra_ids = get_att_ids(o_row["author"]) # [ ["omid:123","orcid:1111-2222"], ["omid:321","orcid:3333-4444"], ...]
+        for _ra in l_ra_ids: # > ["omid:123","orcid:1111-2222"]
+            ra_ids_omid = get_id_val(_ra,["omid"]) # > ["omid:123"]
+            ra_ids_other = [x for x in _ra if x not in ra_ids_omid] # > ["orcid:1111-2222"]
+            # Add it to the list of RAs
+            for __oid in ra_ids_other:
+                db_ra_buffer.append(
+                    (
+                        __oid,
+                        ra_ids_omid
+                    )
                 )
-            )
+
 
         # metadata of each br
         # > update the <db_metadata_buffer> to be added in REDIS (<rconn_db_metadata>)
         for _omid in br_ids_omid:
-            orcids = get_id_val(ra_ids,"orcid")
-            issns = get_id_val( get_att_ids(o_row["venue"]), "issn" )
+
+            # Take only ORCIDs
+            orcids = []
+            for _ra in l_ra_ids:
+                orcids += get_id_val(_ra,["orcid"]) # > ["orcid:1111-2222"]
+
+            # Take only ISSNs
+            issns = []
+            l_venue_ids = get_att_ids(o_row["venue"])
+            for _venue in l_venue_ids:
+                issns += get_id_val(_venue,["issn"]) # > ["issn:1111-2222"]
+
             db_metadata_buffer.append(
                 (
                     _omid,
