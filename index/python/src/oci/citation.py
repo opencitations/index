@@ -107,6 +107,7 @@ class Citation(object):
     invalidated_at_time = URIRef(prov_base + "invalidatedAtTime")
     specialization_of = URIRef(prov_base + "specializationOf")
     was_derived_from = URIRef(prov_base + "wasDerivedFrom")
+    at_location = URIRef(prov_base + "atLocation")
 
     oco_base = "https://w3id.org/oc/ontology/"
     has_update_query = URIRef(oco_base + "hasUpdateQuery")
@@ -156,6 +157,7 @@ class Citation(object):
         prov_inv_date=None,
         prov_description=None,
         prov_update=None,
+        collection=None
     ):
         """Citation constructor.
 
@@ -281,6 +283,8 @@ class Citation(object):
                 "[[cited]]", quote(self.get_id(cited_url))
             )
 
+        self.collection = collection
+
     @staticmethod
     def check_duration(s):
         duration = sub("\s+", "", s) if s is not None else ""
@@ -332,7 +336,7 @@ class Citation(object):
         g.namespace_manager.bind("prov", Namespace(Citation.prov_base))
 
     def get_citation_rdf(
-        self, baseurl, include_oci=True, include_label=True, include_prov=True
+        self, baseurl, include_oci=True, include_label=True, include_prov=True, include_collection=False
     ):
         """It returns citation rdf.
 
@@ -341,6 +345,7 @@ class Citation(object):
             include_oci (bool, optional): true if you want include the oci. Defaults to True.
             include_label (bool, optional): true if you want include the label. Defaults to True.
             include_prov (bool, optional): true if you want include the provenance. Defaults to True.
+            include_collection (bool, optional): true if you want to include the oc collection. Defaults to False.
 
         Returns:
             ConjunctiveGraph: citation graph
@@ -412,6 +417,15 @@ class Citation(object):
                 (None, None, None)
             ):
                 citation_graph.add((s, p, o))
+
+        if include_collection:
+            citation_graph.add(
+                (
+                    citation,
+                    self.at_location,
+                    URIRef(baseurl + self.collection),
+                )
+            )
 
         return citation_graph
 

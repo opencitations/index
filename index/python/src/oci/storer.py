@@ -45,6 +45,7 @@ class CitationStorer(object):
         n_citations_slx_file=5000000,
         suffix="",
         store_as=["csv_data","csv_prov","rdf_data","rdf_prov","scholix_data"],
+        store_collection=False,
         source = None
     ):
         """CitationStorer constructor.
@@ -97,6 +98,8 @@ class CitationStorer(object):
                 makedirs(self.prov_rdf_dir)
         except FileExistsError:
             pass
+
+        self.store_collection = store_collection
 
         self.rdf_resource_base = rdf_resource_base
         self.n_citations_csv_file = n_citations_csv_file
@@ -587,9 +590,9 @@ class CitationStorer(object):
         if "rdf_data" in self.store_as:
             cits_to_store = None
             if type(citation) is list:
-                cits_to_store = [c.get_citation_rdf(self.rdf_resource_base, False, False, False) for c in citation]
+                cits_to_store = [c.get_citation_rdf(self.rdf_resource_base, False, False, False, self.store_collection) for c in citation]
             else:
-                cits_to_store = citation.get_citation_rdf(self.rdf_resource_base, False, False, False)
+                cits_to_store = citation.get_citation_rdf(self.rdf_resource_base, False, False, False, self.store_collection)
 
             CitationStorer.__store_rdf_on_file(
                 data_rdf_f_path,
