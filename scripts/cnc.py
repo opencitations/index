@@ -81,6 +81,8 @@ def save_data(output_dir, cits_obj, pid = 0):
         batch_citations = cits_obj[idx:idx+BATCH_SAVE]
         index_ts_storer.store_citation(batch_citations)
 
+    _logger.info("Citations stored")
+
 
 def gen_cits(cits, pid = 0):
     """
@@ -93,14 +95,13 @@ def gen_cits(cits, pid = 0):
     # ==== Keep citations that are not in cache (have not been processed before)
     # and count the duplicated citations
     ocis_to_process = dict()
-    cits_to_process = []
     citations_duplicated = 0
     res_citations = []
 
     for _oci, in_redis in zip(cits.keys(), redis_cits_cache.mget(cits.keys())):
         # check if it has not been already processed before – in Redis cache
         if in_redis == None:
-            cits_to_process[_oci] = cits[_oci]
+            ocis_to_process[_oci] = cits[_oci]
         else:
             citations_duplicated += 1
 
@@ -136,7 +137,8 @@ def gen_cits(cits, pid = 0):
             _logger.info(f"An error to oci= {oci_omid} occurred: {e}")
 
     # write in cache
-    redis_cits_cache.mset( {_k:1 for _k in ocis_to_process.keys()} )
+    if len(ocis_to_process.keys())>0:
+        redis_cits_cache.mset( {_k:1 for _k in ocis_to_process.keys()} )
     _logger.info("[STATS] #Generated citations= "+str(len(res_citations)))
     _logger.info("[STATS] #Duplicated citations= "+str(citations_duplicated))
 
@@ -242,19 +244,16 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
                 _logger.info(f"ZIP: Total number of files in {os.path.basename(_f)}: {len(archive.namelist())}")
                 for csv_name in archive.namelist():
                     if csv_name.endswith('.csv'):
-                        if csv_name in processed_files:
-                            _logger.info("Already processed, skip file: "+str(csv_name))
-                        else:
-                            # ... PROCESS the CSV file
-                            _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
-                            with archive.open(csv_name) as csv_file:
-                                cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
-                                ocindex_cits = set_cits(
-                                    cits_in_file,
-                                    pid
-                                )
-                                cits_objs = gen_cits(ocindex_cits, pid)
-                                save_data(output_dir, cits_objs, pid)
+                        # ... PROCESS the CSV file
+                        _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
+                        with archive.open(csv_name) as csv_file:
+                            cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
+                            ocindex_cits = set_cits(
+                                cits_in_file,
+                                pid
+                            )
+                            cits_objs = gen_cits(ocindex_cits, pid)
+                            save_data(output_dir, cits_objs, pid)
 
 
 
@@ -264,20 +263,17 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
                 _logger.info(f"TAR.GZ: Total number of files in {os.path.basename(_f)}: {len(archive.getnames())}")
                 for csv_name in archive.getnames():
                     if csv_name.endswith('.csv'):
-                        if csv_name in processed_files:
-                            _logger.info("Already processed, skip file: "+str(csv_name))
-                        else:
-                            # ... PROCESS the CSV file
-                            _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
-                            csv_file = archive.extractfile(csv_name)
-                            if csv_file:
-                                cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
-                                ocindex_cits = set_cits(
-                                    cits_in_file,
-                                    pid
-                                )
-                                cits_objs = gen_cits(ocindex_cits, pid)
-                                save_data(output_dir, cits_objs, pid)
+                        # ... PROCESS the CSV file
+                        _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
+                        csv_file = archive.extractfile(csv_name)
+                        if csv_file:
+                            cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
+                            ocindex_cits = set_cits(
+                                cits_in_file,
+                                pid
+                            )
+                            cits_objs = gen_cits(ocindex_cits, pid)
+                            save_data(output_dir, cits_objs, pid)
 
 
 
@@ -285,19 +281,18 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
             # Handle single CSV file
             csv_name = os.path.basename(_f)
             _logger.info(f"CSV: Processing direct CSV file: {csv_name}")
-            if csv_name in processed_files:
-                _logger.info("Already processed, skip file: "+str(csv_name))
-            else:
-                # ... PROCESS the CSV file
-                _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
-                with open(_f, 'r', encoding='utf-8') as csv_file:
-                    cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
-                    ocindex_cits = set_cits(
-                        cits_in_file,
-                        pid
-                    )
-                    cits_objs = gen_cits(ocindex_cits, pid)
-                    save_data(output_dir, cits_objs, pid)
+
+            # ... PROCESS the CSV file
+            _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
+            with open(_f, 'r', encoding='utf-8') as csv_file:
+                cits_in_file = [
+                    (row[citing_col], row[cited_col])
+                    for row in csv.DictReader(csv_file)
+                ]
+
+                ocindex_cits = set_cits(cits_in_file, pid)
+                cits_objs = gen_cits(ocindex_cits, pid)
+                save_data(output_dir, cits_objs, pid)
 
         else:
             _logger.warning(f"Unsupported file type: {_f}")
@@ -363,6 +358,7 @@ def main():
     )
     args = arg_parser.parse_args()
 
+    global source
 
     # input directory/file
     input_files = []
@@ -381,8 +377,8 @@ def main():
     # E.G. COCI, DOCI etc
     collection = args.collection.strip().upper()
 
-    # The corresponding datasource collection in OpenCitations
-    # E.G. COCI, DOCI etc
+    # The corresponding source url
+    # E.G. https://api.crossref.org/snapshots/monthly/2023/09/all.json.tar.gz",
     source = args.source.strip()
 
     # The output directory
