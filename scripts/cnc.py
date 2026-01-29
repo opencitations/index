@@ -199,13 +199,13 @@ def set_cits(l_cits, pid = 0):
     return res_cits
 
 
-def cnc(service, input_files, intype, output_dir, pid = 0):
+def cnc(collection, input_files, intype, output_dir, pid = 0):
     """
     Creates RDF data for the new citations ready to be ingested in OpenCitations Index – OMID to OMID citations
     The process creates also Provenance data in RDF and CSV.
 
     Args:
-        service (string, mandatory): name if the source collection in OpenCitations: "COCI","DOCI", etc.
+        collection (string, mandatory): name if the source collection in OpenCitations: "COCI","DOCI", etc.
         input_files (list, mandatory): a list of files (CSVs, ZIPs, or TARGZ) contatining storing the citations of the source
         intype (string, mandatory): the type/format of the expected files in the input_files list
         output_dir (string, mandatory): path to the output directory
@@ -246,7 +246,7 @@ def cnc(service, input_files, intype, output_dir, pid = 0):
                             _logger.info("Already processed, skip file: "+str(csv_name))
                         else:
                             # ... PROCESS the CSV file
-                            _logger.info("Processing the "+service+" citations inside: "+str(csv_name))
+                            _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
                             with archive.open(csv_name) as csv_file:
                                 cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
                                 ocindex_cits = set_cits(
@@ -268,7 +268,7 @@ def cnc(service, input_files, intype, output_dir, pid = 0):
                             _logger.info("Already processed, skip file: "+str(csv_name))
                         else:
                             # ... PROCESS the CSV file
-                            _logger.info("Processing the "+service+" citations inside: "+str(csv_name))
+                            _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
                             csv_file = archive.extractfile(csv_name)
                             if csv_file:
                                 cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
@@ -289,7 +289,7 @@ def cnc(service, input_files, intype, output_dir, pid = 0):
                 _logger.info("Already processed, skip file: "+str(csv_name))
             else:
                 # ... PROCESS the CSV file
-                _logger.info("Processing the "+service+" citations inside: "+str(csv_name))
+                _logger.info("Processing the "+collection+" citations inside: "+str(csv_name))
                 with open(_f, 'r', encoding='utf-8') as csv_file:
                     cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
                     ocindex_cits = set_cits(
@@ -379,7 +379,7 @@ def main():
 
     # The corresponding datasource collection in OpenCitations
     # E.G. COCI, DOCI etc
-    service = args.collection.strip().upper()
+    collection = args.collection.strip().upper()
 
     # The corresponding datasource collection in OpenCitations
     # E.G. COCI, DOCI etc
@@ -398,7 +398,7 @@ def main():
 
         processes = []
         for idx,chunk in enumerate(chunks):
-            p = Process(target=cnc, args=(service, chunk, intype, output_dir, idx))
+            p = Process(target=cnc, args=(collection, chunk, intype, output_dir, idx))
             p.start()
             processes.append(p)
 
@@ -407,7 +407,7 @@ def main():
             p.join()
     else:
         # fallback: single process
-        cnc(service, input_files, intype, output_dir, 0)
+        cnc(collection, input_files, intype, output_dir, 0)
 
     # 4. Continue with the rest of your code **after all files are done**
     # e.g., merging outputs, generating RDF/CSV summary, logging, etc.
