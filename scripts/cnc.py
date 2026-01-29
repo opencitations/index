@@ -41,12 +41,13 @@ _config = get_config()
 _logger = get_logger()
 
 # === CONF.INI ===
-idbase_url = _config.get("INDEX", "idbaseurl")
-index_identifier = _config.get("INDEX", "identifier")
-agent = _config.get("INDEX", "agent")
-service_name = _config.get("INDEX", "service")
-baseurl = _config.get("INDEX", "baseurl")
-source = _config.get(service, "source")
+collection_name = "INDEX"
+idbase_url = _config.get(collection_name, "idbaseurl")
+index_identifier = _config.get(collection_name, "identifier")
+agent = _config.get(collection_name, "agent")
+service_name = _config.get(collection_name, "service")
+baseurl = _config.get(collection_name, "baseurl")
+source = _config.get(collection_name, "source")
 _logger.info(
     "--------- Configurations ----------\n"
     f"idbase_url: {idbase_url}\n"
@@ -159,7 +160,7 @@ def set_cits(l_cits, pid = 0):
     # iterate over all the citation list
     for idx, cit in tqdm(enumerate(l_cits)):
         # add the citing and cited entities to be further retrivied from redis
-        cits_buffer.append(cit))
+        cits_buffer.append(cit)
         # Process when the buffer is full or I have reached the last element of the list
         if len(cits_buffer) >= REDIS_R_BUFFER_CITS or idx == len(l_cits) - 1:
 
@@ -336,8 +337,8 @@ def main():
         help="The format of the files in the input directory, i.e. CSV, ZIP or TARGZ",
     )
     arg_parser.add_argument(
-        "-s",
-        "--service",
+        "-c",
+        "--collection",
         required=True,
         help="The opencitation collection of the datasource (e.g. COCI, DOCI)",
     )
@@ -378,7 +379,7 @@ def main():
 
     # The corresponding datasource collection in OpenCitations
     # E.G. COCI, DOCI etc
-    service = args.service.strip().upper()
+    service = args.collection.strip().upper()
 
     # The corresponding datasource collection in OpenCitations
     # E.G. COCI, DOCI etc
@@ -397,7 +398,7 @@ def main():
 
         processes = []
         for idx,chunk in enumerate(chunks):
-            p = Process(target=cnc, args=(service, chunk, intype, output_dir, pid = idx))
+            p = Process(target=cnc, args=(service, chunk, intype, output_dir, idx))
             p.start()
             processes.append(p)
 
@@ -406,7 +407,7 @@ def main():
             p.join()
     else:
         # fallback: single process
-        cnc(service, input_files, intype, output_dir, pid = 0)
+        cnc(service, input_files, intype, output_dir, 0)
 
     # 4. Continue with the rest of your code **after all files are done**
     # e.g., merging outputs, generating RDF/CSV summary, logging, etc.

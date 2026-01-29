@@ -38,10 +38,11 @@ rconn = Redis(
 
 def upload2redis(dump_path="", intype=""):
     """
-    ...
+    Uploading the citations stored in the RDF data into the Redis dataset
+
     Args:
-        dump_path (string, mandatory): ...
-        intype (string, mandatory): ...
+        dump_path (string, mandatory): the directory path to the RDF dump
+        intype (string, mandatory): the expected type of files in <dump_path>, i.e. ZIP or TTL
 
     Returns:
         ...
