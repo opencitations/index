@@ -239,7 +239,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
         if intype=="ZIP" and _f.endswith(".zip"):
             # Handle single ZIP file
             with ZipFile(_f) as archive:
-                logger.info(f"ZIP: Total number of files in {os.path.basename(_f)}: {len(archive.namelist())}")
+                _logger.info(f"ZIP: Total number of files in {os.path.basename(_f)}: {len(archive.namelist())}")
                 for csv_name in archive.namelist():
                     if csv_name.endswith('.csv'):
                         if csv_name in processed_files:
@@ -261,7 +261,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
         elif intype=="TARGZ" and (_f.endswith(".tar.gz") or _f.endswith(".tgz")):
             # Handle single TAR.GZ file
             with tarfile.open(_f, 'r:gz') as archive:
-                logger.info(f"TAR.GZ: Total number of files in {os.path.basename(_f)}: {len(archive.getnames())}")
+                _logger.info(f"TAR.GZ: Total number of files in {os.path.basename(_f)}: {len(archive.getnames())}")
                 for csv_name in archive.getnames():
                     if csv_name.endswith('.csv'):
                         if csv_name in processed_files:
@@ -284,7 +284,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
         elif intype=="CSV" and _f.endswith(".csv"):
             # Handle single CSV file
             csv_name = os.path.basename(_f)
-            logger.info(f"CSV: Processing direct CSV file: {csv_name}")
+            _logger.info(f"CSV: Processing direct CSV file: {csv_name}")
             if csv_name in processed_files:
                 _logger.info("Already processed, skip file: "+str(csv_name))
             else:
@@ -300,7 +300,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
                     save_data(output_dir, cits_objs, pid)
 
         else:
-            logger.warning(f"Unsupported file type: {_f}")
+            _logger.warning(f"Unsupported file type: {_f}")
 
     # remove duplicates from entities_with_no_omid
     rewrite_entities_with_no_omid()
