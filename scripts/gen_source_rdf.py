@@ -13,7 +13,6 @@ CI_URI_PATTERN = re.compile(r"<https://w3id.org/oc/index/ci/([^>]+)>")
 def extract_citation_subjects(ttl_path):
     """
     Extract subjects of rdf:type cito:Citation triples.
-    Returns a set of full subject URIs.
     """
     subjects = set()
     pattern = re.compile(
@@ -31,7 +30,7 @@ def extract_citation_subjects(ttl_path):
 
 def extract_ci_id(subject_uri):
     """
-    Extracts the CI identifier from the subject URI.
+    Extract CI identifier from the subject URI.
     """
     match = CI_URI_PATTERN.match(subject_uri)
     return match.group(1) if match else None
@@ -40,7 +39,7 @@ def extract_ci_id(subject_uri):
 def process_directory(input_dir, param):
     param = param.lower()
     location_uri = f"<https://w3id.org/oc/index/{param}/>"
-    source_value = param
+    output_dir = os.getcwd()
 
     for filename in os.listdir(input_dir):
         if not filename.lower().endswith(".ttl"):
@@ -49,21 +48,21 @@ def process_directory(input_dir, param):
         input_path = os.path.join(input_dir, filename)
         base, _ = os.path.splitext(filename)
 
-        ttl_out = os.path.join(input_dir, f"{base}-{param}.ttl")
-        csv_out = os.path.join(input_dir, f"{base}-{param}.csv")
+        ttl_out = os.path.join(output_dir, f"{base}-{param}.ttl")
+        csv_out = os.path.join(output_dir, f"{base}-{param}.csv")
 
         subjects = extract_citation_subjects(input_path)
         if not subjects:
             continue
 
-        # ---- Write TTL file ----
+        # ---- Write TTL ----
         with open(ttl_out, "w", encoding="utf-8") as ttl_file:
             for subj in sorted(subjects):
                 ttl_file.write(
                     f"{subj} {PROV_AT_LOCATION} {location_uri} .\n"
                 )
 
-        # ---- Write CSV file ----
+        # ---- Write CSV ----
         with open(csv_out, "w", newline="", encoding="utf-8") as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(["citation", "source"])
@@ -71,7 +70,7 @@ def process_directory(input_dir, param):
             for subj in sorted(subjects):
                 ci_id = extract_ci_id(subj)
                 if ci_id:
-                    writer.writerow([ci_id, source_value])
+                    writer.writerow([ci_id, param])
 
 
 def main():
@@ -81,7 +80,7 @@ def main():
     parser.add_argument(
         "-d", "--dir",
         required=True,
-        help="Directory containing .ttl files"
+        help="Directory containing input .ttl files"
     )
     parser.add_argument(
         "-p", "--param",
