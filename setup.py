@@ -58,6 +58,7 @@ setup(
             # main operations
             "oc.index.oci=oc.index.scripts.oci:main",
             "oc.index.cnc=oc.index.scripts.cnc:main",
+            "oc.index.genSourceRDF=oc.index.scripts.gen_source_rdf:main",
 
             # redis operations
             "oc.index.meta2redis=oc.index.scripts.meta2redis:main",
