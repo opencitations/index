@@ -297,9 +297,6 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
         else:
             _logger.warning(f"Unsupported file type: {_f}")
 
-    # remove duplicates from entities_with_no_omid
-    rewrite_entities_with_no_omid()
-
 
 
 def chunk_list(lst, n):
