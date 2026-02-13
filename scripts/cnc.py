@@ -405,3 +405,6 @@ def main():
     # 4. Continue with the rest of your code **after all files are done**
     # e.g., merging outputs, generating RDF/CSV summary, logging, etc.
     # >> post_processing(output_dir)
+
+if __name__ == "__main__":
+    main()
