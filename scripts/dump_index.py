@@ -45,12 +45,12 @@ agent = _config.get("INDEX", "agent")
 source = _config.get("INDEX", "source")
 service_name = _config.get("INDEX", "service")
 index_identifier = _config.get("INDEX", "identifier")
+FILE_OUTPUT_DIR = _config.get("dump", "output")
 
 # === CONFIGURATION ===
 CITED_BATCH_SIZE = 1500
 CITED_PER_FILE = 10000
 FILES_PER_ZIP = 1000
-FILE_OUTPUT_DIR = "_out_"
 
 
 def zip_and_cleanup(csv_dir, rdf_dir, slx_dir, files_per_zip, force = False, pnum=1):
@@ -331,3 +331,6 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
             force = end_cursor,
             pnum = pnum
         )
+
+if __name__ == "__main__":
+    main()

@@ -31,7 +31,10 @@ from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
 
 _config = get_config()
-csv.field_size_limit(sys.maxsize)
+if os.name != "nt":
+    csv.field_size_limit(sys.maxsize)
+else:
+    csv.field_size_limit(2**31 - 1)
 
 # glob indexes
 br_ids = _config.get("cnc", "br_ids").split(",")
@@ -97,7 +100,7 @@ def _p_csvfile(a_csv_file,csv_name,rconn_db_br, rconn_db_ra, rconn_db_metadata):
     db_ra_buffer = []
     db_metadata_buffer = []
 
-    l_brs = list(csv.DictReader(io.TextIOWrapper(a_csv_file)))
+    l_brs = list(csv.DictReader(io.TextIOWrapper(a_csv_file, encoding="utf-8")))
 
     # walk through each citation in the CSV
     logger.info("Walking through all the "+str( len(l_brs) )+" BRs (rows) in: "+str(csv_name) )
@@ -203,7 +206,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
             # Handle single CSV file
             csv_name = os.path.basename(dump_path)
             logger.info(f"CSV: Processing direct CSV file: {csv_name}")
-            with open(dump_path, 'r', encoding='utf-8') as csv_file:
+            with open(dump_path, 'rb') as csv_file:
                 _p_csvfile(csv_file,csv_name, rconn_db_br, rconn_db_ra, rconn_db_metadata)
         else:
             logger.warning(f"Unsupported file type: {dump_path}")
@@ -219,7 +222,7 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbat
 
             if filename.endswith(".csv"):
                 logger.info(f"CSV: Processing direct CSV file: {filename}")
-                with open(filepath, 'r', encoding='utf-8') as csv_file:
+                with open(filepath, 'rb') as csv_file:
                     _p_csvfile(csv_file, filename, rconn_db_br, rconn_db_ra, rconn_db_metadata)
     else:
         logger.error(f"Path does not exist or is neither a file nor directory: {dump_path}")
@@ -265,3 +268,6 @@ def main():
     )
 
     logger.info("A total of unique "+str(res[0])+" BR OMIDs and "+str(res[1])+" RA OMIDs have been found and added to Redis.")
+
+if __name__ == "__main__":
+    main()

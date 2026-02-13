@@ -29,11 +29,15 @@ from oc.index.utils.config import get_config
 
 _config = get_config()
 _logger = get_logger()
-csv.field_size_limit(sys.maxsize)
+if os.name != "nt":
+    csv.field_size_limit(sys.maxsize)
+else:
+    csv.field_size_limit(2**31 - 1)
+
 rconn = Redis(
     host=_config.get("redis", "host"),
     port=_config.get("redis", "port"),
-    db=_config.get("redis", "db_cits")
+    db=_config.get("cnc", "db_cits")
 )
 
 def upload2redis(dump_path="", intype=""):
@@ -65,23 +69,22 @@ def upload2redis(dump_path="", intype=""):
                         if filename.endswith(".ttl"):
                             with open(filename, "r", encoding="utf-8") as f:
                                 for line in f:
-                                    if needle in line:
-                                        # extract the part between "ci/" and ">"
-                                        start = line.find("ci/") + 3
-                                        end = line.find(">", start)
-                                        oci = line[start:end]
-                                        all_ocis.append(oci)
+                                    # extract the part between "ci/" and ">"
+                                    start = line.find("ci/") + 3
+                                    end = line.find(">", start)
+                                    oci = line[start:end]
+                                    all_ocis.append(oci)
     elif intype == "TTL":
         for filename in os.listdir(dump_path):
             if filename.endswith(".ttl"):
-                with open(filename, "r", encoding="utf-8") as f:
+                full_path = os.path.join(dump_path, filename)
+                with open(full_path, "r", encoding="utf-8") as f:
                     for line in f:
-                        if needle in line:
-                            # extract the part between "ci/" and ">"
-                            start = line.find("ci/") + 3
-                            end = line.find(">", start)
-                            oci = line[start:end]
-                            all_ocis.append(oci)
+                        # extract the part between "ci/" and ">"
+                        start = line.find("ci/") + 3
+                        end = line.find(">", start)
+                        oci = line[start:end]
+                        all_ocis.append(oci)
 
     for oci in all_ocis:
         citing = oci.split("-")[0]
@@ -112,3 +115,6 @@ def main():
     _logger.info("Uploading citations in RDF format to Redis ...")
     upload2redis(args.dump,args.intype)
     _logger.info("Done!")
+
+if __name__ == "__main__":
+    main()
