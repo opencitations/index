@@ -45,7 +45,7 @@ agent = _config.get("INDEX", "agent")
 source = _config.get("INDEX", "source")
 service_name = _config.get("INDEX", "service")
 index_identifier = _config.get("INDEX", "identifier")
-FILE_OUTPUT_DIR = _config.get("dump", "output")
+FILE_OUTPUT_DIR = "../oc_autoworkflow/dir/output/index"
 
 # === CONFIGURATION ===
 CITED_BATCH_SIZE = 1500
