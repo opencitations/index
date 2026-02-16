@@ -31,9 +31,9 @@ _config = get_config()
 _logger = get_logger()
 csv.field_size_limit(sys.maxsize)
 rconn = Redis(
-    host=_config.get("redis", "host"),
-    port=_config.get("redis", "port"),
-    db=_config.get("redis", "db_cits")
+    host=_config.get("cnc", "host"),
+    port=_config.get("cnc", "port"),
+    db=_config.get("cnc", "db_cits")
 )
 
 def upload2redis(dump_path="", intype=""):
@@ -99,7 +99,7 @@ def main():
         '--dump',
         type=str,
         required=True,
-        help='The directory containing ZIP files storing the CSV dump with the data (citations) of OpenCitations Index'
+        help='The directory containing ZIP files storing the RDF source dump of OpenCitations Index'
     )
     parser.add_argument(
         "-t",
