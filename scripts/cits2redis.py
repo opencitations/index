@@ -31,8 +31,8 @@ _config = get_config()
 _logger = get_logger()
 csv.field_size_limit(sys.maxsize)
 rconn = Redis(
-    host=_config.get("cnc", "host"),
-    port=_config.get("cnc", "port"),
+    host=_config.get("redis", "host"),
+    port=_config.get("redis", "port"),
     db=_config.get("cnc", "db_cits")
 )
 
