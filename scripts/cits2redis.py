@@ -109,7 +109,7 @@ def upload2redis(dump_path="", intype=""):
                         except ValueError:
                             continue
 
-                        pipe.rpush(cited, citing)
+                        pipe.sadd(cited, citing)
                         counter += 1
                         total += 1
 
