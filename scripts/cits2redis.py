@@ -8,7 +8,6 @@ from redis import Redis
 import sys
 
 from tqdm import tqdm
-from collections import defaultdict
 from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
 
@@ -22,8 +21,8 @@ rconn = Redis(
     db=_config.get("cnc", "db_cits")
 )
 
-# Define what we are searching for in the TTL lines
 NEEDLE = "ci/"
+BATCH_SIZE = 50_000  # Number of RPUSH operations per pipeline flush
 
 
 def extract_oci_from_line(line):
@@ -45,13 +44,21 @@ def upload2redis(dump_path="", intype=""):
     Upload citations stored in RDF data into Redis.
 
     Redis structure:
-        <cited>: [<citing-1>, <citing-2>, ...]
+        <cited>: Redis LIST of citing OCIs
     """
 
-    index_cited = defaultdict(list)
-    all_ocis = []
-
     intype = intype.upper()
+    pipe = rconn.pipeline()
+    counter = 0
+    total = 0
+
+    def flush_pipeline():
+        nonlocal counter
+        if counter > 0:
+            pipe.execute()
+            counter = 0
+
+    _logger.info("Starting streaming upload to Redis...")
 
     if intype == "ZIP":
         for filename in os.listdir(dump_path):
@@ -67,8 +74,21 @@ def upload2redis(dump_path="", intype=""):
                                 for raw_line in f:
                                     line = raw_line.decode("utf-8", errors="ignore")
                                     oci = extract_oci_from_line(line)
-                                    if oci:
-                                        all_ocis.append(oci)
+
+                                    if not oci:
+                                        continue
+
+                                    try:
+                                        citing, cited = oci.split("-", 1)
+                                    except ValueError:
+                                        continue
+
+                                    pipe.rpush(cited, citing)
+                                    counter += 1
+                                    total += 1
+
+                                    if counter >= BATCH_SIZE:
+                                        flush_pipeline()
 
     elif intype == "TTL":
         for filename in os.listdir(dump_path):
@@ -80,26 +100,29 @@ def upload2redis(dump_path="", intype=""):
                 with open(fttl, "r", encoding="utf-8") as f:
                     for line in f:
                         oci = extract_oci_from_line(line)
-                        if oci:
-                            all_ocis.append(oci)
+
+                        if not oci:
+                            continue
+
+                        try:
+                            citing, cited = oci.split("-", 1)
+                        except ValueError:
+                            continue
+
+                        pipe.rpush(cited, citing)
+                        counter += 1
+                        total += 1
+
+                        if counter >= BATCH_SIZE:
+                            flush_pipeline()
+
     else:
         raise ValueError("intype must be either 'ZIP' or 'TTL'")
 
-    # Build citation index
-    for oci in all_ocis:
-        try:
-            citing, cited = oci.split("-", 1)
-            index_cited[cited].append(citing)
-        except ValueError:
-            continue
+    # Flush remaining operations
+    flush_pipeline()
 
-    _logger.info(
-        f"Storing {len(all_ocis)} citations in Redis "
-        "(<CITED>:[<CITING-1>, ...]) ..."
-    )
-
-    if index_cited:
-        rconn.mset({_k: json.dumps(_v) for _k, _v in index_cited.items()})
+    _logger.info(f"Stored {total} citations in Redis successfully.")
 
 
 def main():
