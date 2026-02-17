@@ -208,11 +208,17 @@ def main():
         # get from redis first CITED_BATCH_SIZE citing entites
         cursor, cited_keys = redis_cits.scan(cursor=cursor, count=CITED_BATCH_SIZE)
         if cited_keys:  # only fetch if we got keys
-            citing_values = redis_cits.mget(cited_keys)
+
+            pipe = redis_cits.pipeline()
+            for key in cited_keys:
+                pipe.smembers(key)
+
+            citing_values = pipe.execute()
+
             for _a_cited, _val_citing in zip(cited_keys, citing_values):
                 # to_process
                 _a_cited = "omid:br/"+_a_cited
-                _l_citing = ["omid:br/"+_a for _a in eval( _val_citing )]
+                _l_citing = ["omid:br/"+_a for _a in _val_citing]
 
                 cits_pairs_to_process += [(_a_citing, _a_cited) for _a_citing in _l_citing]
                 # get also the metadata of the BRs involved
