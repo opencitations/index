@@ -262,26 +262,54 @@ class CitationStorer(object):
 
     @staticmethod
     def __store_csv_on_file(f_path, header, json_obj):
+        CHUNK_SIZE = 32 * 1024 * 1024  # 32MB buffer target
+
         f_exists = exists(f_path)
-        with open(f_path, "a", encoding="utf8") as f:
-            dw = DictWriter(f, header)
+
+        with open(f_path, "a", encoding="utf8", buffering=32 * 1024 * 1024) as f:
+            buffer = io.StringIO()
+            dw = DictWriter(buffer, header)
+
+            # Write header only if file didn't exist
             if not f_exists:
                 dw.writeheader()
 
-            if type(json_obj) is list:
+            current_size = buffer.tell()
+
+            def flush_buffer():
+                nonlocal buffer, current_size
+                f.write(buffer.getvalue())
+                buffer = io.StringIO()
+                dw = DictWriter(buffer, header)
+                current_size = 0
+                return dw
+
+            # Write rows to memory buffer
+            if isinstance(json_obj, list):
                 for o in json_obj:
                     dw.writerow(o)
+                    current_size = buffer.tell()
+
+                    if current_size >= CHUNK_SIZE:
+                        dw = flush_buffer()
             else:
                 dw.writerow(json_obj)
+
+            # Final flush
+            if buffer.tell() > 0:
+                f.write(buffer.getvalue())
+
 
     @staticmethod
     def __store_rdf_on_file(f_path, rdf_obj, format="nt"):
         with open(f_path, "a", encoding="utf8") as f:
 
             if type(rdf_obj) is list:
-                for o in rdf_obj:
-                    rdf_string = Citation.format_rdf(o, format)
-                    f.write(rdf_string)
+                rdf_strings = [Citation.format_rdf(o, format) for o in rdf_obj]
+                f.write("\n".join(rdf_strings))
+                # for o in rdf_obj:
+                #     rdf_string = Citation.format_rdf(o, format)
+                #     f.write(rdf_string)
             else:
                 rdf_string = Citation.format_rdf(rdf_obj, format)
                 f.write(rdf_string)

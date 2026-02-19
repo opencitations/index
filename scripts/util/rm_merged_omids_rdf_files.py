@@ -50,8 +50,9 @@ def process_file(filepath, merged_ids, dry_run=False):
     if removed_count > 0:
         print(f"[MODIFY] {filepath} → removing {removed_count} lines")
         if not dry_run:
-            with open(filepath, "w", encoding="utf-8") as f:
-                f.writelines(kept_lines)
+            with open(filepath, "w", encoding="utf-8", buffering=16 * 1024 * 1024) as f:
+                #f.writelines(kept_lines)
+                f.write("\n".join(kept_lines))    
 
     return removed_count
 
