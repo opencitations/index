@@ -55,12 +55,10 @@ def read_omid_map(f_omidmap):
         csv_reader = csv.reader(file)
         for row in csv_reader:
             if len(row) == 2:  # Ensure there are exactly two columns
-                br_omid, anyids = row
-                br_omid = br_omid
-                for _id in anyids.split("; "):
-                    for anyid_pref in conf_br_ids:
-                        if _id.startswith(anyid_pref):
-                            omid_map[br_omid].add( _id )
+                # ANY-ID:OMID 1:1
+                # E.G openalex:W4375948413,omid:br/0634096064
+                any_id, br_omid = row
+                omid_map[br_omid].add(any_id)
 
     return omid_map
 
