@@ -58,6 +58,9 @@ def read_omid_map(f_omidmap):
                 # ANY-ID:OMID 1:1
                 # E.G openalex:W4375948413,omid:br/0634096064
                 any_id, br_omid = row
+
+                # also normalize omid val
+                br_omid = br_omid.replace("omid:br/","")
                 omid_map[br_omid].add(any_id)
 
     return omid_map
@@ -83,56 +86,6 @@ def read_omid_citations_index(f_omid_citations_index):
                 omid_citations_index[cited_omid] = str_citing_omids.split("; ")
 
     return omid_citations_index
-
-'''
-PARAMS:
-    + citing_omids: the list of citing OMIDs
-    + omid_map: the map of OMID > ANYIDs
-RETURNS:
-    The unique number of citation count
-'''
-def count_unique_cits(citing_omids, omid_map):
-
-    global conf_br_ids
-    cits_count = 0
-
-    # create a set for each different any_id
-    idpref_index = {id_pref: set() for id_pref in conf_br_ids}
-
-    # check if each anyid value of the citing entity is unique
-    for a_citing_omid in citing_omids:
-        is_unique_citing = True
-        for __a_citing_anyid in omid_map[a_citing_omid]:
-            for id_pref in conf_br_ids:
-                if __a_citing_anyid.startswith(id_pref):
-                    is_unique_citing = is_unique_citing and (not (__a_citing_anyid in idpref_index[id_pref]))
-                    idpref_index[id_pref].add( __a_citing_anyid )
-
-        if is_unique_citing:
-            cits_count += 1
-
-    # empty all
-    for id_pref in idpref_index:
-        idpref_index[id_pref] = None
-    idpref_index = None
-
-    return cits_count
-
-    # --- Previous version
-    # --------------------
-    # # Get the ANYIDs of the citing OMIDS
-    # # Count the unique ones
-    # unique_brs_anyid = []
-    # for a_citing_omid in citing_omids:
-    #     _c_intersection = 0
-    #     s_citing_anyids = omid_map[a_citing_omid].copy()
-    #     for __unique in unique_brs_anyid:
-    #         _c_intersection += len(__unique.intersection(s_citing_anyids))
-    #     # if there is no common anyids with the other br entities
-    #     if _c_intersection == 0:
-    #         unique_brs_anyid.append(s_citing_anyids)
-    #
-    # return len(unique_brs_anyid)
 
 
 def main():
@@ -160,11 +113,6 @@ def main():
     logger.info("Build OMID BR map ...")
     omid_map = read_omid_map(args.omidmap)
     logger.info("OMID MAP = "+str(len(omid_map.keys())))
-    # Redis DB storing OC Index citations
-    # FORMAT:
-    #   <CITED-OMID>:[ <CITING-OMID-1>, <CITING-OMID-2>, ..., <CITING-OMID-N> ]
-    # EXAMPLE:
-    #   "06503922554": [\"062403812713\", \"0610298487\", \"06250181491\"]
 
     ds_cits_type, ds_cits_source = args.citations.lower().split(":")
     logger.info("Build OMID Cits map via "+ds_cits_type+" ...")
@@ -182,112 +130,38 @@ def main():
 
     # (1) Walk through all OMIDS in the OMID map (i.e. omid_map)
     logger.info("Walk through all OMIDS in the OMID map (i.e. omid_map) ...")
-    l_br_omids = list(omid_map.keys())
 
-    #TEST
-    # l_br_omids = l_br_omids[:45000]
 
-    #for cited_omid in tqdm(list(omid_map.keys())):
-    for i in tqdm(range(0, len(l_br_omids), CHUNCK_SIZE)):
+    count_cits = {}
+    for cited_omid, any_ids in tqdm(omid_map.items()):
 
-        # get the chunck list of omids
-        cited_omid_chunk = l_br_omids[i:i + CHUNCK_SIZE]
+        count_unique_cits = 0
 
-        # a dict > OMID: REDIS-VAL
-        omid_cits = None
-        if ds_cits_type == "redis":
-            #omid_cits = dict(zip(cited_omid_chunk, ds_cits_data.mget(cited_omid_chunk)))
-            omid_cits = {omid: ds_cits_data.smembers(omid) for omid in cited_omid_chunk}
-        elif ds_cits_type == "csv":
-            omid_cits = {k_cited_omid:ds_cits_data[k_cited_omid] for k_cited_omid in cited_omid_chunk}
+        # calc cits count of the unique ANYIDS of each elem
+        s_citing_omids = ds_cits_data.smembers(cited_omid)
 
-        for cited_omid in omid_cits:
+        s_citing_unique_anyids = set()
+        for citing_omid in s_citing_omids:
+            citing_anyid = omid_map[citing_omid]
+            if citing_anyid.isdisjoint(s_citing_unique_anyids):
+                count_unique_cits += 1
+            s_citing_unique_anyids.update(citing_anyid)
 
-            # Get all citing OMIDs of a given OMID
-            # citing_val = ds_cits_data.get( cited_omid )
-            citing_val = omid_cits[cited_omid]
-
-            if citing_val != None:
-
-                citing_omids = None
-                if ds_cits_type == "redis":
-                    #citing_omids = set( json.loads(citing_val.decode('utf-8')) )
-                    citing_omids = set(v.decode('utf-8') for v in citing_val)
-                elif ds_cits_type == "csv":
-                    citing_omids = set( citing_val )
-
-                # Get the citation count of *cited_omid*
-                citation_count = count_unique_cits(citing_omids, omid_map)
-
-                # Save the citation count for each ANYID of the cited OMID if it starts with prefix needed (e.g., "doi")
-                # and update the ANYID map, to monitor the number of OMIDs for each ANYID
-                cited_anyids = omid_map[cited_omid].copy()
-                for _anyid in cited_anyids:
-                    if _anyid.startswith(anyid_pref):
-                        anyid_map[_anyid].add(cited_omid)
-                        anyid_citation_count[_anyid] = citation_count
-
-        # JUST to test
-        # break
-
-    # (2) Work with ANYIDs that have multiple OMIDs
-    # Filter the anyid_map previously created to include only ANYIDs that have multi OMIDs
-    multi_any_ids = {_anyid:anyid_map[_anyid] for _anyid in anyid_map if len(anyid_map[_anyid]) > 1}
-
-    # Walk throuh this new DICT multi_any_ids
-    logger.info("Walk through all ANYIDs that have multiple OMIDs ...")
-
-    for _anyid in multi_any_ids:
-        l_cited_omids = list( multi_any_ids[_anyid] )
-
-        # a dict > OMID: REDIS-VAL
-        omid_cits = None
-        if ds_cits_type == "redis":
-            #omid_cits = dict(zip(l_cited_omids, ds_cits_data.mget(l_cited_omids)))
-            omid_cits = {omid: ds_cits_data.smembers(omid) for omid in l_cited_omids}
-        elif ds_cits_type == "csv":
-            omid_cits = {_omid:ds_cits_data[_omid] for _omid in l_cited_omids}
-
-        # Create a set with all citing OMIDs of _anyid OMIDs
-        citing_omids = set()
-        for cited_omid in omid_cits:
-
-            citing_val = omid_cits[cited_omid]
-            if citing_val != None:
-                if ds_cits_type == "redis":
-                    #citing_omids = citing_omids.union( set( json.loads(citing_val.decode('utf-8')) ) )
-                    citing_omids = citing_omids.union( set(v.decode('utf-8') for v in citing_val) )
-                elif ds_cits_type == "csv":
-                    citing_omids = citing_omids.union( set(citing_val) )
-
-        # Get the citation count of *_anyid*
-        citation_count = count_unique_cits(citing_omids, omid_map)
-
-        # update the numer of citations of the ANYIDs with multi OMIDs with the new citation count
-        anyid_citation_count[_anyid] = citation_count
+        # assign the count to each corresponding ANYID
+        for __any_id in any_ids:
+            count_cits[__any_id] = count_unique_cits
 
     # dump anyid - citation count
     logger.info('Saving the citation counts of '+anyid_pref+' BRs ...')
     with open(args.out+anyid_pref+"_citation_count.csv", mode='w', newline='') as output_csvfile:
         writer = csv.writer(output_csvfile)
         writer.writerow([anyid_pref, 'citation_count'])
-        for c in [(k,anyid_citation_count[k]) for k in anyid_citation_count]:
-            writer.writerow([c[0],str(c[1])])
 
-    # dump duplicates
-    logger.info('Saving duplicated BR entites ...')
-    with open(args.out+anyid_pref+"_dupilcates.csv", mode='w', newline='') as output_csvfile:
-        writer = csv.writer(output_csvfile)
-        writer.writerow([anyid_pref, 'num_duplicates'])
+        for cited_anyid, cit_count in count_cits.items():
+            if cited_anyid.startswith(anyid_pref):
+                writer.writerow([cited_anyid.replace(anyid_pref+":",""),str(cit_count)])
 
-        # Print length
-        #for c in [ (any_id, len(multi_any_ids[any_id]) ) for any_id in multi_any_ids]:
-        #    writer.writerow([c[0],str(c[1])])
-
-        # Print content
-        for c in [ (any_id, multi_any_ids[any_id] ) for any_id in multi_any_ids]:
-            writer.writerow([c[0],str(c[1])])
-
+    logger.info("Done!")
 
 #if __name__ == "__main__":
 #    main()
