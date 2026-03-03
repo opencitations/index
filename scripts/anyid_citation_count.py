@@ -198,7 +198,8 @@ def main():
         # a dict > OMID: REDIS-VAL
         omid_cits = None
         if ds_cits_type == "redis":
-            omid_cits = dict(zip(cited_omid_chunk, ds_cits_data.mget(cited_omid_chunk)))
+            #omid_cits = dict(zip(cited_omid_chunk, ds_cits_data.mget(cited_omid_chunk)))
+            omid_cits = {omid: ds_cits_data.smembers(omid) for omid in cited_omid_chunk}
         elif ds_cits_type == "csv":
             omid_cits = {k_cited_omid:ds_cits_data[k_cited_omid] for k_cited_omid in cited_omid_chunk}
 
@@ -212,7 +213,8 @@ def main():
 
                 citing_omids = None
                 if ds_cits_type == "redis":
-                    citing_omids = set( json.loads(citing_val.decode('utf-8')) )
+                    #citing_omids = set( json.loads(citing_val.decode('utf-8')) )
+                    citing_omids = set(v.decode('utf-8') for v in citing_val)
                 elif ds_cits_type == "csv":
                     citing_omids = set( citing_val )
 
@@ -243,7 +245,8 @@ def main():
         # a dict > OMID: REDIS-VAL
         omid_cits = None
         if ds_cits_type == "redis":
-            omid_cits = dict(zip(l_cited_omids, ds_cits_data.mget(l_cited_omids)))
+            #omid_cits = dict(zip(l_cited_omids, ds_cits_data.mget(l_cited_omids)))
+            omid_cits = {omid: ds_cits_data.smembers(omid) for omid in l_cited_omids}
         elif ds_cits_type == "csv":
             omid_cits = {_omid:ds_cits_data[_omid] for _omid in l_cited_omids}
 
@@ -254,7 +257,8 @@ def main():
             citing_val = omid_cits[cited_omid]
             if citing_val != None:
                 if ds_cits_type == "redis":
-                    citing_omids = citing_omids.union( set( json.loads(citing_val.decode('utf-8')) ) )
+                    #citing_omids = citing_omids.union( set( json.loads(citing_val.decode('utf-8')) ) )
+                    citing_omids = citing_omids.union( set(v.decode('utf-8') for v in citing_val) )
                 elif ds_cits_type == "csv":
                     citing_omids = citing_omids.union( set(citing_val) )
 
