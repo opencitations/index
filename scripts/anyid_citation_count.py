@@ -133,7 +133,7 @@ def main():
 
 
     count_cits = {}
-    for cited_omid, any_ids in omid_map.items():
+    for cited_omid, any_ids in tqdm(omid_map.items()):
 
         count_unique_cits = 0
 
@@ -142,7 +142,11 @@ def main():
 
         s_citing_unique_anyids = set()
         for citing_omid in s_citing_omids:
-            citing_anyid = omid_map[citing_omid]
+
+            citing_anyid = omid_map.get(citing_omid)
+            if not citing_anyid:
+                continue
+
             if citing_anyid.isdisjoint(s_citing_unique_anyids):
                 count_unique_cits += 1
             s_citing_unique_anyids.update(citing_anyid)
