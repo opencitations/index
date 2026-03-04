@@ -133,7 +133,7 @@ def main():
 
 
     count_cits = {}
-    for cited_omid, any_ids in tqdm(omid_map.items()):
+    for cited_omid, any_ids in omid_map.items():
 
         count_unique_cits = 0
 
