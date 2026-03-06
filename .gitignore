@@ -1,11 +1,14 @@
 bin
 tmp
 build
+__pycache__/
+*.pyc
 .vscode
 .idea
 oc_index.egg-info
 .DS_Store
 venv
+.venv
 input.csv
 __stats__
 conf.yaml

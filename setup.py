@@ -38,6 +38,7 @@ setup(
         "requests",
         "python-dateutil",
         "tqdm",
+        "rich",
         "beautifulsoup4",
         "pandas",
         "lxml",
