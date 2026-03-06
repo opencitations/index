@@ -1,5 +1,6 @@
 #!python
 # Copyright (c) 2023 Ivan Heibi.
+# Copyright (c) 2026 Arcangelo Massari.
 #
 # Permission to use, copy, modify, and/or distribute this software for any purpose
 # with or without fee is hereby granted, provided that the above copyright notice
@@ -39,37 +40,22 @@ csv.field_size_limit(sys.maxsize)
 br_index = defaultdict(set)
 ra_index = defaultdict(set)
 
-class RedisDB(object):
+class RedisDB:
 
-    def __init__(self, redishost, redisport, redisbatchsize, _db):
-        self.redisbatchsize = int(redisbatchsize)
+    def __init__(self, redishost, redisport, _db):
         self.rconn = Redis(host=redishost, port=redisport, db=_db)
 
-    def set_data(self, data, force=False, type=None):
-        if len(data) >= self.redisbatchsize or force:
-            for item in data:
-                _k = item[0]
-                _v = item[1]
-                _v_val = _v
+    def flush_index(self, keys, index):
+        pipe = self.rconn.pipeline()
+        for _k in keys:
+            pipe.set(_k, "; ".join(index[_k]))
+        pipe.execute()
 
-                if type == "br":
-                    if _k in br_index:
-                        br_index[_k].update( set(_v) )
-                    else:
-                        br_index[_k] = set(_v)
-                    _v_val = "; ".join(br_index[_k])
-
-                elif type == "ra":
-                    if _k in ra_index:
-                        ra_index[_k].update( set(_v) )
-                    else:
-                        ra_index[_k] = set(_v)
-                    _v_val = "; ".join(ra_index[_k])
-
-                self.rconn.set(_k, _v_val)
-
-            return len(data)
-        return 0
+    def flush_metadata(self, data):
+        pipe = self.rconn.pipeline()
+        for _k, _v in data.items():
+            pipe.set(_k, _v)
+        pipe.execute()
 
 def get_key_ids(text):
     return text.split(" ")
@@ -87,69 +73,46 @@ def get_id_val(l_ids, l_id_type=()):
     return res
 
 def _p_csvfile(a_csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata):
-    # Set buffers
-    db_br_buffer = []
-    db_ra_buffer = []
-    db_metadata_buffer = []
+    touched_br_keys = set()
+    touched_ra_keys = set()
+    metadata = {}
 
-    l_brs = list(csv.DictReader(io.TextIOWrapper(a_csv_file)))
-
-    for o_row in l_brs:
-        # List of BR ids
-        # Update the <db_br_buffer> to be added in Redis (<rconn_db_br>)
+    for o_row in csv.DictReader(io.TextIOWrapper(a_csv_file)):
         br_ids = get_key_ids(o_row["id"])
         br_ids_omid = get_id_val(br_ids, ["omid"])
         br_ids_other = [x for x in br_ids if x not in br_ids_omid]
-        # Add it to the list of BRs
         for __oid in br_ids_other:
-            db_br_buffer.append((__oid, br_ids_omid))
+            br_index[__oid].update(br_ids_omid)
+            touched_br_keys.add(__oid)
 
-        # List of RA ids
-        # Update the <db_ra_buffer> to be added in Redis (<rconn_db_ra>)
-        l_ra_ids = get_att_ids(o_row["author"])  # [["omid:123","orcid:1111-2222"], ...]
-        for _ra in l_ra_ids:  # ["omid:123","orcid:1111-2222"]
-            ra_ids_omid = get_id_val(_ra, ["omid"])  # ["omid:123"]
-            ra_ids_other = [x for x in _ra if x not in ra_ids_omid]  # ["orcid:1111-2222"]
-            # Add it to the list of RAs
+        l_ra_ids = get_att_ids(o_row["author"])
+        for _ra in l_ra_ids:
+            ra_ids_omid = get_id_val(_ra, ["omid"])
+            ra_ids_other = [x for x in _ra if x not in ra_ids_omid]
             for __oid in ra_ids_other:
-                db_ra_buffer.append((__oid, ra_ids_omid))
+                ra_index[__oid].update(ra_ids_omid)
+                touched_ra_keys.add(__oid)
 
-        # Metadata of each BR
-        # Update the <db_metadata_buffer> to be added in Redis (<rconn_db_metadata>)
+        orcids = []
+        for _ra in l_ra_ids:
+            orcids += get_id_val(_ra, ["orcid"])
+
+        issns = []
+        l_venue_ids = get_att_ids(o_row["venue"])
+        for _venue in l_venue_ids:
+            issns += get_id_val(_venue, ["issn"])
+
         for _omid in br_ids_omid:
-            # Take only ORCIDs
-            orcids = []
-            for _ra in l_ra_ids:
-                orcids += get_id_val(_ra, ["orcid"])  # ["orcid:1111-2222"]
+            metadata[_omid] = json.dumps({
+                "date": str(o_row["pub_date"]),
+                "valid": True,
+                "orcid": [a.replace("orcid:", "") for a in orcids],
+                "issn": [a.replace("issn:", "") for a in issns]
+            })
 
-            # Take only ISSNs
-            issns = []
-            l_venue_ids = get_att_ids(o_row["venue"])
-            for _venue in l_venue_ids:
-                issns += get_id_val(_venue, ["issn"])  # ["issn:1111-2222"]
-
-            db_metadata_buffer.append((
-                _omid,
-                json.dumps({
-                    "date": str(o_row["pub_date"]),
-                    "valid": True,
-                    "orcid": [a.replace("orcid:", "") for a in orcids],
-                    "issn": [a.replace("issn:", "") for a in issns]
-                })
-            ))
-
-        # Flush buffers when batch size is reached
-        if rconn_db_br.set_data(db_br_buffer, type="br") > 0:
-            db_br_buffer.clear()
-        if rconn_db_ra.set_data(db_ra_buffer, type="ra") > 0:
-            db_ra_buffer.clear()
-        if rconn_db_metadata.set_data(db_metadata_buffer) > 0:
-            db_metadata_buffer.clear()
-
-    # Flush remaining data in Redis
-    rconn_db_metadata.set_data(db_metadata_buffer, force=True)
-    rconn_db_br.set_data(db_br_buffer, force=True, type="br")
-    rconn_db_ra.set_data(db_ra_buffer, force=True, type="ra")
+    rconn_db_br.flush_index(touched_br_keys, br_index)
+    rconn_db_ra.flush_index(touched_ra_keys, ra_index)
+    rconn_db_metadata.flush_metadata(metadata)
 
 
 def _get_csv_files(dump_path):
@@ -181,10 +144,10 @@ def _get_csv_files(dump_path):
     return csv_files
 
 
-def upload2redis(dump_path="", redishost="localhost", redisport="6379", redisbatchsize="10000", db_br="10", db_ra="11", db_metadata="12", redis_only=False):
-    rconn_db_br = RedisDB(redishost, redisport, redisbatchsize, db_br)
-    rconn_db_ra = RedisDB(redishost, redisport, redisbatchsize, db_ra)
-    rconn_db_metadata = RedisDB(redishost, redisport, redisbatchsize, db_metadata)
+def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="10", db_ra="11", db_metadata="12", redis_only=False):
+    rconn_db_br = RedisDB(redishost, redisport, db_br)
+    rconn_db_ra = RedisDB(redishost, redisport, db_ra)
+    rconn_db_metadata = RedisDB(redishost, redisport, db_metadata)
 
     csv_files = _get_csv_files(dump_path)
     if not csv_files:
@@ -253,7 +216,6 @@ def main():
         dump_path=args.dump,
         redishost=_config.get("redis", "host"),
         redisport=_config.get("redis", "port"),
-        redisbatchsize=_config.get("redis", "batch_size"),
         db_br=_config.get("cnc", "db_br"),
         db_ra=_config.get("cnc", "db_ra"),
         db_metadata=_config.get("INDEX", "db"),
