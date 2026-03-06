@@ -14,20 +14,22 @@
 # ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 # SOFTWARE.
 
-import csv
-import json
-from zipfile import ZipFile
-import tarfile
-import os
-import io
 import argparse
-from redis import Redis
+import csv
+import io
+import json
+import os
 import re
 import sys
+import tarfile
+from collections import defaultdict
+from multiprocessing import Pool, cpu_count
+from zipfile import ZipFile
 
+from redis import Redis
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
-from collections import defaultdict
+
 from oc.index.utils.config import get_config
 
 console = Console()
@@ -37,18 +39,16 @@ if _config is None:
     raise RuntimeError("Configuration not loaded")
 csv.field_size_limit(sys.maxsize)
 
-br_index = defaultdict(set)
-ra_index = defaultdict(set)
 
 class RedisDB:
 
     def __init__(self, redishost, redisport, _db):
-        self.rconn = Redis(host=redishost, port=redisport, db=_db)
+        self.rconn = Redis(host=redishost, port=redisport, db=_db, decode_responses=True)
 
-    def flush_index(self, keys, index):
+    def flush_index(self, data):
         pipe = self.rconn.pipeline()
-        for _k in keys:
-            pipe.set(_k, "; ".join(index[_k]))
+        for _k, _v in data.items():
+            pipe.sadd(_k, *_v)
         pipe.execute()
 
     def flush_metadata(self, data):
@@ -56,6 +56,16 @@ class RedisDB:
         for _k, _v in data.items():
             pipe.set(_k, _v)
         pipe.execute()
+
+    def key_count(self):
+        return self.rconn.dbsize()
+
+    def export_to_csv(self, filepath):
+        with open(filepath, 'w', newline='') as f:
+            writer = csv.writer(f)
+            for key in self.rconn.scan_iter():
+                members: set[str] = self.rconn.smembers(key)  # type: ignore[assignment]
+                writer.writerow([key, "; ".join(members)])
 
 def get_key_ids(text):
     return text.split(" ")
@@ -73,8 +83,8 @@ def get_id_val(l_ids, l_id_type=()):
     return res
 
 def _p_csvfile(a_csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata):
-    touched_br_keys = set()
-    touched_ra_keys = set()
+    br_data = defaultdict(set)
+    ra_data = defaultdict(set)
     metadata = {}
 
     for o_row in csv.DictReader(io.TextIOWrapper(a_csv_file)):
@@ -82,16 +92,14 @@ def _p_csvfile(a_csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata):
         br_ids_omid = get_id_val(br_ids, ["omid"])
         br_ids_other = [x for x in br_ids if x not in br_ids_omid]
         for __oid in br_ids_other:
-            br_index[__oid].update(br_ids_omid)
-            touched_br_keys.add(__oid)
+            br_data[__oid].update(br_ids_omid)
 
         l_ra_ids = get_att_ids(o_row["author"])
         for _ra in l_ra_ids:
             ra_ids_omid = get_id_val(_ra, ["omid"])
             ra_ids_other = [x for x in _ra if x not in ra_ids_omid]
             for __oid in ra_ids_other:
-                ra_index[__oid].update(ra_ids_omid)
-                touched_ra_keys.add(__oid)
+                ra_data[__oid].update(ra_ids_omid)
 
         orcids = []
         for _ra in l_ra_ids:
@@ -110,9 +118,32 @@ def _p_csvfile(a_csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata):
                 "issn": [a.replace("issn:", "") for a in issns]
             })
 
-    rconn_db_br.flush_index(touched_br_keys, br_index)
-    rconn_db_ra.flush_index(touched_ra_keys, ra_index)
+    rconn_db_br.flush_index(br_data)
+    rconn_db_ra.flush_index(ra_data)
     rconn_db_metadata.flush_metadata(metadata)
+
+
+def _process_file_worker(args: tuple[str, str, str, str, str, str, str, str]) -> str:
+    file_type, path, name, redishost, redisport, db_br, db_ra, db_metadata = args
+
+    rconn_db_br = RedisDB(redishost, redisport, db_br)
+    rconn_db_ra = RedisDB(redishost, redisport, db_ra)
+    rconn_db_metadata = RedisDB(redishost, redisport, db_metadata)
+
+    if file_type == 'zip':
+        with ZipFile(path) as archive:
+            with archive.open(name) as csv_file:
+                _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
+    elif file_type == 'tar':
+        with tarfile.open(path, 'r:gz') as archive:
+            csv_file = archive.extractfile(name)
+            if csv_file:
+                _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
+    elif file_type == 'file':
+        with open(path, 'rb') as csv_file:
+            _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
+
+    return name
 
 
 def _get_csv_files(dump_path):
@@ -144,7 +175,7 @@ def _get_csv_files(dump_path):
     return csv_files
 
 
-def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="10", db_ra="11", db_metadata="12", redis_only=False):
+def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="10", db_ra="11", db_metadata="12", redis_only=False, workers=None):
     rconn_db_br = RedisDB(redishost, redisport, db_br)
     rconn_db_ra = RedisDB(redishost, redisport, db_ra)
     rconn_db_metadata = RedisDB(redishost, redisport, db_metadata)
@@ -154,7 +185,13 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="1
         console.print(f"[red]No CSV files found in: {dump_path}[/red]")
         return ("0", "0")
 
-    console.print(f"Found {len(csv_files)} CSV files to process")
+    num_workers = workers or cpu_count()
+    console.print(f"Found {len(csv_files)} CSV files to process with {num_workers} workers")
+
+    worker_args = [
+        (file_type, path, name, redishost, redisport, db_br, db_ra, db_metadata)
+        for file_type, path, name in csv_files
+    ]
 
     with Progress(
         SpinnerColumn(),
@@ -166,39 +203,17 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="1
     ) as progress:
         task = progress.add_task("Processing CSV files", total=len(csv_files))
 
-        for file_type, path, name in csv_files:
-            progress.update(task, description=f"Processing {name}")
-
-            if file_type == 'zip':
-                with ZipFile(path) as archive:
-                    with archive.open(name) as csv_file:
-                        _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
-
-            elif file_type == 'tar':
-                with tarfile.open(path, 'r:gz') as archive:
-                    csv_file = archive.extractfile(name)
-                    if csv_file:
-                        _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
-
-            elif file_type == 'file':
-                with open(path, 'rb') as csv_file:
-                    _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
-
-            progress.advance(task)
+        with Pool(processes=num_workers) as pool:
+            for name in pool.imap_unordered(_process_file_worker, worker_args):
+                progress.update(task, description=f"Completed {name}")
+                progress.advance(task)
 
     if not redis_only:
-        console.print("Saving global indexes to CSV...")
-        with open('meta_br.csv', 'w', newline='') as f:
-            write = csv.writer(f)
-            for any_id in br_index:
-                write.writerow([any_id, "; ".join(br_index[any_id])])
+        console.print("Saving indexes to CSV...")
+        rconn_db_br.export_to_csv('meta_br.csv')
+        rconn_db_ra.export_to_csv('meta_ra.csv')
 
-        with open('meta_ra.csv', 'w', newline='') as f:
-            write = csv.writer(f)
-            for any_id in ra_index:
-                write.writerow([any_id, "; ".join(ra_index[any_id])])
-
-    return (str(len(br_index)), str(len(ra_index)))
+    return (str(rconn_db_br.key_count()), str(rconn_db_ra.key_count()))
 
 
 def main():
@@ -208,6 +223,7 @@ def main():
     parser = argparse.ArgumentParser(description='Store the metadata of OpenCitations Meta in Redis')
     parser.add_argument('--dump', type=str, required=True, help='The directory of CSVs or file (in ZIP or TAR.GZ) representing OpenCitations Meta dump')
     parser.add_argument('--redis-only', action='store_true', help='Only upload to Redis, do not save CSV files')
+    parser.add_argument('--workers', type=int, default=None, help='Number of parallel workers (default: CPU count)')
     args = parser.parse_args()
 
     console.print("Start uploading data to Redis.")
@@ -219,7 +235,8 @@ def main():
         db_br=_config.get("cnc", "db_br"),
         db_ra=_config.get("cnc", "db_ra"),
         db_metadata=_config.get("INDEX", "db"),
-        redis_only=args.redis_only
+        redis_only=args.redis_only,
+        workers=args.workers
     )
 
     console.print(f"[green]Done![/green] Found {res[0]} unique BR OMIDs and {res[1]} unique RA OMIDs.")
