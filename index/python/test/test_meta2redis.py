@@ -94,7 +94,8 @@ class FakeRedisDB:
     def flush_index(self, data: Dict[str, Set[str]]) -> None:
         pipe = self.rconn.pipeline()
         for _k, _v in data.items():
-            pipe.sadd(_k, *_v)
+            if _v:
+                pipe.sadd(_k, *_v)
         pipe.execute()
 
     def flush_metadata(self, data: Dict[str, str]) -> None:
@@ -146,6 +147,17 @@ class TestRedisDB(unittest.TestCase):
         self.rconn_br.flush_index(data)
         assert self.rconn_br.rconn.smembers("doi:10.1234/test1") == {"omid:br/0601"}
         assert self.rconn_br.rconn.smembers("doi:10.1234/test2") == {"omid:br/0602"}
+
+    def test_flush_index_empty_set(self):
+        data = {
+            "doi:10.1234/test1": {"omid:br/0601"},
+            "doi:10.1234/empty": set(),
+            "doi:10.1234/test2": {"omid:br/0602"},
+        }
+        self.rconn_br.flush_index(data)
+        assert self.rconn_br.rconn.smembers("doi:10.1234/test1") == {"omid:br/0601"}
+        assert self.rconn_br.rconn.smembers("doi:10.1234/test2") == {"omid:br/0602"}
+        assert self.rconn_br.rconn.exists("doi:10.1234/empty") == 0
 
     def test_flush_metadata(self):
         metadata = {

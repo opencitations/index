@@ -48,7 +48,8 @@ class RedisDB:
     def flush_index(self, data):
         pipe = self.rconn.pipeline()
         for _k, _v in data.items():
-            pipe.sadd(_k, *_v)
+            if _v:
+                pipe.sadd(_k, *_v)
         pipe.execute()
 
     def flush_metadata(self, data):
