@@ -143,6 +143,10 @@ def _process_file_worker(args: tuple[str, str, str, str, str, str, str, str]) ->
         with open(path, 'rb') as csv_file:
             _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
 
+    rconn_db_br.rconn.close()
+    rconn_db_ra.rconn.close()
+    rconn_db_metadata.rconn.close()
+
     return name
 
 
@@ -213,7 +217,13 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="1
         rconn_db_br.export_to_csv('meta_br.csv')
         rconn_db_ra.export_to_csv('meta_ra.csv')
 
-    return (str(rconn_db_br.key_count()), str(rconn_db_ra.key_count()))
+    result = (str(rconn_db_br.key_count()), str(rconn_db_ra.key_count()))
+
+    rconn_db_br.rconn.close()
+    rconn_db_ra.rconn.close()
+    rconn_db_metadata.rconn.close()
+
+    return result
 
 
 def main():
