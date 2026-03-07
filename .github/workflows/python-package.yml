@@ -31,7 +31,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -r ./index/python/requirements.txt
+        python -m pip install -r ./index/python/requirements-test.txt
     - name: Install the package
       run: |
         pip install .

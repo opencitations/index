@@ -1,0 +1,4 @@
+id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor
+omid:br/0601 doi:10.1234/test1 openalex:W123,Test Article 1,[omid:ra/0601 orcid:0000-0001-1234-5678]; [omid:ra/0602 orcid:0000-0002-1234-5678],2023-01-15,[omid:br/0610 issn:1234-5678],1,1,1-10,journal article,[omid:ra/0603],
+omid:br/0602 doi:10.1234/test2 pmid:12345678,Test Article 2,[omid:ra/0601 orcid:0000-0001-1234-5678],2023-02-20,[omid:br/0611 issn:8765-4321 issn:1111-2222],2,2,11-20,journal article,[omid:ra/0604],
+omid:br/0603 isbn:978-3-16-148410-0,Test Book,[omid:ra/0605],2022-06-01,,,,,book,[omid:ra/0606],
