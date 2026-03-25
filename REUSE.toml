@@ -1,0 +1,30 @@
+version = 1
+
+# CC0-1.0 — files without creative expression
+
+[[annotations]]
+path = [
+    "dataset/*.json",
+    "lookup.csv",
+]
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC0-1.0"
+
+# ISC — test data and fixtures (2019-2022)
+
+[[annotations]]
+path = [
+    "index/python/test/data/**/*.csv",
+    "index/python/test/data/**/*.json",
+    "index/python/test/data/**/*.ttl",
+    "index/python/test/data/**/*.scholix",
+    "index/python/test/data/**/*.tar.gz",
+    "index/python/test/data/**/*.zip",
+    "index/python/test/data/**/*.zst",
+]
+SPDX-FileCopyrightText = [
+    "2019-2022 Silvio Peroni <essepuntato@gmail.com>",
+    "2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>",
+    "2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>",
+]
+SPDX-License-Identifier = "ISC"

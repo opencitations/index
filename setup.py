@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
+# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+#
+# SPDX-License-Identifier: ISC
+
 import os
 import shutil
 
@@ -8,10 +14,9 @@ ocindex_dir = os.path.expanduser(os.path.join("~", ".opencitations", "index"))
 if not os.path.exists(ocindex_dir):
     os.makedirs(os.path.join(ocindex_dir, "logs"))
 
-# If configuration file does not exists, copy the default one
+# Copy the configuration file
 config_file = os.path.join(ocindex_dir, "config.ini")
-if not os.path.exists(config_file):
-    shutil.copy(os.path.join(".", "config.ini"), config_file)
+shutil.copy(os.path.join(".", "config.ini"), config_file)
 
 # If lookup file does not exists, copy the default one
 lookup_file = os.path.join(ocindex_dir, "lookup.csv")
@@ -39,6 +44,7 @@ setup(
         "python-dateutil",
         "tqdm",
         "rich",
+        "rich-argparse",
         "beautifulsoup4",
         "pandas",
         "lxml",

@@ -1,18 +1,10 @@
 #!python
-# Copyright (c) 2023 Ivan Heibi.
-# Copyright (c) 2026 Arcangelo Massari.
+
+# SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
+# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
 #
-# Permission to use, copy, modify, and/or distribute this software for any purpose
-# with or without fee is hereby granted, provided that the above copyright notice
-# and this permission notice appear in all copies.
-#
-# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-# REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
-# FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT,
-# OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
-# DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
-# ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
-# SOFTWARE.
+# SPDX-License-Identifier: ISC
 
 import argparse
 import csv
@@ -29,6 +21,7 @@ from zipfile import ZipFile
 from redis import Redis
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
+from rich_argparse import RichHelpFormatter
 
 from oc.index.utils.config import get_config
 
@@ -231,7 +224,7 @@ def main():
     if _config is None:
         raise RuntimeError("Configuration not loaded")
 
-    parser = argparse.ArgumentParser(description='Store the metadata of OpenCitations Meta in Redis')
+    parser = argparse.ArgumentParser(description='Store the metadata of OpenCitations Meta in Redis', formatter_class=RichHelpFormatter)
     parser.add_argument('--dump', type=str, required=True, help='The directory of CSVs or file (in ZIP or TAR.GZ) representing OpenCitations Meta dump')
     parser.add_argument('--redis-only', action='store_true', help='Only upload to Redis, do not save CSV files')
     parser.add_argument('--workers', type=int, default=None, help='Number of parallel workers (default: CPU count)')
@@ -251,3 +244,7 @@ def main():
     )
 
     console.print(f"[green]Done![/green] Found {res[0]} unique BR OMIDs and {res[1]} unique RA OMIDs.")
+
+
+if __name__ == "__main__":
+    main()

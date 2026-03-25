@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2015 Guillaume Rizk
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
 // https://github.com/rizkg/BBHash/blob/alltypes/BooPHF.h
 
 // BooPHF library

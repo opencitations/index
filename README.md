@@ -1,4 +1,12 @@
-[<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net) [![Python package](https://github.com/opencitations/index/actions/workflows/python-package.yml/badge.svg?branch=farm_revision)](https://github.com/opencitations/index/actions/workflows/python-package.yml)
+<!--
+SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
+SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+
+SPDX-License-Identifier: ISC
+-->
+
+[<img src="https://img.shields.io/badge/powered%20by-OpenCitations-%239931FC?labelColor=2D22DE" />](http://opencitations.net) [![Python package](https://github.com/opencitations/index/actions/workflows/python-package.yml/badge.svg?branch=farm_revision)](https://github.com/opencitations/index/actions/workflows/python-package.yml) [![REUSE](https://github.com/opencitations/index/actions/workflows/reuse.yml/badge.svg)](https://github.com/opencitations/index/actions/workflows/reuse.yml)
 # OpenCitations: Index
 
 This software allows the production of the OpenCitations index

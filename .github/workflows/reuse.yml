@@ -3,3 +3,19 @@
 # SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
 #
 # SPDX-License-Identifier: ISC
+
+name: REUSE compliance
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches: [master]
+
+jobs:
+  reuse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: fsfe/reuse-action@v5
