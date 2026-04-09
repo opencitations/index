@@ -1,8 +1,9 @@
 #!python
 
 # SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
-# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
-# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2021, 2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021, 2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -22,15 +23,8 @@ from urllib.parse import quote
 from datetime import datetime, timezone
 from collections import defaultdict
 
-_config = get_config()
-
 def create_dirs(path_to_create):
-    # Split the path into individual directories
-    dirs = path_to_create.split(os.path.sep)
-    for directory in dirs:
-        current_path = os.path.join(current_path, directory)
-        if not os.path.exists(current_path):
-            os.mkdir(current_path)
+    os.makedirs(path_to_create, exist_ok=True)
 
 def fix_dump(input_dir, output_dir, f_rm_cits, f_add_cits):
 
@@ -77,8 +71,6 @@ def fix_dump(input_dir, output_dir, f_rm_cits, f_add_cits):
                             new_file.write(line + '\n')
 
 def main():
-    global _config
-
     arg_parser = ArgumentParser(description="Normalize the data of OpenCitations Index")
     arg_parser.add_argument(
         "-i",

@@ -6,6 +6,9 @@ version = 1
 path = [
     "dataset/*.json",
     "lookup.csv",
+    "pyproject.toml",
+    "uv.lock",
+    ".python-version",
 ]
 SPDX-FileCopyrightText = "NONE"
 SPDX-License-Identifier = "CC0-1.0"

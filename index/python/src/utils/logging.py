@@ -1,59 +1,50 @@
 #!python
 
 # SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
-# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
-# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2021, 2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021, 2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
 import logging
+import os
 
 from datetime import datetime
-from os.path import expanduser, join
-import multiprocessing
-import threading
 
 from oc.index.utils.config import get_config
 
-_logger = None
-_logger_lock = threading.Lock()
+_state: dict[str, logging.Logger] = {}
 
 
-def _setup_logger():
-    global _logger
-    _logger = logging.getLogger("opencitations.cnc")
-    _logger.setLevel(logging.INFO)
+def _setup_logger() -> logging.Logger:
+    logger = logging.getLogger("opencitations.cnc")
+    logger.setLevel(logging.INFO)
     formatter = logging.Formatter(
         "[%(processName)s:%(threadName)s] %(asctime)s | %(levelname)s | oc.index : %(message)s"
     )
-    fileHandler = logging.FileHandler(
-        expanduser(
-            join(
-                "~",
-                ".opencitations",
-                "index",
-                "logs",
-                datetime.now().strftime("%m-%d-%Y_%H-%M-%S") + ".log",
-            )
-        )
+    config = get_config()
+    logdir = os.path.expanduser(config.get("logging", "logdir"))
+    os.makedirs(logdir, exist_ok=True)
+    file_handler = logging.FileHandler(
+        os.path.join(logdir, datetime.now().strftime("%m-%d-%Y_%H-%M-%S") + ".log")
     )
-    fileHandler.setFormatter(formatter)
-    _logger.addHandler(fileHandler)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-    if get_config().get("logging", "verbose"):
-        streamHandler = logging.StreamHandler()
-        streamHandler.setFormatter(formatter)
-        _logger.addHandler(streamHandler)
+    if config.get("logging", "verbose"):
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
+
+    return logger
 
 
-def get_logger():
-    """It returns ocindex logger instance."""
-    global _logger
-    global _logger_lock
+def reset_logger() -> None:
+    _state.clear()
 
-    if not _logger:
-        _logger_lock.acquire()
-        _setup_logger()
-        _logger_lock.release()
 
-    return _logger
+def get_logger() -> logging.Logger:
+    if "logger" not in _state:
+        _state["logger"] = _setup_logger()
+    return _state["logger"]

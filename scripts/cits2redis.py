@@ -1,8 +1,9 @@
 #!python
 
 # SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
-# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
-# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2021, 2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021, 2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -18,18 +19,10 @@ from tqdm import tqdm
 from oc.index.utils.logging import get_logger
 from oc.index.utils.config import get_config
 
-_config = get_config()
-_logger = get_logger()
 csv.field_size_limit(sys.maxsize)
 
-rconn = Redis(
-    host=_config.get("redis", "host"),
-    port=_config.get("redis", "port"),
-    db=_config.get("cnc", "db_cits")
-)
-
 NEEDLE = "ci/"
-BATCH_SIZE = 50_000  # Number of RPUSH operations per pipeline flush
+BATCH_SIZE = 50_000
 
 
 def extract_oci_from_line(line):
@@ -46,14 +39,7 @@ def extract_oci_from_line(line):
     return line[start:end]
 
 
-def upload2redis(dump_path="", intype=""):
-    """
-    Upload citations stored in RDF data into Redis.
-
-    Redis structure:
-        <cited>: Redis LIST of citing OCIs
-    """
-
+def upload2redis(rconn, logger, dump_path="", intype=""):
     intype = intype.upper()
     pipe = rconn.pipeline()
     counter = 0
@@ -65,14 +51,14 @@ def upload2redis(dump_path="", intype=""):
             pipe.execute()
             counter = 0
 
-    _logger.info("Starting streaming upload to Redis...")
+    logger.info("Starting streaming upload to Redis...")
 
     if intype == "ZIP":
         for filename in os.listdir(dump_path):
             fzip = os.path.join(dump_path, filename)
 
             if fzip.endswith(".zip") and os.path.isfile(fzip):
-                _logger.info(f"Reading {fzip} ...")
+                logger.info(f"Reading {fzip} ...")
 
                 with ZipFile(fzip) as archive:
                     for member in tqdm(archive.namelist()):
@@ -102,7 +88,7 @@ def upload2redis(dump_path="", intype=""):
             fttl = os.path.join(dump_path, filename)
 
             if fttl.endswith(".ttl") and os.path.isfile(fttl):
-                _logger.info(f"Reading {fttl} ...")
+                logger.info(f"Reading {fttl} ...")
 
                 with open(fttl, "r", encoding="utf-8") as f:
                     for line in f:
@@ -129,12 +115,19 @@ def upload2redis(dump_path="", intype=""):
     # Flush remaining operations
     flush_pipeline()
 
-    _logger.info(f"Stored {total} citations in Redis successfully.")
+    logger.info(f"Stored {total} citations in Redis successfully.")
 
 
 def main():
     parser = argparse.ArgumentParser(
         description="Store the citations of OpenCitations Index in Redis"
+    )
+
+    parser.add_argument(
+        "--config",
+        type=str,
+        required=True,
+        help="Path to the configuration file (config.ini)",
     )
 
     parser.add_argument(
@@ -153,8 +146,17 @@ def main():
 
     args = parser.parse_args()
 
+    _config = get_config(args.config)
+    _logger = get_logger()
+
+    rconn = Redis(
+        host=_config.get("redis", "host"),
+        port=int(_config.get("redis", "port")),
+        db=int(_config.get("cnc", "db_cits"))
+    )
+
     _logger.info("Uploading citations in RDF format to Redis ...")
-    upload2redis(args.dump, args.intype)
+    upload2redis(rconn, _logger, args.dump, args.intype)
     _logger.info("Done!")
 
 

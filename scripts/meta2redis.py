@@ -1,8 +1,9 @@
 #!python
 
 # SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
-# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
-# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2021, 2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021, 2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -26,10 +27,6 @@ from rich_argparse import RichHelpFormatter
 from oc.index.utils.config import get_config
 
 console = Console()
-
-_config = get_config()
-if _config is None:
-    raise RuntimeError("Configuration not loaded")
 csv.field_size_limit(sys.maxsize)
 
 
@@ -221,15 +218,14 @@ def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="1
 
 
 def main():
-    if _config is None:
-        raise RuntimeError("Configuration not loaded")
-
     parser = argparse.ArgumentParser(description='Store the metadata of OpenCitations Meta in Redis', formatter_class=RichHelpFormatter)
+    parser.add_argument('--config', type=str, required=True, help='Path to the configuration file (config.ini)')
     parser.add_argument('--dump', type=str, required=True, help='The directory of CSVs or file (in ZIP or TAR.GZ) representing OpenCitations Meta dump')
     parser.add_argument('--redis-only', action='store_true', help='Only upload to Redis, do not save CSV files')
     parser.add_argument('--workers', type=int, default=None, help='Number of parallel workers (default: CPU count)')
     args = parser.parse_args()
 
+    _config = get_config(args.config)
     console.print("Start uploading data to Redis.")
 
     res = upload2redis(

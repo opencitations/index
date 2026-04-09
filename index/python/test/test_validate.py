@@ -1,8 +1,9 @@
 #!python
 
 # SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
-# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
-# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2021, 2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021, 2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -15,7 +16,7 @@ from oc.index.validate.crossref import CrossrefValidator
 from oc.index.validate.datacite import DataciteValidator
 from oc.index.validate.nih import NIHValidator
 from oc.index.oci.citation import OCIManager
-from oc.index.utils.config import get_config
+from oc.index.utils.config import get_config, reset_config
 
 
 class ValidateTest(unittest.TestCase):
@@ -23,6 +24,8 @@ class ValidateTest(unittest.TestCase):
     belongs to package oc.index.validate"""
 
     def setUp(self):
+        reset_config()
+        config = get_config(join("index", "python", "test", "config.ini"))
         test_dir = join("index", "python", "test", "data")
 
         self.coci_input = join(test_dir, "coci_validate")
@@ -35,7 +38,7 @@ class ValidateTest(unittest.TestCase):
         self.noci_validate = NIHValidator("NOCI")
 
         oci_manager = OCIManager(
-            lookup_file=os.path.expanduser(get_config().get("cnc", "lookup"))
+            lookup_file=os.path.expanduser(config.get("cnc", "lookup"))
         )
 
         with open(join(test_dir, "crossref_citations.csv"), encoding="utf8") as f:

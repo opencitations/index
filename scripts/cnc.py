@@ -1,8 +1,9 @@
 #!python
 
 # SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
-# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
-# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2021, 2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021, 2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -30,35 +31,20 @@ from oc.index.oci.citation import Citation
 from oc.index.oci.storer import CitationStorer
 from oc.index.glob.redis import RedisDataSource
 
-_config = get_config()
-_logger = get_logger()
+import logging
 
-# === CONF.INI ===
-collection_name = "INDEX"
-idbase_url = _config.get(collection_name, "idbaseurl")
-index_identifier = _config.get(collection_name, "identifier")
-agent = _config.get(collection_name, "agent")
-service_name = _config.get(collection_name, "service")
-baseurl = _config.get(collection_name, "baseurl")
-source = _config.get(collection_name, "source")
-_logger.info(
-    "--------- Configurations ----------\n"
-    f"idbase_url: {idbase_url}\n"
-    f"agent: {agent}\n"
-    f"source: {source}\n"
-    f"service: {service_name}\n"
-    f"identifier: {index_identifier}"
-)
 BATCH_SAVE = 100000
-
-# === REDIS ===
-# Redis BRs mapping: data sample to get from redis: "doi:10.1080/0886022x.2019.1635892": "omid:br/061601556467; omid:br/061601556468"
-redis_br = redis.Redis( host="127.0.0.1", port="6379", db=_config.get("cnc", "db_br") )
-# Redis processing cache: data sample to set in redis: <OCI>:1
-redis_cits_cache = redis.Redis( host="127.0.0.1", port="6379", db=_config.get("cnc", "db_omid") )
-# Redis cache variables
-REDIS_W_BUFFER = 300000
 REDIS_R_BUFFER_CITS = 100000
+
+_logger: logging.Logger
+idbase_url: str
+index_identifier: str
+agent: str
+service_name: str
+baseurl: str
+source: str
+redis_br: redis.Redis  # type: ignore[type-arg]
+redis_cits_cache: redis.Redis  # type: ignore[type-arg]
 
 
 def save_data(output_dir, cits_obj, pid = 0):
@@ -310,6 +296,11 @@ def chunk_list(lst, n):
 def main():
     arg_parser = ArgumentParser(description="Create new citations of OC INDEX. This scripts converts citations ANYID-ANYID comming form different data sources (e.g., COCI, DOCI) into OMID-OMID citations. It produces RDF data and provenance (RDF,CSV)")
     arg_parser.add_argument(
+        "--config",
+        required=True,
+        help="Path to the configuration file (config.ini)",
+    )
+    arg_parser.add_argument(
         "-i",
         "--input",
         required=True,
@@ -348,7 +339,30 @@ def main():
     )
     args = arg_parser.parse_args()
 
-    global source
+    global _logger, idbase_url, index_identifier, agent, service_name, baseurl, source
+    global redis_br, redis_cits_cache
+
+    _config = get_config(args.config)
+    _logger = get_logger()
+
+    collection_name = "INDEX"
+    idbase_url = _config.get(collection_name, "idbaseurl")
+    index_identifier = _config.get(collection_name, "identifier")
+    agent = _config.get(collection_name, "agent")
+    service_name = _config.get(collection_name, "service")
+    baseurl = _config.get(collection_name, "baseurl")
+    source = _config.get(collection_name, "source")
+    _logger.info(
+        "--------- Configurations ----------\n"
+        f"idbase_url: {idbase_url}\n"
+        f"agent: {agent}\n"
+        f"source: {source}\n"
+        f"service: {service_name}\n"
+        f"identifier: {index_identifier}"
+    )
+
+    redis_br = redis.Redis(host="127.0.0.1", port=6379, db=int(_config.get("cnc", "db_br")))
+    redis_cits_cache = redis.Redis(host="127.0.0.1", port=6379, db=int(_config.get("cnc", "db_omid")))
 
     # input directory/file
     input_files = []

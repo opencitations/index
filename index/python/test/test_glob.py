@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
-# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
-# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2021, 2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021, 2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -19,7 +20,7 @@ from oc.index.identifier.issn import ISSNManager
 from oc.index.identifier.orcid import ORCIDManager
 from oc.index.identifier.doi import DOIManager
 from oc.index.identifier.pmid import PMIDManager
-from oc.index.utils.config import get_config
+from oc.index.utils.config import get_config, reset_config
 
 from oc.index.scripts.glob_doci import (
     DataCiteResourceFinder,
@@ -45,7 +46,8 @@ from oc.index.scripts.glob_crossref import (
 
 class GlobTest(unittest.TestCase):
     def setUp(self):
-        config = get_config()
+        reset_config()
+        config = get_config(join("index", "python", "test", "config.ini"))
         self.test_dir = join("index", "python", "test", "data")
         self.doi_manager = DOIManager()
         self.pmid_manager = PMIDManager()

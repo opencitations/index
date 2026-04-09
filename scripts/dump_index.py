@@ -1,8 +1,9 @@
 #!python
 
 # SPDX-FileCopyrightText: 2019-2022 Silvio Peroni <essepuntato@gmail.com>
-# SPDX-FileCopyrightText: 2021-2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
-# SPDX-FileCopyrightText: 2021-2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2021, 2022 Arianna Moretti <arianna.moretti2@studio.unibo.it>
+# SPDX-FileCopyrightText: 2021, 2022 Giuseppe Grieco <g.grieco1997@gmail.com>
+# SPDX-FileCopyrightText: 2026 Arcangelo Massari <arcangelo.massari@unibo.it>
 #
 # SPDX-License-Identifier: ISC
 
@@ -18,32 +19,27 @@ from collections import defaultdict
 from multiprocessing import Process
 # from tqdm import tqdm
 
-# Libraries needed
 from oc.index.oci.citation import Citation, OCIManager
 from oc.index.utils.config import get_config
 from oc.index.utils.logging import get_logger
 from oc.index.oci.storer import CitationStorer
 
-# Globals
-_config = get_config()
-_logger = get_logger()
+import logging
 
-# <CORE>:[ <List of citations> ]
 data_to_dump = defaultdict(list)
 
-# === CONF.INI ===
-idbase_url = _config.get("INDEX", "idbaseurl")
-baseurl = _config.get("INDEX", "baseurl")
-agent = _config.get("INDEX", "agent")
-source = _config.get("INDEX", "source")
-service_name = _config.get("INDEX", "service")
-index_identifier = _config.get("INDEX", "identifier")
-
-# === CONFIGURATION ===
 CITED_BATCH_SIZE = 1500
 CITED_PER_FILE = 10000
 FILES_PER_ZIP = 1000
 FILE_OUTPUT_DIR = "_out_"
+
+_logger: logging.Logger
+idbase_url: str
+baseurl: str
+agent: str
+source: str
+service_name: str
+index_identifier: str
 
 
 def zip_and_cleanup(csv_dir, rdf_dir, slx_dir, files_per_zip, force = False, pnum=1):
@@ -105,11 +101,15 @@ def chunk_list(lst, n):
 
 def main():
 
-    global _config
-    global _logger
+    global _logger, idbase_url, baseurl, agent, source, service_name, index_identifier
     global FILE_OUTPUT_DIR
 
     arg_parser = ArgumentParser(description="Dump OpenCitations Index data. This process reads all the data in Redis and creates a new data dump for the OpenCitations Index. The outputs are compressed, to all dump formats: CSV, RDF, SCHOLIX. **Make sure the Redis datasets are populated before running this script**")
+    arg_parser.add_argument(
+        "--config",
+        required=True,
+        help="Path to the configuration file (config.ini)",
+    )
     arg_parser.add_argument(
         "-d",
         "--date",
@@ -124,22 +124,22 @@ def main():
         help="Maximum number of workers for parallel execution (default is set to 1, Recommended not higher than between 3 and 6)",
     )
 
-    # Date of the dump
-    dump_date = datetime.now().strftime("%Y%m%d") # format: YYYYMMDD
     args = arg_parser.parse_args()
+    _config = get_config(args.config)
+    _logger = get_logger()
+
+    idbase_url = _config.get("INDEX", "idbaseurl")
+    baseurl = _config.get("INDEX", "baseurl")
+    agent = _config.get("INDEX", "agent")
+    source = _config.get("INDEX", "source")
+    service_name = _config.get("INDEX", "service")
+    index_identifier = _config.get("INDEX", "identifier")
+
+    dump_date = datetime.now().strftime("%Y%m%d")
     if args.date:
         dump_date = args.date
 
-
     _logger.info("Dumping all the citations in OpenCitations Index ...")
-
-    # === CONF.INI ===
-    # idbase_url = _config.get("INDEX", "idbaseurl")
-    # baseurl = _config.get("INDEX", "baseurl")
-    # agent = _config.get("INDEX", "agent")
-    # source = _config.get("INDEX", "source")
-    # service_name = _config.get("INDEX", "service")
-    # index_identifier = _config.get("INDEX", "identifier")
 
     _logger.info(
         "--------- Configurations ----------\n"
@@ -168,11 +168,11 @@ def main():
     REDIS_CITS_DB = _config.get("cnc", "db_cits")
     REDIS_METADATA_DB = _config.get("INDEX", "db")
 
-    redis_cits = redis.Redis(host='localhost', port=6379, db=REDIS_CITS_DB, decode_responses=True)
+    redis_cits = redis.Redis(host='localhost', port=6379, db=int(REDIS_CITS_DB), decode_responses=True)
     # Sample data of redis_cits:
     # "06304836421": "[\"06290442260\", \"0606973973\", \"06290442260\", \"061204315925\"]"
 
-    redis_metadata = redis.Redis(host='localhost', port=6379, db=REDIS_METADATA_DB, decode_responses=True)
+    redis_metadata = redis.Redis(host='localhost', port=6379, db=int(REDIS_METADATA_DB), decode_responses=True)
     # Sample data of redis_metadata:
     # "omid:br/061601556475": "{\"date\": \"2019\", \"valid\": true, \"orcid\": [\"0000-0002-6819-0387\"], \"issn\": [\"0886-022X\", \"1525-6049\"]}"
 
