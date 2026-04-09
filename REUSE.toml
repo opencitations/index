@@ -17,13 +17,13 @@ SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
 path = [
-    "index/python/test/data/**/*.csv",
-    "index/python/test/data/**/*.json",
-    "index/python/test/data/**/*.ttl",
-    "index/python/test/data/**/*.scholix",
-    "index/python/test/data/**/*.tar.gz",
-    "index/python/test/data/**/*.zip",
-    "index/python/test/data/**/*.zst",
+    "tests/data/**/*.csv",
+    "tests/data/**/*.json",
+    "tests/data/**/*.ttl",
+    "tests/data/**/*.scholix",
+    "tests/data/**/*.tar.gz",
+    "tests/data/**/*.zip",
+    "tests/data/**/*.zst",
 ]
 SPDX-FileCopyrightText = [
     "2019-2022 Silvio Peroni <essepuntato@gmail.com>",

@@ -10,7 +10,6 @@ __pycache__/
 .vscode/
 .idea
 oc_index.egg-info
-_pyright_resolve
 dist
 logs/
 .DS_Store

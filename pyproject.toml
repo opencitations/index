@@ -26,62 +26,28 @@ dependencies = [
 ]
 
 [project.scripts]
-"oc.index.oci" = "oc.index.scripts.oci:main"
-"oc.index.cnc" = "oc.index.scripts.cnc:main"
-"oc.index.genSourceRDF" = "oc.index.scripts.gen_source_rdf:main"
-"oc.index.meta2redis" = "oc.index.scripts.meta2redis:main"
-"oc.index.cits2redis" = "oc.index.scripts.cits2redis:main"
-"oc.index.dump_index" = "oc.index.scripts.dump_index:main"
-"oc.index.citscount2anyid" = "oc.index.scripts.anyid_citation_count:main"
-"oc.index.edit_rdf" = "oc.index.scripts.edit_rdf:main"
-"oc.index.trim_crossref" = "oc.index.scripts.trim_crossref:main"
-"oc.index.metadata_crossref" = "oc.index.scripts.metadata_crossref:main"
-"oc.index.internet_archive" = "oc.index.scripts.internet_archive:main"
+"oc.index.oci" = "oc_index.scripts.oci:main"
+"oc.index.cnc" = "oc_index.scripts.cnc:main"
+"oc.index.genSourceRDF" = "oc_index.scripts.gen_source_rdf:main"
+"oc.index.meta2redis" = "oc_index.scripts.meta2redis:main"
+"oc.index.cits2redis" = "oc_index.scripts.cits2redis:main"
+"oc.index.dump_index" = "oc_index.scripts.dump_index:main"
+"oc.index.citscount2anyid" = "oc_index.scripts.anyid_citation_count:main"
+"oc.index.edit_rdf" = "oc_index.scripts.edit_rdf:main"
+"oc.index.trim_crossref" = "oc_index.scripts.trim_crossref:main"
+"oc.index.metadata_crossref" = "oc_index.scripts.metadata_crossref:main"
+"oc.index.internet_archive" = "oc_index.scripts.internet_archive:main"
 
 [build-system]
-requires = ["setuptools>=77"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-packages = [
-    "oc.index",
-    "oc.index.finder",
-    "oc.index.glob",
-    "oc.index.identifier",
-    "oc.index.legacy",
-    "oc.index.oci",
-    "oc.index.parsing",
-    "oc.index.preprocessing",
-    "oc.index.utils",
-    "oc.index.validate",
-    "oc.index.scripts",
-    "oc.index.scripts.crossref",
-    "oc.index.scripts.redis_util",
-    "oc.index.scripts.upload",
-    "oc.index.scripts.util",
-]
-
-[tool.setuptools.package-dir]
-"oc.index" = "index/python/src"
-"oc.index.finder" = "index/python/src/finder"
-"oc.index.glob" = "index/python/src/glob"
-"oc.index.identifier" = "index/python/src/identifier"
-"oc.index.legacy" = "index/python/src/legacy"
-"oc.index.oci" = "index/python/src/oci"
-"oc.index.parsing" = "index/python/src/parsing"
-"oc.index.preprocessing" = "index/python/src/preprocessing"
-"oc.index.utils" = "index/python/src/utils"
-"oc.index.validate" = "index/python/src/validate"
-"oc.index.scripts" = "scripts"
-"oc.index.scripts.crossref" = "scripts/crossref"
-"oc.index.scripts.redis_util" = "scripts/redis_util"
-"oc.index.scripts.upload" = "scripts/upload"
-"oc.index.scripts.util" = "scripts/util"
+[tool.hatch.build.targets.wheel]
+packages = ["oc_index"]
 
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
-extraPaths = ["_pyright_resolve"]
 
 [dependency-groups]
 dev = [
