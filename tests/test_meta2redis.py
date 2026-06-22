@@ -13,6 +13,7 @@ import os
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 from typing import Dict, Set, cast
 from zipfile import ZipFile
 
@@ -20,7 +21,11 @@ import fakeredis
 
 from oc_index.scripts.meta2redis import (
     _get_csv_files,
+    _extract_rdf_indexes,
+    _is_rdf_dump,
+    _iter_rdf_files,
     _p_csvfile,
+    _process_rdf_file_worker,
     get_att_ids,
     get_id_val,
     get_key_ids,
@@ -288,6 +293,293 @@ class TestGetCsvFiles(unittest.TestCase):
     def test_nonexistent_path(self):
         result = _get_csv_files("/nonexistent/path")
         assert result == []
+
+
+class TestRdfFiles(unittest.TestCase):
+    def test_iter_rdf_files_from_br_directory(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            br_dir = os.path.join(tmp_dir, "br", "060", "10000")
+            prov_dir = os.path.join(br_dir, "1000", "prov")
+            os.makedirs(prov_dir)
+            os.makedirs(os.path.join(tmp_dir, "ra", "060", "10000"))
+            br_zip = os.path.join(br_dir, "1000.zip")
+            prov_zip = os.path.join(prov_dir, "se.zip")
+            ra_zip = os.path.join(tmp_dir, "ra", "060", "10000", "1000.zip")
+            for path in [br_zip, prov_zip, ra_zip]:
+                with ZipFile(path, "w") as zip_file:
+                    zip_file.writestr("1000.json", "[]")
+
+            assert list(_iter_rdf_files(tmp_dir)) == [br_zip]
+
+    def test_iter_rdf_files_without_br_directory(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            assert list(_iter_rdf_files(tmp_dir)) == []
+
+    def test_is_rdf_dump_checks_layout_without_scanning_files(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            assert _is_rdf_dump(tmp_dir) is False
+            os.makedirs(os.path.join(tmp_dir, "br"))
+            assert _is_rdf_dump(tmp_dir) is True
+
+
+class TestProcessRdfFile(unittest.TestCase):
+    def setUp(self):
+        self.fake_server = fakeredis.FakeServer()
+        self.rconn_br = FakeRedisDB(self.fake_server, 0)
+        self.rconn_ra = FakeRedisDB(self.fake_server, 1)
+        self.rconn_metadata = FakeRedisDB(self.fake_server, 2)
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.rdf_dir = self.tmp_dir.name
+
+    def tearDown(self):
+        self.rconn_br.rconn.flushdb()
+        self.rconn_ra.rconn.flushdb()
+        self.rconn_metadata.rconn.flushdb()
+        self.tmp_dir.cleanup()
+
+    def _write_entity_zip(self, entity_type: str, data: list) -> str:
+        dir_path = os.path.join(self.rdf_dir, entity_type, "060", "10000")
+        os.makedirs(dir_path, exist_ok=True)
+        zip_path = os.path.join(dir_path, "1000.zip")
+        with ZipFile(zip_path, "w") as zip_file:
+            zip_file.writestr("1000.json", json.dumps(data))
+        return zip_path
+
+    def test_process_rdf_indexes_and_metadata(self):
+        br_zip = self._write_entity_zip("br", [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/0601",
+                        "@type": [
+                            "http://purl.org/spar/fabio/Expression",
+                            "http://purl.org/spar/fabio/JournalArticle",
+                        ],
+                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                            {"@value": "2024-01-02"}
+                        ],
+                        "http://purl.org/spar/datacite/hasIdentifier": [
+                            {"@id": "https://w3id.org/oc/meta/id/0601"}
+                        ],
+                        "http://purl.org/spar/pro/isDocumentContextFor": [
+                            {"@id": "https://w3id.org/oc/meta/ar/0601"}
+                        ],
+                        "http://purl.org/vocab/frbr/core#partOf": [
+                            {"@id": "https://w3id.org/oc/meta/br/06011"}
+                        ],
+                    },
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/06011",
+                        "@type": ["http://purl.org/spar/fabio/JournalIssue"],
+                        "http://purl.org/vocab/frbr/core#partOf": [
+                            {"@id": "https://w3id.org/oc/meta/br/06012"}
+                        ],
+                    },
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/06012",
+                        "@type": ["http://purl.org/spar/fabio/JournalVolume"],
+                        "http://purl.org/vocab/frbr/core#partOf": [
+                            {"@id": "https://w3id.org/oc/meta/br/06010"}
+                        ],
+                    },
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/06010",
+                        "@type": [
+                            "http://purl.org/spar/fabio/Expression",
+                            "http://purl.org/spar/fabio/Journal",
+                        ],
+                        "http://purl.org/spar/datacite/hasIdentifier": [
+                            {"@id": "https://w3id.org/oc/meta/id/06010"}
+                        ],
+                    },
+                ]
+            }
+        ])
+        self._write_entity_zip("id", [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/id/0601",
+                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                            {"@id": "http://purl.org/spar/datacite/doi"}
+                        ],
+                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                            {"@value": "10.1234/test"}
+                        ],
+                    },
+                    {
+                        "@id": "https://w3id.org/oc/meta/id/0602",
+                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                            {"@id": "http://purl.org/spar/datacite/orcid"}
+                        ],
+                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                            {"@value": "0000-0001-1234-5678"}
+                        ],
+                    },
+                    {
+                        "@id": "https://w3id.org/oc/meta/id/06010",
+                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                            {"@id": "http://purl.org/spar/datacite/issn"}
+                        ],
+                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                            {"@value": "1234-5678"}
+                        ],
+                    },
+                ]
+            }
+        ])
+        self._write_entity_zip("ar", [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/ar/0601",
+                        "http://purl.org/spar/pro/withRole": [
+                            {"@id": "http://purl.org/spar/pro/author"}
+                        ],
+                        "http://purl.org/spar/pro/isHeldBy": [
+                            {"@id": "https://w3id.org/oc/meta/ra/0601"}
+                        ],
+                    }
+                ]
+            }
+        ])
+        self._write_entity_zip("ra", [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/ra/0601",
+                        "http://purl.org/spar/datacite/hasIdentifier": [
+                            {"@id": "https://w3id.org/oc/meta/id/0602"}
+                        ],
+                    }
+                ]
+            }
+        ])
+
+        br_data, ra_data, metadata = _extract_rdf_indexes(
+            br_zip,
+            self.rdf_dir,
+            "https://w3id.org/oc/meta/",
+            10000,
+            1000,
+        )
+        self.rconn_br.flush_index(br_data)
+        self.rconn_ra.flush_index(ra_data)
+        self.rconn_metadata.flush_metadata(metadata)
+
+        assert self.rconn_br.rconn.smembers("doi:10.1234/test") == {"omid:br/0601"}
+        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1234-5678") == {"omid:ra/0601"}
+        assert self.rconn_metadata.rconn.get("omid:br/06011") is None
+        assert self.rconn_metadata.rconn.get("omid:br/06012") is None
+        assert self.rconn_metadata.rconn.get("omid:br/06010") is None
+        assert self.rconn_br.rconn.smembers("issn:1234-5678") == set()
+        result = json.loads(cast(str, self.rconn_metadata.rconn.get("omid:br/0601")))
+        assert result == {
+            "date": "2024-01-02",
+            "valid": True,
+            "orcid": ["0000-0001-1234-5678"],
+            "issn": ["1234-5678"],
+        }
+
+    def test_empty_rdf_archive_raises(self):
+        zip_path = os.path.join(self.rdf_dir, "br", "060", "10000", "1000.zip")
+        os.makedirs(os.path.dirname(zip_path), exist_ok=True)
+        with ZipFile(zip_path, "w") as zip_file:
+            zip_file.writestr("readme.txt", "")
+
+        with self.assertRaisesRegex(ValueError, "No JSON file found in RDF archive"):
+            _extract_rdf_indexes(
+                zip_path,
+                self.rdf_dir,
+                "https://w3id.org/oc/meta/",
+                10000,
+                1000,
+            )
+
+    def test_missing_referenced_rdf_archive_raises(self):
+        br_zip = self._write_entity_zip("br", [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/0601",
+                        "@type": ["http://purl.org/spar/fabio/JournalArticle"],
+                        "http://purl.org/spar/datacite/hasIdentifier": [
+                            {"@id": "https://w3id.org/oc/meta/id/0601"}
+                        ],
+                    }
+                ]
+            }
+        ])
+
+        with self.assertRaisesRegex(FileNotFoundError, "Referenced RDF archive not found"):
+            _extract_rdf_indexes(
+                br_zip,
+                self.rdf_dir,
+                "https://w3id.org/oc/meta/",
+                10000,
+                1000,
+            )
+
+    def test_rdf_worker_flushes_indexes(self):
+        br_zip = self._write_entity_zip("br", [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/br/0601",
+                        "@type": ["http://purl.org/spar/fabio/JournalArticle"],
+                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                            {"@value": "2024-01-02"}
+                        ],
+                        "http://purl.org/spar/datacite/hasIdentifier": [
+                            {"@id": "https://w3id.org/oc/meta/id/0601"}
+                        ],
+                    }
+                ]
+            }
+        ])
+        self._write_entity_zip("id", [
+            {
+                "@graph": [
+                    {
+                        "@id": "https://w3id.org/oc/meta/id/0601",
+                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                            {"@id": "http://purl.org/spar/datacite/doi"}
+                        ],
+                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                            {"@value": "10.1234/test"}
+                        ],
+                    }
+                ]
+            }
+        ])
+
+        def fake_redis_db(_host: str, _port: str, db: str) -> FakeRedisDB:
+            return FakeRedisDB(self.fake_server, int(db))
+
+        with patch("oc_index.scripts.meta2redis.RedisDB", side_effect=fake_redis_db):
+            result = _process_rdf_file_worker((
+                br_zip,
+                self.rdf_dir,
+                "https://w3id.org/oc/meta/",
+                10000,
+                1000,
+                "localhost",
+                "6379",
+                "0",
+                "1",
+                "2",
+            ))
+
+        assert result == br_zip
+        assert self.rconn_br.rconn.smembers("doi:10.1234/test") == {"omid:br/0601"}
+        assert self.rconn_ra.key_count() == 0
+        metadata = json.loads(cast(str, self.rconn_metadata.rconn.get("omid:br/0601")))
+        assert metadata == {
+            "date": "2024-01-02",
+            "valid": True,
+            "orcid": [],
+            "issn": [],
+        }
 
 
 class TestIntegration(unittest.TestCase):

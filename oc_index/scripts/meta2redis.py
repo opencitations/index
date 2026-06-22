@@ -12,22 +12,36 @@ import csv
 import io
 import json
 import os
-import re
 import sys
 import tarfile
 from collections import defaultdict
+from functools import lru_cache
 from multiprocessing import Pool, cpu_count
+from re import findall
 from zipfile import ZipFile
 
+from oc_ocdm.graph.graph_entity import GraphEntity
+from oc_ocdm.support.support import find_paths, parse_uri
 from redis import Redis
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
 from rich_argparse import RichHelpFormatter
+from scandir_rs import Walk  # type: ignore[import-untyped]
 
 from oc_index.utils.config import get_config
 
 console = Console()
 csv.field_size_limit(sys.maxsize)
+
+BASE_IRI = "https://w3id.org/oc/meta/"
+DIR_SPLIT = 10000
+ITEMS_PER_FILE = 1000
+RDF_FILE_CACHE_SIZE = 512
+RDF_CONTAINER_TYPES = {
+    GraphEntity.iri_journal,
+    GraphEntity.iri_journal_issue,
+    GraphEntity.iri_journal_volume,
+}
 
 
 class RedisDB:
@@ -62,7 +76,7 @@ def get_key_ids(text):
     return text.split(" ")
 
 def get_att_ids(text):
-    bracket_contents = re.findall(r'\[(.*?)\]', text)
+    bracket_contents = findall(r'\[(.*?)\]', text)
     return [part.split() for part in bracket_contents]
 
 def get_id_val(l_ids, l_id_type=()):
@@ -73,41 +87,222 @@ def get_id_val(l_ids, l_id_type=()):
                 res.append(_id)
     return res
 
+
+def _as_list(value):
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _entity_omid(uri):
+    parsed_uri = parse_uri(uri)
+    if not parsed_uri.short_name or not parsed_uri.count:
+        raise ValueError(f"Invalid Meta entity URI: {uri}")
+    return f"omid:{parsed_uri.short_name}/{parsed_uri.prefix}{parsed_uri.count}"
+
+
+def _rdf_file_for_uri(uri, base_dir, base_iri, dir_split, items_per_file):
+    parsed_uri = parse_uri(uri)
+    if not parsed_uri.short_name or not parsed_uri.count:
+        raise ValueError(f"Invalid Meta entity URI: {uri}")
+    if parsed_uri.base_iri.rstrip("/") != base_iri.rstrip("/"):
+        raise ValueError(f"Unexpected Meta entity base IRI: {uri}")
+    if base_dir and not base_dir.endswith(os.sep):
+        base_dir = base_dir + os.sep
+    _, file_path = find_paths(uri, base_dir, base_iri, "_", dir_split, items_per_file)
+    return os.path.splitext(file_path)[0] + ".zip"
+
+
+def _load_jsonld_zip(filepath):
+    with ZipFile(filepath, "r") as zip_file:
+        json_names = [name for name in zip_file.namelist() if name.endswith(".json")]
+        if not json_names:
+            raise ValueError(f"No JSON file found in RDF archive: {filepath}")
+        return json.loads(zip_file.read(json_names[0]))
+
+
+def _iter_jsonld_entities(data):
+    for graph in _as_list(data):
+        for entity in graph["@graph"]:
+            yield entity
+
+
+@lru_cache(maxsize=RDF_FILE_CACHE_SIZE)
+def _entities_by_id(filepath):
+    return {
+        entity["@id"]: entity
+        for entity in _iter_jsonld_entities(_load_jsonld_zip(filepath))
+    }
+
+
+def _find_entity(uri, base_dir, base_iri, dir_split, items_per_file):
+    filepath = _rdf_file_for_uri(uri, base_dir, base_iri, dir_split, items_per_file)
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Referenced RDF archive not found: {filepath}")
+    entities = _entities_by_id(filepath)
+    if uri not in entities:
+        raise KeyError(f"Referenced RDF entity not found in {filepath}: {uri}")
+    return entities[uri]
+
+
+def _process_rdf_identifier(id_data):
+    schemes = _as_list(id_data.get(GraphEntity.iri_uses_identifier_scheme))
+    values = _as_list(id_data.get(GraphEntity.iri_has_literal_value))
+    if not schemes or not values:
+        raise ValueError(f"Incomplete RDF identifier entity: {id_data['@id']}")
+
+    scheme_uri = schemes[0]["@id"]
+    if "/datacite/" not in scheme_uri:
+        raise ValueError(f"Unsupported RDF identifier scheme: {scheme_uri}")
+    literal_value = values[0]["@value"]
+    if not literal_value:
+        raise ValueError(f"Empty RDF identifier literal value: {id_data['@id']}")
+    return f"{scheme_uri.split('/datacite/', 1)[1]}:{literal_value}"
+
+
+def _entity_identifiers(entity, base_dir, base_iri, dir_split, items_per_file):
+    identifiers = []
+    for identifier in _as_list(entity.get(GraphEntity.iri_has_identifier)):
+        id_uri = identifier["@id"]
+        id_entity = _find_entity(id_uri, base_dir, base_iri, dir_split, items_per_file)
+        id_value = _process_rdf_identifier(id_entity)
+        if not id_value.startswith("temp:"):
+            identifiers.append(id_value)
+    return identifiers
+
+
+def _first_literal(entity, predicate):
+    values = _as_list(entity.get(predicate))
+    if not values:
+        return ""
+    return values[0]["@value"]
+
+
+def _author_agent_roles(br_entity, base_dir, base_iri, dir_split, items_per_file):
+    roles = []
+    for ar_ref in _as_list(br_entity.get(GraphEntity.iri_is_document_context_for)):
+        ar_uri = ar_ref["@id"]
+        ar_entity = _find_entity(ar_uri, base_dir, base_iri, dir_split, items_per_file)
+        role_uri = _as_list(ar_entity.get(GraphEntity.iri_with_role))
+        if role_uri and role_uri[0]["@id"] == GraphEntity.iri_author:
+            roles.append(ar_entity)
+    return roles
+
+
+def _author_orcids_and_ra_index(br_entity, base_dir, base_iri, dir_split, items_per_file):
+    ra_data = defaultdict(set)
+    orcids = []
+    for ar_entity in _author_agent_roles(br_entity, base_dir, base_iri, dir_split, items_per_file):
+        held_by = _as_list(ar_entity.get(GraphEntity.iri_is_held_by))
+        if not held_by:
+            raise ValueError(f"Author role without held entity: {ar_entity['@id']}")
+        ra_uri = held_by[0]["@id"]
+        ra_omid = _entity_omid(ra_uri)
+        ra_entity = _find_entity(ra_uri, base_dir, base_iri, dir_split, items_per_file)
+        for identifier in _entity_identifiers(ra_entity, base_dir, base_iri, dir_split, items_per_file):
+            ra_data[identifier].add(ra_omid)
+            if identifier.startswith("orcid:"):
+                orcids.append(identifier.replace("orcid:", ""))
+    return orcids, ra_data
+
+
+def _venue_issns(br_entity, base_dir, base_iri, dir_split, items_per_file):
+    issns = []
+    current_refs = _as_list(br_entity.get(GraphEntity.iri_part_of))
+    visited = set()
+    depth = 0
+    while current_refs and depth <= 5:
+        current_uri = current_refs[0]["@id"]
+        if current_uri in visited:
+            break
+        visited.add(current_uri)
+        current_entity = _find_entity(current_uri, base_dir, base_iri, dir_split, items_per_file)
+        for identifier in _entity_identifiers(current_entity, base_dir, base_iri, dir_split, items_per_file):
+            if identifier.startswith("issn:"):
+                issns.append(identifier.replace("issn:", ""))
+        current_refs = _as_list(current_entity.get(GraphEntity.iri_part_of))
+        depth += 1
+    return issns
+
+
+def _unique(values):
+    seen = set()
+    result = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            result.append(value)
+    return result
+
+
+def _extract_rdf_indexes(filepath, base_dir, base_iri, dir_split, items_per_file):
+    br_data = defaultdict(set)
+    ra_data = defaultdict(set)
+    metadata = {}
+
+    for br_entity in _entities_by_id(filepath).values():
+        entity_types = _as_list(br_entity.get("@type"))
+        if RDF_CONTAINER_TYPES.intersection(entity_types):
+            continue
+
+        br_uri = br_entity["@id"]
+        br_omid = _entity_omid(br_uri)
+
+        for identifier in _entity_identifiers(br_entity, base_dir, base_iri, dir_split, items_per_file):
+            br_data[identifier].add(br_omid)
+
+        orcids, br_ra_data = _author_orcids_and_ra_index(br_entity, base_dir, base_iri, dir_split, items_per_file)
+        for key, values in br_ra_data.items():
+            ra_data[key].update(values)
+
+        metadata[br_omid] = json.dumps({
+            "date": str(_first_literal(br_entity, GraphEntity.iri_has_publication_date)),
+            "valid": True,
+            "orcid": _unique(orcids),
+            "issn": _unique(_venue_issns(br_entity, base_dir, base_iri, dir_split, items_per_file))
+        })
+
+    return br_data, ra_data, metadata
+
 def _p_csvfile(a_csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata):
     br_data = defaultdict(set)
     ra_data = defaultdict(set)
     metadata = {}
 
-    for o_row in csv.DictReader(io.TextIOWrapper(a_csv_file)):
-        br_ids = get_key_ids(o_row["id"])
-        br_ids_omid = get_id_val(br_ids, ["omid"])
-        br_ids_other = [x for x in br_ids if x not in br_ids_omid]
-        for __oid in br_ids_other:
-            br_data[__oid].update(br_ids_omid)
+    text_file = io.TextIOWrapper(a_csv_file)
+    try:
+        for o_row in csv.DictReader(text_file):
+            br_ids = get_key_ids(o_row["id"])
+            br_ids_omid = get_id_val(br_ids, ["omid"])
+            br_ids_other = [x for x in br_ids if x not in br_ids_omid and not x.startswith("temp:")]
+            for __oid in br_ids_other:
+                br_data[__oid].update(br_ids_omid)
 
-        l_ra_ids = get_att_ids(o_row["author"])
-        for _ra in l_ra_ids:
-            ra_ids_omid = get_id_val(_ra, ["omid"])
-            ra_ids_other = [x for x in _ra if x not in ra_ids_omid]
-            for __oid in ra_ids_other:
-                ra_data[__oid].update(ra_ids_omid)
+            l_ra_ids = get_att_ids(o_row["author"])
+            for _ra in l_ra_ids:
+                ra_ids_omid = get_id_val(_ra, ["omid"])
+                ra_ids_other = [x for x in _ra if x not in ra_ids_omid]
+                for __oid in ra_ids_other:
+                    ra_data[__oid].update(ra_ids_omid)
 
-        orcids = []
-        for _ra in l_ra_ids:
-            orcids += get_id_val(_ra, ["orcid"])
+            orcids = []
+            for _ra in l_ra_ids:
+                orcids += get_id_val(_ra, ["orcid"])
 
-        issns = []
-        l_venue_ids = get_att_ids(o_row["venue"])
-        for _venue in l_venue_ids:
-            issns += get_id_val(_venue, ["issn"])
+            issns = []
+            l_venue_ids = get_att_ids(o_row["venue"])
+            for _venue in l_venue_ids:
+                issns += get_id_val(_venue, ["issn"])
 
-        for _omid in br_ids_omid:
-            metadata[_omid] = json.dumps({
-                "date": str(o_row["pub_date"]),
-                "valid": True,
-                "orcid": [a.replace("orcid:", "") for a in orcids],
-                "issn": [a.replace("issn:", "") for a in issns]
-            })
+            for _omid in br_ids_omid:
+                metadata[_omid] = json.dumps({
+                    "date": str(o_row["pub_date"]),
+                    "valid": True,
+                    "orcid": [a.replace("orcid:", "") for a in orcids],
+                    "issn": [a.replace("issn:", "") for a in issns]
+                })
+    finally:
+        text_file.detach()
 
     rconn_db_br.flush_index(br_data)
     rconn_db_ra.flush_index(ra_data)
@@ -121,24 +316,44 @@ def _process_file_worker(args: tuple[str, str, str, str, str, str, str, str]) ->
     rconn_db_ra = RedisDB(redishost, redisport, db_ra)
     rconn_db_metadata = RedisDB(redishost, redisport, db_metadata)
 
-    if file_type == 'zip':
-        with ZipFile(path) as archive:
-            with archive.open(name) as csv_file:
+    try:
+        if file_type == 'zip':
+            with ZipFile(path) as archive:
+                with archive.open(name) as csv_file:
+                    _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
+        elif file_type == 'tar':
+            with tarfile.open(path, 'r:gz') as archive:
+                csv_file = archive.extractfile(name)
+                if csv_file:
+                    _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
+        elif file_type == 'file':
+            with open(path, 'rb') as csv_file:
                 _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
-    elif file_type == 'tar':
-        with tarfile.open(path, 'r:gz') as archive:
-            csv_file = archive.extractfile(name)
-            if csv_file:
-                _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
-    elif file_type == 'file':
-        with open(path, 'rb') as csv_file:
-            _p_csvfile(csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata)
-
-    rconn_db_br.rconn.close()
-    rconn_db_ra.rconn.close()
-    rconn_db_metadata.rconn.close()
+    finally:
+        rconn_db_br.rconn.close()
+        rconn_db_ra.rconn.close()
+        rconn_db_metadata.rconn.close()
 
     return name
+
+
+def _process_rdf_file_worker(args: tuple[str, str, str, int, int, str, str, str, str, str]) -> str:
+    filepath, base_dir, base_iri, dir_split, items_per_file, redishost, redisport, db_br, db_ra, db_metadata = args
+    rconn_db_br = RedisDB(redishost, redisport, db_br)
+    rconn_db_ra = RedisDB(redishost, redisport, db_ra)
+    rconn_db_metadata = RedisDB(redishost, redisport, db_metadata)
+
+    try:
+        br_data, ra_data, metadata = _extract_rdf_indexes(filepath, base_dir, base_iri, dir_split, items_per_file)
+        rconn_db_br.flush_index(br_data)
+        rconn_db_ra.flush_index(ra_data)
+        rconn_db_metadata.flush_metadata(metadata)
+    finally:
+        rconn_db_br.rconn.close()
+        rconn_db_ra.rconn.close()
+        rconn_db_metadata.rconn.close()
+
+    return filepath
 
 
 def _get_csv_files(dump_path):
@@ -170,57 +385,129 @@ def _get_csv_files(dump_path):
     return csv_files
 
 
-def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="10", db_ra="11", db_metadata="12", redis_only=False, workers=None):
-    rconn_db_br = RedisDB(redishost, redisport, db_br)
-    rconn_db_ra = RedisDB(redishost, redisport, db_ra)
-    rconn_db_metadata = RedisDB(redishost, redisport, db_metadata)
+def _is_prov_path(path):
+    return f"{os.sep}prov{os.sep}" in f"{os.sep}{path}{os.sep}"
 
+
+def _is_rdf_dump(dump_path):
+    return os.path.isdir(os.path.join(dump_path, "br"))
+
+
+def _iter_rdf_files(dump_path):
+    br_dir = os.path.join(dump_path, "br")
+    if not os.path.isdir(br_dir):
+        return
+
+    for dirpath, _, filenames in Walk(br_dir, file_include=["*.zip"]):
+        for filename in filenames:
+            filepath = os.path.join(br_dir, dirpath, filename)
+            if not _is_prov_path(filepath):
+                yield filepath
+
+
+def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="10", db_ra="11", db_metadata="12", redis_only=False, workers=None):
     csv_files = _get_csv_files(dump_path)
     if not csv_files:
         console.print(f"[red]No CSV files found in: {dump_path}[/red]")
         return ("0", "0")
 
+    rconn_db_br = RedisDB(redishost, redisport, db_br)
+    rconn_db_ra = RedisDB(redishost, redisport, db_ra)
+    rconn_db_metadata = RedisDB(redishost, redisport, db_metadata)
+
+    try:
+        num_workers = workers or cpu_count()
+        console.print(f"Found {len(csv_files)} CSV files to process with {num_workers} workers")
+
+        worker_args = [
+            (file_type, path, name, redishost, redisport, db_br, db_ra, db_metadata)
+            for file_type, path, name in csv_files
+        ]
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+        ) as progress:
+            task = progress.add_task("Processing CSV files", total=len(csv_files))
+
+            with Pool(processes=num_workers) as pool:
+                for name in pool.imap_unordered(_process_file_worker, worker_args):
+                    progress.update(task, description=f"Completed {name}")
+                    progress.advance(task)
+
+        if not redis_only:
+            console.print("Saving indexes to CSV...")
+            rconn_db_br.export_to_csv('meta_br.csv')
+            rconn_db_ra.export_to_csv('meta_ra.csv')
+
+        return (str(rconn_db_br.key_count()), str(rconn_db_ra.key_count()))
+    finally:
+        rconn_db_br.rconn.close()
+        rconn_db_ra.rconn.close()
+        rconn_db_metadata.rconn.close()
+
+
+def upload_rdf2redis(
+    dump_path="",
+    redishost="localhost",
+    redisport="6379",
+    db_br="10",
+    db_ra="11",
+    db_metadata="12",
+    redis_only=False,
+    workers=None,
+):
     num_workers = workers or cpu_count()
-    console.print(f"Found {len(csv_files)} CSV files to process with {num_workers} workers")
+    console.print(f"Processing RDF ZIP files with {num_workers} workers")
 
-    worker_args = [
-        (file_type, path, name, redishost, redisport, db_br, db_ra, db_metadata)
-        for file_type, path, name in csv_files
-    ]
+    worker_args = (
+        (filepath, dump_path, BASE_IRI, DIR_SPLIT, ITEMS_PER_FILE, redishost, redisport, db_br, db_ra, db_metadata)
+        for filepath in _iter_rdf_files(dump_path)
+    )
 
+    processed_any = False
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        TaskProgressColumn(),
         TimeElapsedColumn(),
-        TimeRemainingColumn(),
     ) as progress:
-        task = progress.add_task("Processing CSV files", total=len(csv_files))
+        task = progress.add_task("Processing RDF files", total=None)
 
         with Pool(processes=num_workers) as pool:
-            for name in pool.imap_unordered(_process_file_worker, worker_args):
-                progress.update(task, description=f"Completed {name}")
+            for filepath in pool.imap_unordered(_process_rdf_file_worker, worker_args):
+                processed_any = True
+                progress.update(task, description=f"Completed {os.path.basename(filepath)}")
                 progress.advance(task)
 
-    if not redis_only:
-        console.print("Saving indexes to CSV...")
-        rconn_db_br.export_to_csv('meta_br.csv')
-        rconn_db_ra.export_to_csv('meta_ra.csv')
+    if not processed_any:
+        console.print(f"[red]No RDF ZIP files found in: {dump_path}[/red]")
+        return ("0", "0")
 
-    result = (str(rconn_db_br.key_count()), str(rconn_db_ra.key_count()))
+    rconn_db_br = RedisDB(redishost, redisport, db_br)
+    rconn_db_ra = RedisDB(redishost, redisport, db_ra)
+    rconn_db_metadata = RedisDB(redishost, redisport, db_metadata)
 
-    rconn_db_br.rconn.close()
-    rconn_db_ra.rconn.close()
-    rconn_db_metadata.rconn.close()
+    try:
+        if not redis_only:
+            console.print("Saving indexes to CSV...")
+            rconn_db_br.export_to_csv('meta_br.csv')
+            rconn_db_ra.export_to_csv('meta_ra.csv')
 
-    return result
+        return (str(rconn_db_br.key_count()), str(rconn_db_ra.key_count()))
+    finally:
+        rconn_db_br.rconn.close()
+        rconn_db_ra.rconn.close()
+        rconn_db_metadata.rconn.close()
 
 
 def main():
     parser = argparse.ArgumentParser(description='Store the metadata of OpenCitations Meta in Redis', formatter_class=RichHelpFormatter)
     parser.add_argument('--config', type=str, required=True, help='Path to the configuration file (config.ini)')
-    parser.add_argument('--dump', type=str, required=True, help='The directory of CSVs or file (in ZIP or TAR.GZ) representing OpenCitations Meta dump')
+    parser.add_argument('--dump', type=str, required=True, help='The CSV dump file/directory or Meta RDF root directory')
     parser.add_argument('--redis-only', action='store_true', help='Only upload to Redis, do not save CSV files')
     parser.add_argument('--workers', type=int, default=None, help='Number of parallel workers (default: CPU count)')
     args = parser.parse_args()
@@ -228,16 +515,28 @@ def main():
     _config = get_config(args.config)
     console.print("Start uploading data to Redis.")
 
-    res = upload2redis(
-        dump_path=args.dump,
-        redishost=_config.get("redis", "host"),
-        redisport=_config.get("redis", "port"),
-        db_br=_config.get("cnc", "db_br"),
-        db_ra=_config.get("cnc", "db_ra"),
-        db_metadata=_config.get("INDEX", "db"),
-        redis_only=args.redis_only,
-        workers=args.workers
-    )
+    if _is_rdf_dump(args.dump):
+        res = upload_rdf2redis(
+            dump_path=args.dump,
+            redishost=_config.get("redis", "host"),
+            redisport=_config.get("redis", "port"),
+            db_br=_config.get("cnc", "db_br"),
+            db_ra=_config.get("cnc", "db_ra"),
+            db_metadata=_config.get("INDEX", "db"),
+            redis_only=args.redis_only,
+            workers=args.workers
+        )
+    else:
+        res = upload2redis(
+            dump_path=args.dump,
+            redishost=_config.get("redis", "host"),
+            redisport=_config.get("redis", "port"),
+            db_br=_config.get("cnc", "db_br"),
+            db_ra=_config.get("cnc", "db_ra"),
+            db_metadata=_config.get("INDEX", "db"),
+            redis_only=args.redis_only,
+            workers=args.workers
+        )
 
     console.print(f"[green]Done![/green] Found {res[0]} unique BR OMIDs and {res[1]} unique RA OMIDs.")
 
