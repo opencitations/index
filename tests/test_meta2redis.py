@@ -21,9 +21,9 @@ import fakeredis
 
 from oc_index.scripts.meta2redis import (
     _get_csv_files,
+    _get_rdf_files,
     _extract_rdf_indexes,
     _is_rdf_dump,
-    _iter_rdf_files,
     _p_csvfile,
     _process_rdf_file_worker,
     get_att_ids,
@@ -296,7 +296,7 @@ class TestGetCsvFiles(unittest.TestCase):
 
 
 class TestRdfFiles(unittest.TestCase):
-    def test_iter_rdf_files_from_br_directory(self):
+    def test_get_rdf_files_from_br_directory(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             br_dir = os.path.join(tmp_dir, "br", "060", "10000")
             prov_dir = os.path.join(br_dir, "1000", "prov")
@@ -309,11 +309,11 @@ class TestRdfFiles(unittest.TestCase):
                 with ZipFile(path, "w") as zip_file:
                     zip_file.writestr("1000.json", "[]")
 
-            assert list(_iter_rdf_files(tmp_dir)) == [br_zip]
+            assert _get_rdf_files(tmp_dir) == [br_zip]
 
-    def test_iter_rdf_files_without_br_directory(self):
+    def test_get_rdf_files_without_br_directory(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            assert list(_iter_rdf_files(tmp_dir)) == []
+            assert _get_rdf_files(tmp_dir) == []
 
     def test_is_rdf_dump_checks_layout_without_scanning_files(self):
         with tempfile.TemporaryDirectory() as tmp_dir:

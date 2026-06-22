@@ -24,7 +24,16 @@ from oc_ocdm.graph.graph_entity import GraphEntity
 from oc_ocdm.support.support import find_paths, parse_uri
 from redis import Redis
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 from rich_argparse import RichHelpFormatter
 from scandir_rs import Walk  # type: ignore[import-untyped]
 
@@ -393,16 +402,19 @@ def _is_rdf_dump(dump_path):
     return os.path.isdir(os.path.join(dump_path, "br"))
 
 
-def _iter_rdf_files(dump_path):
+def _get_rdf_files(dump_path):
+    rdf_files = []
     br_dir = os.path.join(dump_path, "br")
     if not os.path.isdir(br_dir):
-        return
+        return rdf_files
 
     for dirpath, _, filenames in Walk(br_dir, file_include=["*.zip"]):
         for filename in filenames:
             filepath = os.path.join(br_dir, dirpath, filename)
             if not _is_prov_path(filepath):
-                yield filepath
+                rdf_files.append(filepath)
+
+    return rdf_files
 
 
 def upload2redis(dump_path="", redishost="localhost", redisport="6379", db_br="10", db_ra="11", db_metadata="12", redis_only=False, workers=None):
@@ -461,31 +473,39 @@ def upload_rdf2redis(
     redis_only=False,
     workers=None,
 ):
+    rdf_files = _get_rdf_files(dump_path)
+    if not rdf_files:
+        console.print(f"[red]No RDF ZIP files found in: {dump_path}[/red]")
+        return ("0", "0")
+
     num_workers = workers or cpu_count()
-    console.print(f"Processing RDF ZIP files with {num_workers} workers")
+    console.print(f"Found {len(rdf_files)} RDF ZIP files to process with {num_workers} workers")
 
-    worker_args = (
+    worker_args = [
         (filepath, dump_path, BASE_IRI, DIR_SPLIT, ITEMS_PER_FILE, redishost, redisport, db_br, db_ra, db_metadata)
-        for filepath in _iter_rdf_files(dump_path)
-    )
+        for filepath in rdf_files
+    ]
 
-    processed_any = False
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TaskProgressColumn(),
         TimeElapsedColumn(),
+        TimeRemainingColumn(),
     ) as progress:
-        task = progress.add_task("Processing RDF files", total=None)
+        task = progress.add_task("Processing RDF files", total=len(rdf_files))
 
         with Pool(processes=num_workers) as pool:
+            completed = 0
             for filepath in pool.imap_unordered(_process_rdf_file_worker, worker_args):
-                processed_any = True
-                progress.update(task, description=f"Completed {os.path.basename(filepath)}")
-                progress.advance(task)
-
-    if not processed_any:
-        console.print(f"[red]No RDF ZIP files found in: {dump_path}[/red]")
-        return ("0", "0")
+                completed += 1
+                progress.update(
+                    task,
+                    completed=completed,
+                    description=f"Completed {os.path.basename(filepath)}",
+                )
 
     rconn_db_br = RedisDB(redishost, redisport, db_br)
     rconn_db_ra = RedisDB(redishost, redisport, db_ra)
