@@ -358,6 +358,201 @@ class TestProcessRdfFile(unittest.TestCase):
             zip_file.writestr("1000.json", json.dumps(data))
         return zip_path
 
+    def _redis_snapshot(self):
+        return {
+            "br": {
+                key: self.rconn_br.rconn.smembers(key)
+                for key in self.rconn_br.rconn.scan_iter()
+            },
+            "ra": {
+                key: self.rconn_ra.rconn.smembers(key)
+                for key in self.rconn_ra.rconn.scan_iter()
+            },
+            "metadata": {
+                key: self.rconn_metadata.rconn.get(key)
+                for key in self.rconn_metadata.rconn.scan_iter()
+            },
+        }
+
+    def test_rdf_writes_same_redis_data_as_csv(self):
+        csv_content = (
+            "id,title,author,pub_date,venue,volume,issue,page,type,publisher,editor\n"
+            "omid:br/0601 doi:10.1234/test temp:br/1,Title,[omid:ra/0601 orcid:0000-0001-1234-5678 temp:ra/1]; [omid:ra/0602 orcid:0000-0001-1234-5678],2024-01-02,[omid:br/06010 issn:1234-5678 issn:1234-5678],,,,,,"
+        )
+        _process_csv_file(
+            io.BytesIO(csv_content.encode("utf-8")),
+            self.rconn_br,
+            self.rconn_ra,
+            self.rconn_metadata,
+        )
+        csv_snapshot = self._redis_snapshot()
+        assert "temp:br/1" not in csv_snapshot["br"]
+        assert "temp:ra/1" not in csv_snapshot["ra"]
+        self.rconn_br.rconn.flushdb()
+        self.rconn_ra.rconn.flushdb()
+        self.rconn_metadata.rconn.flushdb()
+
+        br_zip = self._write_entity_zip(
+            "br",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/0601",
+                            "@type": ["http://purl.org/spar/fabio/JournalArticle"],
+                            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                                {"@value": "2024-01-02"}
+                            ],
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/0601"},
+                                {"@id": "https://w3id.org/oc/meta/id/0602"},
+                            ],
+                            "http://purl.org/spar/pro/isDocumentContextFor": [
+                                {"@id": "https://w3id.org/oc/meta/ar/0601"},
+                                {"@id": "https://w3id.org/oc/meta/ar/0602"},
+                            ],
+                            "http://purl.org/vocab/frbr/core#partOf": [
+                                {"@id": "https://w3id.org/oc/meta/br/06010"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/06010",
+                            "@type": ["http://purl.org/spar/fabio/Journal"],
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/06010"},
+                                {"@id": "https://w3id.org/oc/meta/id/06011"},
+                            ],
+                        },
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "id",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/0601",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/doi"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "10.1234/test"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/0602",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/temp"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "br/1"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/0603",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/orcid"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "0000-0001-1234-5678"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/0604",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/temp"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "ra/1"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/06010",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/issn"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "1234-5678"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/06011",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/issn"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "1234-5678"}
+                            ],
+                        },
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "ar",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ar/0601",
+                            "http://purl.org/spar/pro/withRole": [
+                                {"@id": "http://purl.org/spar/pro/author"}
+                            ],
+                            "http://purl.org/spar/pro/isHeldBy": [
+                                {"@id": "https://w3id.org/oc/meta/ra/0601"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/ar/0602",
+                            "http://purl.org/spar/pro/withRole": [
+                                {"@id": "http://purl.org/spar/pro/author"}
+                            ],
+                            "http://purl.org/spar/pro/isHeldBy": [
+                                {"@id": "https://w3id.org/oc/meta/ra/0602"}
+                            ],
+                        },
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "ra",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/0601",
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/0603"},
+                                {"@id": "https://w3id.org/oc/meta/id/0604"},
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/0602",
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/0603"}
+                            ],
+                        },
+                    ]
+                }
+            ],
+        )
+
+        br_data, ra_data, metadata = _extract_rdf_indexes(
+            br_zip,
+            self.rdf_dir,
+            "https://w3id.org/oc/meta/",
+            10000,
+            1000,
+        )
+        self.rconn_br.flush_index(br_data)
+        self.rconn_ra.flush_index(ra_data)
+        self.rconn_metadata.flush_metadata(metadata)
+
+        assert self._redis_snapshot() == csv_snapshot
+
     def test_process_rdf_indexes_and_metadata(self):
         br_zip = self._write_entity_zip(
             "br",

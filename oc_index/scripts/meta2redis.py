@@ -236,7 +236,11 @@ def _author_orcids_and_ra_index(
             # TODO: Fix RDF dumps so author roles do not reference missing RA entities.
             continue
         for identifier in _entity_identifiers(
-            ra_entity, base_dir, base_iri, dir_split, items_per_file
+            ra_entity,
+            base_dir,
+            base_iri,
+            dir_split,
+            items_per_file,
         ):
             ra_data[identifier].add(ra_omid)
             if identifier.startswith("orcid:"):
@@ -265,16 +269,6 @@ def _venue_issns(br_entity, base_dir, base_iri, dir_split, items_per_file):
         current_refs = _as_list(current_entity.get(GraphEntity.iri_part_of))
         depth += 1
     return issns
-
-
-def _unique(values):
-    seen = set()
-    result = []
-    for value in values:
-        if value not in seen:
-            seen.add(value)
-            result.append(value)
-    return result
 
 
 def _extract_rdf_indexes(filepath, base_dir, base_iri, dir_split, items_per_file):
@@ -307,11 +301,9 @@ def _extract_rdf_indexes(filepath, base_dir, base_iri, dir_split, items_per_file
                     _first_literal(br_entity, GraphEntity.iri_has_publication_date)
                 ),
                 "valid": True,
-                "orcid": _unique(orcids),
-                "issn": _unique(
-                    _venue_issns(
-                        br_entity, base_dir, base_iri, dir_split, items_per_file
-                    )
+                "orcid": orcids,
+                "issn": _venue_issns(
+                    br_entity, base_dir, base_iri, dir_split, items_per_file
                 ),
             }
         )
@@ -338,7 +330,9 @@ def _process_csv_file(a_csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata):
             l_ra_ids = get_att_ids(o_row["author"])
             for _ra in l_ra_ids:
                 ra_ids_omid = get_id_val(_ra, ["omid"])
-                ra_ids_other = [x for x in _ra if x not in ra_ids_omid]
+                ra_ids_other = [
+                    x for x in _ra if x not in ra_ids_omid and not x.startswith("temp:")
+                ]
                 for __oid in ra_ids_other:
                     ra_data[__oid].update(ra_ids_omid)
 
