@@ -24,7 +24,7 @@ from oc_index.scripts.meta2redis import (
     _get_rdf_files,
     _extract_rdf_indexes,
     _is_rdf_dump,
-    _p_csvfile,
+    _process_csv_file,
     _process_rdf_file_worker,
     get_att_ids,
     get_id_val,
@@ -53,7 +53,10 @@ class TestGetAttIds(unittest.TestCase):
 
     def test_multiple_brackets(self):
         result = get_att_ids("[omid:ra/0601 orcid:0000-0001-1234-5678]; [omid:ra/0602]")
-        assert result == [["omid:ra/0601", "orcid:0000-0001-1234-5678"], ["omid:ra/0602"]]
+        assert result == [
+            ["omid:ra/0601", "orcid:0000-0001-1234-5678"],
+            ["omid:ra/0602"],
+        ]
 
     def test_no_brackets(self):
         result = get_att_ids("no brackets here")
@@ -87,7 +90,9 @@ class TestGetIdVal(unittest.TestCase):
 
 class FakeRedisDB:
     def __init__(self, fake_server: fakeredis.FakeServer, db: int):
-        self.rconn = fakeredis.FakeRedis(server=fake_server, db=db, decode_responses=True)
+        self.rconn = fakeredis.FakeRedis(
+            server=fake_server, db=db, decode_responses=True
+        )
 
     def flush_index(self, data: Dict[str, Set[str]]) -> None:
         pipe = self.rconn.pipeline()
@@ -163,7 +168,9 @@ class TestRedisDB(unittest.TestCase):
         }
         self.rconn_metadata.flush_metadata(metadata)
         result = self.rconn_metadata.rconn.get("omid:br/0601")
-        assert result == '{"date": "2023-01-15", "valid": true, "orcid": [], "issn": []}'
+        assert (
+            result == '{"date": "2023-01-15", "valid": true, "orcid": [], "issn": []}'
+        )
 
     def test_key_count(self):
         data = {
@@ -210,7 +217,7 @@ class TestProcessCsvFile(unittest.TestCase):
             "omid:br/0601 doi:10.1234/test,Title,[omid:ra/0601],2023-01-15,[omid:br/0610 issn:1234-5678],,,,,,"
         )
         csv_file = io.BytesIO(csv_content.encode("utf-8"))
-        _p_csvfile(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
+        _process_csv_file(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
         assert self.rconn_br.rconn.smembers("doi:10.1234/test") == {"omid:br/0601"}
 
     def test_process_csv_ra_index(self):
@@ -219,8 +226,10 @@ class TestProcessCsvFile(unittest.TestCase):
             "omid:br/0601,Title,[omid:ra/0601 orcid:0000-0001-1234-5678],2023-01-15,[],,,,,,"
         )
         csv_file = io.BytesIO(csv_content.encode("utf-8"))
-        _p_csvfile(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
-        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1234-5678") == {"omid:ra/0601"}
+        _process_csv_file(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
+        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1234-5678") == {
+            "omid:ra/0601"
+        }
 
     def test_process_csv_metadata(self):
         csv_content = (
@@ -228,7 +237,7 @@ class TestProcessCsvFile(unittest.TestCase):
             "omid:br/0601,Title,[omid:ra/0601 orcid:0000-0001-1234-5678],2023-01-15,[omid:br/0610 issn:1234-5678],,,,,,"
         )
         csv_file = io.BytesIO(csv_content.encode("utf-8"))
-        _p_csvfile(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
+        _process_csv_file(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
         result = json.loads(cast(str, self.rconn_metadata.rconn.get("omid:br/0601")))
         assert result == {
             "date": "2023-01-15",
@@ -243,9 +252,13 @@ class TestProcessCsvFile(unittest.TestCase):
             "omid:br/0601,Title,[omid:ra/0601 orcid:0000-0001-1111-1111]; [omid:ra/0602 orcid:0000-0002-2222-2222],2023-01-15,[],,,,,,"
         )
         csv_file = io.BytesIO(csv_content.encode("utf-8"))
-        _p_csvfile(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
-        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1111-1111") == {"omid:ra/0601"}
-        assert self.rconn_ra.rconn.smembers("orcid:0000-0002-2222-2222") == {"omid:ra/0602"}
+        _process_csv_file(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
+        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1111-1111") == {
+            "omid:ra/0601"
+        }
+        assert self.rconn_ra.rconn.smembers("orcid:0000-0002-2222-2222") == {
+            "omid:ra/0602"
+        }
         result = json.loads(cast(str, self.rconn_metadata.rconn.get("omid:br/0601")))
         assert set(result["orcid"]) == {"0000-0001-1111-1111", "0000-0002-2222-2222"}
 
@@ -255,7 +268,7 @@ class TestProcessCsvFile(unittest.TestCase):
             "omid:br/0601,Title,[omid:ra/0601],2023-01-15,[omid:br/0610 issn:1234-5678 issn:8765-4321],,,,,,"
         )
         csv_file = io.BytesIO(csv_content.encode("utf-8"))
-        _p_csvfile(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
+        _process_csv_file(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
         result = json.loads(cast(str, self.rconn_metadata.rconn.get("omid:br/0601")))
         assert set(result["issn"]) == {"1234-5678", "8765-4321"}
 
@@ -346,115 +359,127 @@ class TestProcessRdfFile(unittest.TestCase):
         return zip_path
 
     def test_process_rdf_indexes_and_metadata(self):
-        br_zip = self._write_entity_zip("br", [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0601",
-                        "@type": [
-                            "http://purl.org/spar/fabio/Expression",
-                            "http://purl.org/spar/fabio/JournalArticle",
-                        ],
-                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@value": "2024-01-02"}
-                        ],
-                        "http://purl.org/spar/datacite/hasIdentifier": [
-                            {"@id": "https://w3id.org/oc/meta/id/0601"}
-                        ],
-                        "http://purl.org/spar/pro/isDocumentContextFor": [
-                            {"@id": "https://w3id.org/oc/meta/ar/0601"}
-                        ],
-                        "http://purl.org/vocab/frbr/core#partOf": [
-                            {"@id": "https://w3id.org/oc/meta/br/06011"}
-                        ],
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06011",
-                        "@type": ["http://purl.org/spar/fabio/JournalIssue"],
-                        "http://purl.org/vocab/frbr/core#partOf": [
-                            {"@id": "https://w3id.org/oc/meta/br/06012"}
-                        ],
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06012",
-                        "@type": ["http://purl.org/spar/fabio/JournalVolume"],
-                        "http://purl.org/vocab/frbr/core#partOf": [
-                            {"@id": "https://w3id.org/oc/meta/br/06010"}
-                        ],
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/06010",
-                        "@type": [
-                            "http://purl.org/spar/fabio/Expression",
-                            "http://purl.org/spar/fabio/Journal",
-                        ],
-                        "http://purl.org/spar/datacite/hasIdentifier": [
-                            {"@id": "https://w3id.org/oc/meta/id/06010"}
-                        ],
-                    },
-                ]
-            }
-        ])
-        self._write_entity_zip("id", [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/id/0601",
-                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
-                            {"@id": "http://purl.org/spar/datacite/doi"}
-                        ],
-                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                            {"@value": "10.1234/test"}
-                        ],
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/id/0602",
-                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
-                            {"@id": "http://purl.org/spar/datacite/orcid"}
-                        ],
-                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                            {"@value": "0000-0001-1234-5678"}
-                        ],
-                    },
-                    {
-                        "@id": "https://w3id.org/oc/meta/id/06010",
-                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
-                            {"@id": "http://purl.org/spar/datacite/issn"}
-                        ],
-                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                            {"@value": "1234-5678"}
-                        ],
-                    },
-                ]
-            }
-        ])
-        self._write_entity_zip("ar", [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/ar/0601",
-                        "http://purl.org/spar/pro/withRole": [
-                            {"@id": "http://purl.org/spar/pro/author"}
-                        ],
-                        "http://purl.org/spar/pro/isHeldBy": [
-                            {"@id": "https://w3id.org/oc/meta/ra/0601"}
-                        ],
-                    }
-                ]
-            }
-        ])
-        self._write_entity_zip("ra", [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/ra/0601",
-                        "http://purl.org/spar/datacite/hasIdentifier": [
-                            {"@id": "https://w3id.org/oc/meta/id/0602"}
-                        ],
-                    }
-                ]
-            }
-        ])
+        br_zip = self._write_entity_zip(
+            "br",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/0601",
+                            "@type": [
+                                "http://purl.org/spar/fabio/Expression",
+                                "http://purl.org/spar/fabio/JournalArticle",
+                            ],
+                            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                                {"@value": "2024-01-02"}
+                            ],
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/0601"}
+                            ],
+                            "http://purl.org/spar/pro/isDocumentContextFor": [
+                                {"@id": "https://w3id.org/oc/meta/ar/0601"}
+                            ],
+                            "http://purl.org/vocab/frbr/core#partOf": [
+                                {"@id": "https://w3id.org/oc/meta/br/06011"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/06011",
+                            "@type": ["http://purl.org/spar/fabio/JournalIssue"],
+                            "http://purl.org/vocab/frbr/core#partOf": [
+                                {"@id": "https://w3id.org/oc/meta/br/06012"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/06012",
+                            "@type": ["http://purl.org/spar/fabio/JournalVolume"],
+                            "http://purl.org/vocab/frbr/core#partOf": [
+                                {"@id": "https://w3id.org/oc/meta/br/06010"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/06010",
+                            "@type": [
+                                "http://purl.org/spar/fabio/Expression",
+                                "http://purl.org/spar/fabio/Journal",
+                            ],
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/06010"}
+                            ],
+                        },
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "id",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/0601",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/doi"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "10.1234/test"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/0602",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/orcid"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "0000-0001-1234-5678"}
+                            ],
+                        },
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/06010",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/issn"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "1234-5678"}
+                            ],
+                        },
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "ar",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ar/0601",
+                            "http://purl.org/spar/pro/withRole": [
+                                {"@id": "http://purl.org/spar/pro/author"}
+                            ],
+                            "http://purl.org/spar/pro/isHeldBy": [
+                                {"@id": "https://w3id.org/oc/meta/ra/0601"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "ra",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/0601",
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/0602"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
 
         br_data, ra_data, metadata = _extract_rdf_indexes(
             br_zip,
@@ -468,7 +493,9 @@ class TestProcessRdfFile(unittest.TestCase):
         self.rconn_metadata.flush_metadata(metadata)
 
         assert self.rconn_br.rconn.smembers("doi:10.1234/test") == {"omid:br/0601"}
-        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1234-5678") == {"omid:ra/0601"}
+        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1234-5678") == {
+            "omid:ra/0601"
+        }
         assert self.rconn_metadata.rconn.get("omid:br/06011") is None
         assert self.rconn_metadata.rconn.get("omid:br/06012") is None
         assert self.rconn_metadata.rconn.get("omid:br/06010") is None
@@ -479,6 +506,180 @@ class TestProcessRdfFile(unittest.TestCase):
             "valid": True,
             "orcid": ["0000-0001-1234-5678"],
             "issn": ["1234-5678"],
+        }
+
+    def test_rdf_author_missing_ra_entity_is_skipped(self):
+        br_zip = self._write_entity_zip(
+            "br",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/0601",
+                            "@type": ["http://purl.org/spar/fabio/JournalArticle"],
+                            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                                {"@value": "2024-01-02"}
+                            ],
+                            "http://purl.org/spar/pro/isDocumentContextFor": [
+                                {"@id": "https://w3id.org/oc/meta/ar/0601"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "ar",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ar/0601",
+                            "http://purl.org/spar/pro/withRole": [
+                                {"@id": "http://purl.org/spar/pro/author"}
+                            ],
+                            "http://purl.org/spar/pro/isHeldBy": [
+                                {"@id": "https://w3id.org/oc/meta/ra/0601"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "ra",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ra/0602",
+                        }
+                    ]
+                }
+            ],
+        )
+
+        br_data, ra_data, metadata = _extract_rdf_indexes(
+            br_zip,
+            self.rdf_dir,
+            "https://w3id.org/oc/meta/",
+            10000,
+            1000,
+        )
+
+        assert dict(br_data) == {}
+        assert dict(ra_data) == {}
+        assert json.loads(metadata["omid:br/0601"]) == {
+            "date": "2024-01-02",
+            "valid": True,
+            "orcid": [],
+            "issn": [],
+        }
+
+    def test_rdf_author_without_held_entity_is_skipped(self):
+        br_zip = self._write_entity_zip(
+            "br",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/0601",
+                            "@type": ["http://purl.org/spar/fabio/JournalArticle"],
+                            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                                {"@value": "2024-01-02"}
+                            ],
+                            "http://purl.org/spar/pro/isDocumentContextFor": [
+                                {"@id": "https://w3id.org/oc/meta/ar/0601"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "ar",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ar/0601",
+                            "http://purl.org/spar/pro/withRole": [
+                                {"@id": "http://purl.org/spar/pro/author"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
+
+        br_data, ra_data, metadata = _extract_rdf_indexes(
+            br_zip,
+            self.rdf_dir,
+            "https://w3id.org/oc/meta/",
+            10000,
+            1000,
+        )
+
+        assert dict(br_data) == {}
+        assert dict(ra_data) == {}
+        assert json.loads(metadata["omid:br/0601"]) == {
+            "date": "2024-01-02",
+            "valid": True,
+            "orcid": [],
+            "issn": [],
+        }
+
+    def test_rdf_missing_author_role_entity_is_skipped(self):
+        br_zip = self._write_entity_zip(
+            "br",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/0601",
+                            "@type": ["http://purl.org/spar/fabio/JournalArticle"],
+                            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                                {"@value": "2024-01-02"}
+                            ],
+                            "http://purl.org/spar/pro/isDocumentContextFor": [
+                                {"@id": "https://w3id.org/oc/meta/ar/0601"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "ar",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/ar/0602",
+                            "http://purl.org/spar/pro/withRole": [
+                                {"@id": "http://purl.org/spar/pro/author"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
+
+        br_data, ra_data, metadata = _extract_rdf_indexes(
+            br_zip,
+            self.rdf_dir,
+            "https://w3id.org/oc/meta/",
+            10000,
+            1000,
+        )
+
+        assert dict(br_data) == {}
+        assert dict(ra_data) == {}
+        assert json.loads(metadata["omid:br/0601"]) == {
+            "date": "2024-01-02",
+            "valid": True,
+            "orcid": [],
+            "issn": [],
         }
 
     def test_empty_rdf_archive_raises(self):
@@ -497,21 +698,26 @@ class TestProcessRdfFile(unittest.TestCase):
             )
 
     def test_missing_referenced_rdf_archive_raises(self):
-        br_zip = self._write_entity_zip("br", [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0601",
-                        "@type": ["http://purl.org/spar/fabio/JournalArticle"],
-                        "http://purl.org/spar/datacite/hasIdentifier": [
-                            {"@id": "https://w3id.org/oc/meta/id/0601"}
-                        ],
-                    }
-                ]
-            }
-        ])
+        br_zip = self._write_entity_zip(
+            "br",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/0601",
+                            "@type": ["http://purl.org/spar/fabio/JournalArticle"],
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/0601"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
 
-        with self.assertRaisesRegex(FileNotFoundError, "Referenced RDF archive not found"):
+        with self.assertRaisesRegex(
+            FileNotFoundError, "Referenced RDF archive not found"
+        ):
             _extract_rdf_indexes(
                 br_zip,
                 self.rdf_dir,
@@ -521,54 +727,62 @@ class TestProcessRdfFile(unittest.TestCase):
             )
 
     def test_rdf_worker_flushes_indexes(self):
-        br_zip = self._write_entity_zip("br", [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/br/0601",
-                        "@type": ["http://purl.org/spar/fabio/JournalArticle"],
-                        "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
-                            {"@value": "2024-01-02"}
-                        ],
-                        "http://purl.org/spar/datacite/hasIdentifier": [
-                            {"@id": "https://w3id.org/oc/meta/id/0601"}
-                        ],
-                    }
-                ]
-            }
-        ])
-        self._write_entity_zip("id", [
-            {
-                "@graph": [
-                    {
-                        "@id": "https://w3id.org/oc/meta/id/0601",
-                        "http://purl.org/spar/datacite/usesIdentifierScheme": [
-                            {"@id": "http://purl.org/spar/datacite/doi"}
-                        ],
-                        "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
-                            {"@value": "10.1234/test"}
-                        ],
-                    }
-                ]
-            }
-        ])
+        br_zip = self._write_entity_zip(
+            "br",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/br/0601",
+                            "@type": ["http://purl.org/spar/fabio/JournalArticle"],
+                            "http://prismstandard.org/namespaces/basic/2.0/publicationDate": [
+                                {"@value": "2024-01-02"}
+                            ],
+                            "http://purl.org/spar/datacite/hasIdentifier": [
+                                {"@id": "https://w3id.org/oc/meta/id/0601"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
+        self._write_entity_zip(
+            "id",
+            [
+                {
+                    "@graph": [
+                        {
+                            "@id": "https://w3id.org/oc/meta/id/0601",
+                            "http://purl.org/spar/datacite/usesIdentifierScheme": [
+                                {"@id": "http://purl.org/spar/datacite/doi"}
+                            ],
+                            "http://www.essepuntato.it/2010/06/literalreification/hasLiteralValue": [
+                                {"@value": "10.1234/test"}
+                            ],
+                        }
+                    ]
+                }
+            ],
+        )
 
         def fake_redis_db(_host: str, _port: str, db: str) -> FakeRedisDB:
             return FakeRedisDB(self.fake_server, int(db))
 
         with patch("oc_index.scripts.meta2redis.RedisDB", side_effect=fake_redis_db):
-            result = _process_rdf_file_worker((
-                br_zip,
-                self.rdf_dir,
-                "https://w3id.org/oc/meta/",
-                10000,
-                1000,
-                "localhost",
-                "6379",
-                "0",
-                "1",
-                "2",
-            ))
+            result = _process_rdf_file_worker(
+                (
+                    br_zip,
+                    self.rdf_dir,
+                    "https://w3id.org/oc/meta/",
+                    10000,
+                    1000,
+                    "localhost",
+                    "6379",
+                    "0",
+                    "1",
+                    "2",
+                )
+            )
 
         assert result == br_zip
         assert self.rconn_br.rconn.smembers("doi:10.1234/test") == {"omid:br/0601"}
@@ -598,24 +812,37 @@ class TestIntegration(unittest.TestCase):
     def test_full_csv_processing(self):
         csv_path = os.path.join(self.test_dir, "sample_meta.csv")
         with open(csv_path, "rb") as f:
-            _p_csvfile(f, self.rconn_br, self.rconn_ra, self.rconn_metadata)
+            _process_csv_file(f, self.rconn_br, self.rconn_ra, self.rconn_metadata)
 
         assert self.rconn_br.rconn.smembers("doi:10.1234/test1") == {"omid:br/0601"}
         assert self.rconn_br.rconn.smembers("doi:10.1234/test2") == {"omid:br/0602"}
         assert self.rconn_br.rconn.smembers("openalex:W123") == {"omid:br/0601"}
         assert self.rconn_br.rconn.smembers("pmid:12345678") == {"omid:br/0602"}
-        assert self.rconn_br.rconn.smembers("isbn:978-3-16-148410-0") == {"omid:br/0603"}
+        assert self.rconn_br.rconn.smembers("isbn:978-3-16-148410-0") == {
+            "omid:br/0603"
+        }
 
-        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1234-5678") == {"omid:ra/0601"}
-        assert self.rconn_ra.rconn.smembers("orcid:0000-0002-1234-5678") == {"omid:ra/0602"}
+        assert self.rconn_ra.rconn.smembers("orcid:0000-0001-1234-5678") == {
+            "omid:ra/0601"
+        }
+        assert self.rconn_ra.rconn.smembers("orcid:0000-0002-1234-5678") == {
+            "omid:ra/0602"
+        }
 
-        metadata_1 = json.loads(cast(str, self.rconn_metadata.rconn.get("omid:br/0601")))
+        metadata_1 = json.loads(
+            cast(str, self.rconn_metadata.rconn.get("omid:br/0601"))
+        )
         assert metadata_1["date"] == "2023-01-15"
         assert metadata_1["valid"] is True
-        assert set(metadata_1["orcid"]) == {"0000-0001-1234-5678", "0000-0002-1234-5678"}
+        assert set(metadata_1["orcid"]) == {
+            "0000-0001-1234-5678",
+            "0000-0002-1234-5678",
+        }
         assert metadata_1["issn"] == ["1234-5678"]
 
-        metadata_2 = json.loads(cast(str, self.rconn_metadata.rconn.get("omid:br/0602")))
+        metadata_2 = json.loads(
+            cast(str, self.rconn_metadata.rconn.get("omid:br/0602"))
+        )
         assert metadata_2["date"] == "2023-02-20"
         assert set(metadata_2["issn"]) == {"8765-4321", "1111-2222"}
 
@@ -623,7 +850,9 @@ class TestIntegration(unittest.TestCase):
         zip_path = os.path.join(self.test_dir, "sample_meta.zip")
         with ZipFile(zip_path) as archive:
             with archive.open("sample_meta.csv") as csv_file:
-                _p_csvfile(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
+                _process_csv_file(
+                    csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata
+                )
 
         assert self.rconn_br.rconn.smembers("doi:10.1234/test1") == {"omid:br/0601"}
 
@@ -631,7 +860,9 @@ class TestIntegration(unittest.TestCase):
         tar_path = os.path.join(self.test_dir, "sample_meta.tar.gz")
         with tarfile.open(tar_path, "r:gz") as archive:
             csv_file = archive.extractfile("sample_meta.csv")
-            _p_csvfile(csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata)
+            _process_csv_file(
+                csv_file, self.rconn_br, self.rconn_ra, self.rconn_metadata
+            )
 
         assert self.rconn_br.rconn.smembers("doi:10.1234/test1") == {"omid:br/0601"}
 
