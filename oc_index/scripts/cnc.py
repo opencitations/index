@@ -124,6 +124,18 @@ def gen_cits(cits, pid = 0):
     return res_citations
 
 
+def _get_br_omids(br_anyids):
+    br_omids = {br_anyid: [] for br_anyid in dict.fromkeys(br_anyids)}
+    pipe = redis_br.pipeline()
+    for br_anyid in br_omids:
+        pipe.smembers(br_anyid)
+
+    for br_anyid, omids in zip(br_omids, pipe.execute()):
+        br_omids[br_anyid] = omids
+
+    return br_omids
+
+
 def set_cits(l_cits, pid = 0):
     """
     Set in Redis a list of citations
@@ -131,10 +143,6 @@ def set_cits(l_cits, pid = 0):
     Args:
         l_cits (list, mandatory): list of tuples, each tuple has a citing and cited entity
     """
-    global _logger
-
-    citations_duplicated = 0
-    # entities_with_no_omid = set()
     cits_buffer = []
     res_cits = dict()
 
@@ -147,27 +155,20 @@ def set_cits(l_cits, pid = 0):
 
             # ==== (1) GET OMIDs of all the BRs involved ====
             br_anyids = [x for c in cits_buffer for x in c]
-            br_omids = {key: value for key, value in zip(br_anyids, redis_br.mget(br_anyids))}
+            br_omids = _get_br_omids(br_anyids)
 
             # iterate by couples – each couple is a list
             for cit in cits_buffer:
 
-                citing_id, val_citing_omid = cit[0], br_omids[cit[0]]
-                cited_id, val_cited_omid = cit[1], br_omids[cit[1]]
-
-                # for omid, eid in [(val_citing_omid, citing_id), (val_cited_omid, cited_id)]:
-                #     if omid is None:
-                #         entities_with_no_omid.add(eid)
+                val_citing_omid = br_omids[cit[0]]
+                val_cited_omid = br_omids[cit[1]]
 
                 # check if citing or cited entities have an OMID
-                if val_citing_omid == None or val_cited_omid == None:
+                if not val_citing_omid or not val_cited_omid:
                     continue
 
-                l_citing_omid = val_citing_omid.decode("utf-8").split("; ")
-                l_cited_omid = val_cited_omid.decode("utf-8").split("; ")
-
                 # since an ANYID miught have multiple OMIDs, we need to get all of them and iterate over all pairs
-                cit_pairs = [(x, y) for x in l_citing_omid for y in l_cited_omid]
+                cit_pairs = [(x, y) for x in val_citing_omid for y in val_cited_omid]
                 for citing_omid, cited_omid in cit_pairs:
                     oci_omid = citing_omid.replace("omid:br/","")+"-"+cited_omid.replace("omid:br/","")
                     res_cits[oci_omid] = (citing_omid,cited_omid)
@@ -361,7 +362,12 @@ def main():
         f"identifier: {index_identifier}"
     )
 
-    redis_br = redis.Redis(host="127.0.0.1", port=6379, db=int(_config.get("cnc", "db_br")))
+    redis_br = redis.Redis(
+        host="127.0.0.1",
+        port=6379,
+        db=int(_config.get("cnc", "db_br")),
+        decode_responses=True,
+    )
     redis_cits_cache = redis.Redis(host="127.0.0.1", port=6379, db=int(_config.get("cnc", "db_omid")))
 
     # input directory/file
