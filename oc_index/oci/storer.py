@@ -6,6 +6,7 @@
 #
 # SPDX-License-Identifier: ISC
 
+import io
 from os import sep
 from datetime import datetime
 from os.path import exists, basename, isfile
