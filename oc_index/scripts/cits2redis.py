@@ -8,6 +8,7 @@
 # SPDX-License-Identifier: ISC
 
 import csv
+import io
 import json
 from zipfile import ZipFile
 import os
@@ -53,7 +54,7 @@ def upload2redis(rconn, logger, dump_path="", intype=""):
 
     logger.info("Starting streaming upload to Redis...")
 
-    if intype == "ZIP":
+    if intype == "RDF_ZIP":
         for filename in os.listdir(dump_path):
             fzip = os.path.join(dump_path, filename)
 
@@ -109,8 +110,38 @@ def upload2redis(rconn, logger, dump_path="", intype=""):
                         if counter >= BATCH_SIZE:
                             flush_pipeline()
 
+    elif intype == "CSV_ZIP":
+        for filename in os.listdir(dump_path):
+            fzip = os.path.join(dump_path, filename)
+
+            if fzip.endswith(".zip") and os.path.isfile(fzip):
+                logger.info(f"Reading {fzip} ...")
+
+                with ZipFile(fzip) as archive:
+                    for member in tqdm(archive.namelist()):
+                        if member.endswith(".csv"):
+                            with archive.open(member) as f:
+                                text_stream = io.TextIOWrapper(
+                                    f, encoding="utf-8", errors="ignore"
+                                )
+                                reader = csv.DictReader(text_stream)
+
+                                for row in reader:
+                                    citing = row.get("citing")
+                                    cited = row.get("cited")
+
+                                    if not citing or not cited:
+                                        continue
+
+                                    pipe.sadd(cited, citing)
+                                    counter += 1
+                                    total += 1
+
+                                    if counter >= BATCH_SIZE:
+                                        flush_pipeline()
+
     else:
-        raise ValueError("intype must be either 'ZIP' or 'TTL'")
+        raise ValueError("intype must be one of 'TTL', 'RDF_ZIP', or 'CSV_ZIP'")
 
     # Flush remaining operations
     flush_pipeline()
@@ -134,14 +165,23 @@ def main():
         "--dump",
         type=str,
         required=True,
-        help="Directory containing TTL or ZIP RDF dump files"
+        help=(
+            "Directory containing plain TTL files (TTL), ZIP files of RDF "
+            "TTL (RDF_ZIP), or ZIP files of CSV dumps (CSV_ZIP)"
+        )
     )
 
     parser.add_argument(
         "-t",
         "--intype",
         required=True,
-        help="Input file type: TTL or ZIP",
+        choices=["TTL", "RDF_ZIP", "CSV_ZIP"],
+        type=str.upper,
+        help=(
+            "Input file type: TTL (plain .ttl files), RDF_ZIP (ZIP archives of "
+            "RDF .ttl files), or CSV_ZIP (ZIP archives of .csv files with "
+            "'citing'/'cited' columns)"
+        ),
     )
 
     args = parser.parse_args()
