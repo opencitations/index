@@ -31,7 +31,7 @@ def get_source(s, config):
             "openaire",
             "https://zenodo.org/records/7845968"
         },
-        "crossref": {
+        "coci": {
             "crossref",
             "https://doi.org/10.6084/m9.figshare.6741422.v19",
             "https://api.crossref.org/"
@@ -40,7 +40,7 @@ def get_source(s, config):
             "https://doi.org/10.35092/yhjc.c.4586573",
             "https://doi.org/10.6084/m9.figshare.21776351.v1"
         },
-        "datacite":{
+        "doci":{
                 "datacite",
                 "https://archive.org/details/datacite_dump_20211022",
                 "https://archive.org/details/datacite-2024-04-17"

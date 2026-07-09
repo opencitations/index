@@ -45,6 +45,7 @@ baseurl: str
 source: str
 redis_br: redis.Redis  # type: ignore[type-arg]
 redis_cits_cache: redis.Redis  # type: ignore[type-arg]
+redis_cits: redis.Redis
 
 
 def save_data(output_dir, cits_obj, pid = 0):
@@ -136,7 +137,7 @@ def _get_br_omids(br_anyids):
     return br_omids
 
 
-def set_cits(l_cits, pid = 0):
+def set_cits(collection, checkindex, l_cits, pid = 0):
     """
     Set in Redis a list of citations
 
@@ -170,8 +171,18 @@ def set_cits(l_cits, pid = 0):
                 # since an ANYID miught have multiple OMIDs, we need to get all of them and iterate over all pairs
                 cit_pairs = [(x, y) for x in val_citing_omid for y in val_cited_omid]
                 for citing_omid, cited_omid in cit_pairs:
-                    oci_omid = citing_omid.replace("omid:br/","")+"-"+cited_omid.replace("omid:br/","")
-                    res_cits[oci_omid] = (citing_omid,cited_omid)
+
+                    in_ocindex = False
+
+                    # just if requested
+                    if checkindex:
+                        cited_redis = redis_cits.smembers(cited_omid.replace("omid:", ""))
+                        if cited_redis:
+                            in_ocindex = collection.lower() + ":" + citing_omid.replace("omid:", "") in cited_redis
+
+                    if not in_ocindex:
+                        oci_omid = citing_omid.replace("omid:br/","")+"-"+cited_omid.replace("omid:br/","")
+                        res_cits[oci_omid] = (citing_omid,cited_omid)
 
             # Reset buffer and write in cache
             cits_buffer = []
@@ -181,7 +192,7 @@ def set_cits(l_cits, pid = 0):
     return res_cits
 
 
-def cnc(collection, input_files, intype, output_dir, pid = 0):
+def cnc(collection, input_files, intype, output_dir, pid = 0, checkindex = False):
     """
     Creates RDF data for the new citations ready to be ingested in OpenCitations Index – OMID to OMID citations
     The process creates also Provenance data in RDF and CSV.
@@ -229,6 +240,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
                         with archive.open(csv_name) as csv_file:
                             cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
                             ocindex_cits = set_cits(
+                                collection,
                                 cits_in_file,
                                 pid
                             )
@@ -249,6 +261,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
                         if csv_file:
                             cits_in_file = [(row[citing_col],row[cited_col]) for row in list(csv.DictReader(io.TextIOWrapper(csv_file)))]
                             ocindex_cits = set_cits(
+                                collection,
                                 cits_in_file,
                                 pid
                             )
@@ -270,7 +283,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0):
                     for row in csv.DictReader(csv_file)
                 ]
 
-                ocindex_cits = set_cits(cits_in_file, pid)
+                ocindex_cits = set_cits(collection, checkindex, cits_in_file, pid)
                 cits_objs = gen_cits(ocindex_cits, pid)
                 save_data(output_dir, cits_objs, pid)
 
@@ -338,6 +351,14 @@ def main():
         default=1,
         help="Number of parallel processes to use (default: is set to 1)",
     )
+    arg_parser.add_argument(
+        "-ch",
+        "--checkindex",
+        action="store_true",
+        default=False,
+        help="Enable a check in case the citation comming form this collection is already in oc index",
+    )
+
     args = arg_parser.parse_args()
 
     global _logger, idbase_url, index_identifier, agent, service_name, baseurl, source
@@ -346,13 +367,22 @@ def main():
     _config = get_config(args.config)
     _logger = get_logger()
 
+    # The corresponding datasource collection in OpenCitations
+    # E.G. COCI, DOCI etc
+    collection = args.collection.strip().upper()
+
+    # The corresponding source url
+    # E.G. https://api.crossref.org/snapshots/monthly/2023/09/all.json.tar.gz",
+    source = _config.get(collection_name, "source")
+    if args.source:
+        source = args.source.strip()
+
     collection_name = "INDEX"
     idbase_url = _config.get(collection_name, "idbaseurl")
     index_identifier = _config.get(collection_name, "identifier")
     agent = _config.get(collection_name, "agent")
     service_name = _config.get(collection_name, "service")
     baseurl = _config.get(collection_name, "baseurl")
-    source = _config.get(collection_name, "source")
     _logger.info(
         "--------- Configurations ----------\n"
         f"idbase_url: {idbase_url}\n"
@@ -370,6 +400,13 @@ def main():
     )
     redis_cits_cache = redis.Redis(host="127.0.0.1", port=6379, db=int(_config.get("cnc", "db_omid")))
 
+    redis_cits = redis.Redis(
+        host="127.0.0.1",
+        port=6379,
+        db=int(_config.get("cnc", "db_cits")),
+        decode_responses=True,
+    )
+
     # input directory/file
     input_files = []
     if os.path.isdir(args.input):
@@ -382,14 +419,6 @@ def main():
     # type of the input files
     # E.G. CSV, ZIP or TARGZ
     intype = args.intype.strip().upper()
-
-    # The corresponding datasource collection in OpenCitations
-    # E.G. COCI, DOCI etc
-    collection = args.collection.strip().upper()
-
-    # The corresponding source url
-    # E.G. https://api.crossref.org/snapshots/monthly/2023/09/all.json.tar.gz",
-    source = args.source.strip()
 
     # The output directory
     output_dir = args.output + "/" if args.output[-1] != "/" else args.output
@@ -404,7 +433,7 @@ def main():
 
         processes = []
         for idx,chunk in enumerate(chunks):
-            p = Process(target=cnc, args=(collection, chunk, intype, output_dir, idx))
+            p = Process(target=cnc, args=(collection, chunk, intype, output_dir, idx, args.checkindex))
             p.start()
             processes.append(p)
 
