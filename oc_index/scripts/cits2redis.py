@@ -25,6 +25,41 @@ csv.field_size_limit(sys.maxsize)
 NEEDLE = "ci/"
 BATCH_SIZE = 50_000
 
+def get_source(s, config):
+    s_sources = {
+        "oroci": {
+            "openaire",
+            "https://zenodo.org/records/7845968"
+        },
+        "crossref": {
+            "crossref",
+            "https://doi.org/10.6084/m9.figshare.6741422.v19",
+            "https://api.crossref.org/"
+        },
+        "poci":{
+            "https://doi.org/10.35092/yhjc.c.4586573",
+            "https://doi.org/10.6084/m9.figshare.21776351.v1"
+        },
+        "datacite":{
+                "datacite",
+                "https://archive.org/details/datacite_dump_20211022",
+                "https://archive.org/details/datacite-2024-04-17"
+        },
+        "joci":{
+            "https://api.japanlinkcenter.org"
+        },
+        "croci": {
+            "https://doi.org/10.5281/zenodo.3832935"
+        }
+    }
+    for k,vals in s_sources.items():
+        for v in vals:
+            if v in s:
+                return k
+
+    #in case none is found then it is probably CROCI
+    return "croci"
+
 
 def extract_oci_from_line(line):
     """Extract OCI from a TTL line."""
@@ -40,7 +75,7 @@ def extract_oci_from_line(line):
     return line[start:end]
 
 
-def upload2redis(rconn, logger, dump_path="", intype=""):
+def upload2redis(rconn, logger, dump_path="", intype="", config=None):
     intype = intype.upper()
     pipe = rconn.pipeline()
     counter = 0
@@ -127,6 +162,11 @@ def upload2redis(rconn, logger, dump_path="", intype=""):
                                 reader = csv.DictReader(text_stream)
 
                                 for row in reader:
+
+                                    oci = row.get("oci")
+                                    dsource = get_source(row.get("source"), config)
+                                    citing,cited = [dsource+":br/"+br for br in oci.split("oci:")[1].split("-")]
+
                                     citing = row.get("citing")
                                     cited = row.get("cited")
 
@@ -180,7 +220,7 @@ def main():
         help=(
             "Input file type: TTL (plain .ttl files), RDF_ZIP (ZIP archives of "
             "RDF .ttl files), or CSV_ZIP (ZIP archives of .csv files with "
-            "'citing'/'cited' columns)"
+            "'oci' and 'source' columns)"
         ),
     )
 
@@ -196,7 +236,7 @@ def main():
     )
 
     _logger.info("Uploading citations in RDF format to Redis ...")
-    upload2redis(rconn, _logger, args.dump, args.intype)
+    upload2redis(rconn, _logger, args.dump, args.intype, _config)
     _logger.info("Done!")
 
 
