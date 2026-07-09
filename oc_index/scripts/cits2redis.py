@@ -163,7 +163,7 @@ def upload2redis(rconn, logger, dump_path="", intype="", config=None):
 
                                 for row in reader:
 
-                                    oci = row.get("oci")
+                                    oci = row.get("id")
                                     citing,cited = ["br/"+br for br in oci.split("oci:")[1].split("-")]
                                     cited = get_source(row.get("source"), config)+":"+ cited
 
@@ -220,7 +220,7 @@ def main():
         help=(
             "Input file type: TTL (plain .ttl files), RDF_ZIP (ZIP archives of "
             "RDF .ttl files), or CSV_ZIP (ZIP archives of .csv files with "
-            "'oci' and 'source' columns)"
+            "'id'(oci) and 'source' columns)"
         ),
     )
 
