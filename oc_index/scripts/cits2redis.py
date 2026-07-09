@@ -164,11 +164,11 @@ def upload2redis(rconn, logger, dump_path="", intype="", config=None):
                                 for row in reader:
 
                                     oci = row.get("oci")
-                                    dsource = get_source(row.get("source"), config)
-                                    citing,cited = [dsource+":br/"+br for br in oci.split("oci:")[1].split("-")]
+                                    citing,cited = ["br/"+br for br in oci.split("oci:")[1].split("-")]
+                                    cited = get_source(row.get("source"), config)+":"+ cited
 
-                                    citing = row.get("citing")
-                                    cited = row.get("cited")
+                                    #citing = row.get("citing")
+                                    #cited = row.get("cited")
 
                                     if not citing or not cited:
                                         continue
