@@ -137,58 +137,40 @@ def _get_br_omids(br_anyids):
     return br_omids
 
 
-def set_cits(collection, checkindex, l_cits, pid = 0):
-    """
-    Set in Redis a list of citations
-
-    Args:
-        l_cits (list, mandatory): list of tuples, each tuple has a citing and cited entity
-    """
+def set_cits(collection, checkindex, l_cits, pid=0):
     cits_buffer = []
     res_cits = dict()
-
-    # iterate over all the citation list
     for idx, cit in tqdm(enumerate(l_cits)):
-        # add the citing and cited entities to be further retrivied from redis
         cits_buffer.append(cit)
-        # Process when the buffer is full or I have reached the last element of the list
         if len(cits_buffer) >= REDIS_R_BUFFER_CITS or idx == len(l_cits) - 1:
-
-            # ==== (1) GET OMIDs of all the BRs involved ====
             br_anyids = [x for c in cits_buffer for x in c]
             br_omids = _get_br_omids(br_anyids)
 
-            # iterate by couples – each couple is a list
+            # Collect all valid citing/cited omid pairs for this buffer first
+            all_pairs = []
             for cit in cits_buffer:
-
                 val_citing_omid = br_omids[cit[0]]
                 val_cited_omid = br_omids[cit[1]]
-
-                # check if citing or cited entities have an OMID
                 if not val_citing_omid or not val_cited_omid:
                     continue
-
-                # since an ANYID miught have multiple OMIDs, we need to get all of them and iterate over all pairs
                 cit_pairs = [(x, y) for x in val_citing_omid for y in val_cited_omid]
-                for citing_omid, cited_omid in cit_pairs:
+                all_pairs.extend(cit_pairs)
 
-                    in_ocindex = False
+            # Batch the index-membership check with a single pipeline round-trip
+            index_flags = [False] * len(all_pairs)
+            if checkindex and all_pairs:
+                pipe = redis_cits.pipeline(transaction=False)
+                for citing_omid, cited_omid in all_pairs:
+                    member = collection.lower() + ":" + citing_omid.replace("omid:", "")
+                    pipe.sismember(cited_omid.replace("omid:", ""), member)
+                index_flags = pipe.execute()  # list of True/False, same order as all_pairs
 
-                    # just if requested
-                    if checkindex:
-                        cited_redis = redis_cits.smembers(cited_omid.replace("omid:", ""))
-                        if cited_redis:
-                            in_ocindex = collection.lower() + ":" + citing_omid.replace("omid:", "") in cited_redis
+            for (citing_omid, cited_omid), in_ocindex in zip(all_pairs, index_flags):
+                if not in_ocindex:
+                    oci_omid = citing_omid.replace("omid:br/", "") + "-" + cited_omid.replace("omid:br/", "")
+                    res_cits[oci_omid] = (citing_omid, cited_omid)
 
-                    if not in_ocindex:
-                        oci_omid = citing_omid.replace("omid:br/","")+"-"+cited_omid.replace("omid:br/","")
-                        res_cits[oci_omid] = (citing_omid,cited_omid)
-
-            # Reset buffer and write in cache
             cits_buffer = []
-
-    # return a list of citations in omid
-    # each citation is a tuple: (<OCI-VAL>,<CITING-OMID>,<CITED-OMID>,)
     return res_cits
 
 
