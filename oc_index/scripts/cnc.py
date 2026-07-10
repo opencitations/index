@@ -338,7 +338,7 @@ def main():
         "--checkindex",
         action="store_true",
         default=False,
-        help="Enable a check in case the citation comming form this collection is already in oc index",
+        help="Check in case the new citations to generate are already in oc-index (a proper REDIS DB)",
     )
 
     args = arg_parser.parse_args()
