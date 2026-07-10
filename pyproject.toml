@@ -33,6 +33,7 @@ dependencies = [
 "oc.index.genSourceRDF" = "oc_index.scripts.gen_source_rdf:main"
 "oc.index.meta2redis" = "oc_index.scripts.meta2redis:main"
 "oc.index.cits2redis" = "oc_index.scripts.cits2redis:main"
+"oc.index.redisStats" = "oc_index.scripts.stats_redis_cits:main"
 "oc.index.dump_index" = "oc_index.scripts.dump_index:main"
 "oc.index.citscount2anyid" = "oc_index.scripts.anyid_citation_count:main"
 "oc.index.edit_rdf" = "oc_index.scripts.edit_rdf:main"
