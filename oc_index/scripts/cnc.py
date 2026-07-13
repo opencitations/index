@@ -344,7 +344,7 @@ def main():
     args = arg_parser.parse_args()
 
     global _logger, idbase_url, index_identifier, agent, service_name, baseurl, source
-    global redis_br, redis_cits_cache
+    global redis_br, redis_cits_cache, redis_cits
 
     _config = get_config(args.config)
     _logger = get_logger()
