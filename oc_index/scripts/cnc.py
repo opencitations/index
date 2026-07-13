@@ -355,7 +355,7 @@ def main():
 
     # The corresponding source url
     # E.G. https://api.crossref.org/snapshots/monthly/2023/09/all.json.tar.gz",
-    source = _config.get(collection_name, "source")
+    source = _config.get(collection, "source")
     if args.source:
         source = args.source.strip()
 
