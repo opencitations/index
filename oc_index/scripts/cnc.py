@@ -138,6 +138,9 @@ def _get_br_omids(br_anyids):
 
 
 def set_cits(collection, checkindex, l_cits, pid=0):
+
+    global _logger
+    
     cits_buffer = []
     res_cits = dict()
     for idx, cit in tqdm(enumerate(l_cits)):
@@ -164,6 +167,7 @@ def set_cits(collection, checkindex, l_cits, pid=0):
                     member = collection.lower() + ":" + citing_omid.replace("omid:", "")
                     pipe.sismember(cited_omid.replace("omid:", ""), member)
                 index_flags = pipe.execute()  # list of True/False, same order as all_pairs
+                _logger.info("[STATS] #Citations already in OC INDEX = "+str(sum(index_flags))+ " / "+str(len(all_pairs)))
 
             for (citing_omid, cited_omid), in_ocindex in zip(all_pairs, index_flags):
                 if not in_ocindex:
