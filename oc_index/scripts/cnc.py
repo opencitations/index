@@ -39,6 +39,7 @@ REDIS_R_BUFFER_CITS = 100000
 _logger: logging.Logger
 idbase_url: str
 index_identifier: str
+source_identifier: str
 agent: str
 service_name: str
 baseurl: str
@@ -126,6 +127,11 @@ def gen_cits(cits, pid = 0):
 
 
 def _get_br_omids(br_anyids):
+    global index_identifier, source_identifier
+
+    if source_identifier == index_identifier:
+        return {omid_id: [omid_id] for omid_id in br_anyids}
+
     br_omids = {br_anyid: [] for br_anyid in dict.fromkeys(br_anyids)}
     pipe = redis_br.pipeline()
     for br_anyid in br_omids:
@@ -140,7 +146,7 @@ def _get_br_omids(br_anyids):
 def set_cits(collection, checkindex, l_cits, pid=0):
 
     global _logger
-    
+
     cits_buffer = []
     res_cits = dict()
     for idx, cit in tqdm(enumerate(l_cits)):
@@ -195,6 +201,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0, checkindex = False
     """
     global _config
     global _logger
+    global source_identifier
 
     # === CONFIGURATION ===
     # All the citations produced by DS-Converter already have the ID Prefix
@@ -347,7 +354,7 @@ def main():
 
     args = arg_parser.parse_args()
 
-    global _logger, idbase_url, index_identifier, agent, service_name, baseurl, source
+    global _logger, idbase_url, index_identifier, source_identifier, agent, service_name, baseurl, source
     global redis_br, redis_cits_cache, redis_cits
 
     _config = get_config(args.config)
@@ -362,6 +369,7 @@ def main():
     source = _config.get(collection, "source")
     if args.source:
         source = args.source.strip()
+    source_identifier = _config.get(collection, "identifier")
 
     collection_name = "INDEX"
     idbase_url = _config.get(collection_name, "idbaseurl")
