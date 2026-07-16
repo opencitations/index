@@ -438,6 +438,7 @@ def main():
         # fallback: single process
         cnc(collection, input_files, intype, output_dir, 0)
 
+    _logger.info("All Done!")
     # 4. Continue with the rest of your code **after all files are done**
     # e.g., merging outputs, generating RDF/CSV summary, logging, etc.
     # >> post_processing(output_dir)

@@ -50,6 +50,12 @@ def get_source(s, config):
         },
         "croci": {
             "https://doi.org/10.5281/zenodo.3832935"
+        },
+        "moci": {
+            "https://matilda.science"
+        },
+        "outoci": {
+            "https://doi.org/10.5281/zenodo.18172742"
         }
     }
     for k,vals in s_sources.items():
