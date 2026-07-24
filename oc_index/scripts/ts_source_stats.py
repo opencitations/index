@@ -1,10 +1,33 @@
 #!/usr/bin/env python3
 
+"""
+Run overlap queries for OpenCitations collections.
+
+Produces:
+    - collection_combinations.csv
+      Counts for every combination of sizes 2,3,4,5,7.
+
+    - only_collections.csv
+      Counts of citations occurring exclusively in one collection.
+
+Example:
+
+python combinations.py
+
+python combinations.py \
+    --endpoint http://localhost:7021 \
+    --output combinations.csv \
+    --only-output exclusive.csv
+
+"""
+
 import argparse
 import csv
 import itertools
-import requests
 import sys
+
+import requests
+
 
 COLLECTIONS = [
     "coci",
@@ -16,25 +39,51 @@ COLLECTIONS = [
     "moci",
 ]
 
-PREFIX = "https://w3id.org/oc/index/"
+BASE = "https://w3id.org/oc/index/"
 
 
 def build_query(combination):
-    patterns = "\n".join(
-        f"?citation <http://www.w3.org/ns/prov#atLocation> <{PREFIX}{c}/> ."
+    """Build query for citations appearing in all collections of a combination."""
+
+    triples = "\n".join(
+        f"?citation <http://www.w3.org/ns/prov#atLocation> <{BASE}{c}/> ."
         for c in combination
     )
 
-    return f"""PREFIX cito:<http://purl.org/spar/cito/>
-
+    return f"""
 SELECT (COUNT(?citation) AS ?count)
 WHERE {{
-{patterns}
+{triples}
 }}
 """
 
 
+def build_only_query(collection):
+    """Build query for citations appearing ONLY in one collection."""
+
+    query = f"""
+SELECT (COUNT(?citation) AS ?count)
+WHERE {{
+?citation <http://www.w3.org/ns/prov#atLocation> <{BASE}{collection}/> .
+"""
+
+    for other in COLLECTIONS:
+        if other == collection:
+            continue
+
+        query += f"""
+FILTER NOT EXISTS {{
+    ?citation <http://www.w3.org/ns/prov#atLocation> <{BASE}{other}/> .
+}}
+"""
+
+    query += "\n}"
+
+    return query
+
+
 def run_query(endpoint, query):
+
     headers = {
         "Accept": "application/sparql-results+json",
     }
@@ -45,6 +94,7 @@ def run_query(endpoint, query):
         headers=headers,
         timeout=600,
     )
+
     response.raise_for_status()
 
     data = response.json()
@@ -53,9 +103,8 @@ def run_query(endpoint, query):
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Count citation overlaps between OpenCitations collections."
-    )
+
+    parser = argparse.ArgumentParser()
 
     parser.add_argument(
         "--endpoint",
@@ -74,49 +123,110 @@ def main():
     parser.add_argument(
         "--output",
         default="collection_combinations.csv",
-        help="Output CSV file",
+        help="CSV for combination counts",
+    )
+
+    parser.add_argument(
+        "--only-output",
+        default="only_collections.csv",
+        help="CSV for exclusive collection counts",
     )
 
     args = parser.parse_args()
 
-    rows = []
+    ####################################################################
+    # Combination queries
+    ####################################################################
+
+    combination_rows = []
+
+    total = sum(
+        len(list(itertools.combinations(COLLECTIONS, s)))
+        for s in args.sizes
+        if 2 <= s <= len(COLLECTIONS)
+    )
+
+    i = 1
 
     for size in args.sizes:
 
         if size < 2 or size > len(COLLECTIONS):
-            print(f"Skipping invalid size {size}")
             continue
 
         for comb in itertools.combinations(COLLECTIONS, size):
 
             name = "-".join(comb)
 
-            print(f"Running {name}...")
+            print(f"[{i}/{total}] {name}")
 
             query = build_query(comb)
 
             try:
                 count = run_query(args.endpoint, query)
-
             except Exception as e:
-                print(f"ERROR: {e}", file=sys.stderr)
+                print(e, file=sys.stderr)
                 count = None
 
-            rows.append({
-                "size": size,
-                "combination": name,
-                "count": count,
-            })
+            combination_rows.append(
+                {
+                    "size": size,
+                    "combination": name,
+                    "count": count,
+                }
+            )
+
+            i += 1
 
     with open(args.output, "w", newline="") as f:
+
         writer = csv.DictWriter(
             f,
             fieldnames=["size", "combination", "count"],
         )
-        writer.writeheader()
-        writer.writerows(rows)
 
-    print(f"\nSaved {len(rows)} results to {args.output}")
+        writer.writeheader()
+        writer.writerows(combination_rows)
+
+    ####################################################################
+    # Exclusive queries
+    ####################################################################
+
+    exclusive_rows = []
+
+    print("\nRunning exclusive collection queries...\n")
+
+    for collection in COLLECTIONS:
+
+        print(f"only-{collection}")
+
+        query = build_only_query(collection)
+
+        try:
+            count = run_query(args.endpoint, query)
+        except Exception as e:
+            print(e, file=sys.stderr)
+            count = None
+
+        exclusive_rows.append(
+            {
+                "collection": collection,
+                "count": count,
+            }
+        )
+
+    with open(args.only_output, "w", newline="") as f:
+
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["collection", "count"],
+        )
+
+        writer.writeheader()
+        writer.writerows(exclusive_rows)
+
+    print("\nFinished.")
+    print(f"Combination counts : {args.output}")
+    print(f"Exclusive counts   : {args.only_output}")
 
 
 if __name__ == "__main__":
