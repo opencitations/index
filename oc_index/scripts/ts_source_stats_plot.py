@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
-import pandas as pd
+
 import matplotlib.pyplot as plt
+import pandas as pd
 from matplotlib.patches import Rectangle
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Create a source-combination matrix from a CSV."
+        description="Plot source combinations matrix."
     )
 
     parser.add_argument(
@@ -44,7 +45,7 @@ def main():
     args = parse_args()
 
     # --------------------------------------------------
-    # Source names and display labels
+    # Labels
     # --------------------------------------------------
 
     labels = {
@@ -65,17 +66,21 @@ def main():
 
     df = pd.read_csv(args.csv)
 
+    # Keep only combinations of size >= 2
+    df = df[df["size"] >= 2]
+
+    # Remove zero-count combinations unless requested
     if not args.keep_zero:
         df = df[df["count"] > 0]
 
     df = df.sort_values(["size", "combination"])
 
     # --------------------------------------------------
-    # Build rows
+    # Build plotting rows
     # --------------------------------------------------
 
     rows = []
-    group_info = []
+    groups = []
 
     y = 0
 
@@ -98,7 +103,7 @@ def main():
 
         end = y
 
-        group_info.append((size, start, end))
+        groups.append((size, start, end))
 
         # blank row between groups
         y += 1
@@ -107,11 +112,16 @@ def main():
     # Figure
     # --------------------------------------------------
 
-    fig_height = max(6, len(rows) * 0.30)
+    fig_height = max(6, len(rows) * 0.28)
 
     fig, ax = plt.subplots(figsize=(12, fig_height))
 
-    # alternating row colors
+    n_sources = len(order)
+
+    # --------------------------------------------------
+    # Alternating row colors
+    # --------------------------------------------------
+
     for row in rows:
 
         if row["y"] % 2 == 0:
@@ -119,15 +129,18 @@ def main():
             ax.add_patch(
                 Rectangle(
                     (-2.4, row["y"] - 0.5),
-                    len(order) + 2.8,
+                    n_sources + 2.9,
                     1,
-                    facecolor="#F3F6F8",
+                    facecolor="#f3f6f8",
                     edgecolor="none",
                     zorder=0,
                 )
             )
 
-    # counts
+    # --------------------------------------------------
+    # Counts
+    # --------------------------------------------------
+
     for row in rows:
 
         ax.text(
@@ -139,25 +152,41 @@ def main():
             fontsize=9,
         )
 
-    # X marks
+    # --------------------------------------------------
+    # Circles + connecting line
+    # --------------------------------------------------
+
     for row in rows:
 
-        for x, source in enumerate(order):
+        xs = [
+            i
+            for i, source in enumerate(order)
+            if source in row["combo"]
+        ]
 
-            if source in row["combo"]:
+        if len(xs) > 1:
 
-                ax.text(
-                    x,
-                    row["y"],
-                    "x",
-                    ha="center",
-                    va="center",
-                    fontsize=12,
-                    fontweight="bold",
-                )
+            ax.plot(
+                [min(xs), max(xs)],
+                [row["y"], row["y"]],
+                color="black",
+                linewidth=1.3,
+                zorder=2,
+            )
 
-    # group labels and separators
-    for i, (size, start, end) in enumerate(group_info):
+        ax.scatter(
+            xs,
+            [row["y"]] * len(xs),
+            s=55,
+            color="black",
+            zorder=3,
+        )
+
+    # --------------------------------------------------
+    # Group labels
+    # --------------------------------------------------
+
+    for i, (size, start, end) in enumerate(groups):
 
         center = (start + end - 1) / 2
 
@@ -171,18 +200,22 @@ def main():
             fontsize=10,
         )
 
-        if i < len(group_info) - 1:
+        if i < len(groups) - 1:
 
             ax.hlines(
                 end - 0.5,
                 -2.4,
-                len(order) - 0.5,
-                colors="gray",
-                linestyles="dotted",
+                n_sources - 0.5,
+                color="gray",
+                linestyle="dotted",
+                linewidth=0.8,
             )
 
-    # headers
-    ax.set_xticks(range(len(order)))
+    # --------------------------------------------------
+    # Column labels
+    # --------------------------------------------------
+
+    ax.set_xticks(range(n_sources))
     ax.set_xticklabels(
         [labels[s] for s in order],
         fontsize=12,
@@ -191,8 +224,11 @@ def main():
 
     ax.xaxis.tick_top()
 
-    # cosmetics
-    ax.set_xlim(-2.4, len(order) - 0.5)
+    # --------------------------------------------------
+    # Appearance
+    # --------------------------------------------------
+
+    ax.set_xlim(-2.4, n_sources - 0.5)
     ax.set_ylim(y - 0.5, -0.5)
 
     ax.set_yticks([])
@@ -203,7 +239,11 @@ def main():
 
     plt.tight_layout()
 
-    plt.savefig(args.output, dpi=args.dpi, bbox_inches="tight")
+    plt.savefig(
+        args.output,
+        dpi=args.dpi,
+        bbox_inches="tight",
+    )
 
     plt.show()
 
