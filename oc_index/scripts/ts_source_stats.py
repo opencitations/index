@@ -10,15 +10,21 @@ Produces:
     - only_collections.csv
       Counts of citations occurring exclusively in one collection.
 
-Example:
+Examples
 
-python combinations.py
+Run everything:
+    python combinations.py
 
-python combinations.py \
-    --endpoint http://localhost:7021 \
-    --output combinations.csv \
-    --only-output exclusive.csv
+Only overlap combinations:
+    python combinations.py --mode combinations
 
+Only exclusive counts:
+    python combinations.py --mode exclusive
+
+Custom endpoint:
+    python combinations.py \
+        --endpoint http://localhost:7021 \
+        --mode both
 """
 
 import argparse
@@ -43,7 +49,9 @@ BASE = "https://w3id.org/oc/index/"
 
 
 def build_query(combination):
-    """Build query for citations appearing in all collections of a combination."""
+    """
+    Query counting citations present in ALL collections of a combination.
+    """
 
     triples = "\n".join(
         f"?citation <http://www.w3.org/ns/prov#atLocation> <{BASE}{c}/> ."
@@ -59,33 +67,36 @@ WHERE {{
 
 
 def build_only_query(collection):
-    """Build query for citations appearing ONLY in one collection."""
+    """
+    Query counting citations present ONLY in one collection.
+    Uses MINUS instead of FILTER NOT EXISTS.
+    """
 
-    query = f"""
+    others = "\n".join(
+        f"<{BASE}{c}/>"
+        for c in COLLECTIONS
+        if c != collection
+    )
+
+    return f"""
 SELECT (COUNT(?citation) AS ?count)
 WHERE {{
-?citation <http://www.w3.org/ns/prov#atLocation> <{BASE}{collection}/> .
-"""
+    ?citation <http://www.w3.org/ns/prov#atLocation> <{BASE}{collection}/> .
 
-    for other in COLLECTIONS:
-        if other == collection:
-            continue
-
-        query += f"""
-FILTER NOT EXISTS {{
-    ?citation <http://www.w3.org/ns/prov#atLocation> <{BASE}{other}/> .
+    MINUS {{
+        ?citation <http://www.w3.org/ns/prov#atLocation> ?other .
+        VALUES ?other {{
+            {others}
+        }}
+    }}
 }}
 """
-
-    query += "\n}"
-
-    return query
 
 
 def run_query(endpoint, query):
 
     headers = {
-        "Accept": "application/sparql-results+json",
+        "Accept": "application/sparql-results+json"
     }
 
     response = requests.post(
@@ -104,7 +115,9 @@ def run_query(endpoint, query):
 
 def main():
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Run overlap/exclusive queries over OpenCitations collections."
+    )
 
     parser.add_argument(
         "--endpoint",
@@ -121,112 +134,140 @@ def main():
     )
 
     parser.add_argument(
+        "--mode",
+        choices=["combinations", "exclusive", "both"],
+        default="both",
+        help="What to compute.",
+    )
+
+    parser.add_argument(
         "--output",
         default="collection_combinations.csv",
-        help="CSV for combination counts",
+        help="Output CSV for combinations",
     )
 
     parser.add_argument(
         "--only-output",
         default="only_collections.csv",
-        help="CSV for exclusive collection counts",
+        help="Output CSV for exclusive counts",
     )
 
     args = parser.parse_args()
 
-    ####################################################################
-    # Combination queries
-    ####################################################################
+    ###########################################################
+    # COMBINATIONS
+    ###########################################################
 
-    combination_rows = []
+    if args.mode in ("combinations", "both"):
 
-    total = sum(
-        len(list(itertools.combinations(COLLECTIONS, s)))
-        for s in args.sizes
-        if 2 <= s <= len(COLLECTIONS)
-    )
+        combination_rows = []
 
-    i = 1
+        total = sum(
+            len(list(itertools.combinations(COLLECTIONS, s)))
+            for s in args.sizes
+            if 2 <= s <= len(COLLECTIONS)
+        )
 
-    for size in args.sizes:
+        current = 1
 
-        if size < 2 or size > len(COLLECTIONS):
-            continue
+        print(f"Running {total} combination queries...\n")
 
-        for comb in itertools.combinations(COLLECTIONS, size):
+        for size in args.sizes:
 
-            name = "-".join(comb)
+            if size < 2 or size > len(COLLECTIONS):
+                continue
 
-            print(f"[{i}/{total}] {name}")
+            for comb in itertools.combinations(COLLECTIONS, size):
 
-            query = build_query(comb)
+                name = "-".join(comb)
+
+                print(f"[{current}/{total}] {name}")
+
+                try:
+                    count = run_query(
+                        args.endpoint,
+                        build_query(comb),
+                    )
+
+                except Exception as e:
+                    print(e, file=sys.stderr)
+                    count = None
+
+                combination_rows.append(
+                    {
+                        "size": size,
+                        "combination": name,
+                        "count": count,
+                    }
+                )
+
+                current += 1
+
+        with open(args.output, "w", newline="") as f:
+
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "size",
+                    "combination",
+                    "count",
+                ],
+            )
+
+            writer.writeheader()
+            writer.writerows(combination_rows)
+
+        print(f"\nSaved {len(combination_rows)} rows to {args.output}")
+
+    ###########################################################
+    # EXCLUSIVE
+    ###########################################################
+
+    if args.mode in ("exclusive", "both"):
+
+        exclusive_rows = []
+
+        print("\nRunning exclusive queries...\n")
+
+        for collection in COLLECTIONS:
+
+            print(f"only-{collection}")
 
             try:
-                count = run_query(args.endpoint, query)
+
+                count = run_query(
+                    args.endpoint,
+                    build_only_query(collection),
+                )
+
             except Exception as e:
+
                 print(e, file=sys.stderr)
                 count = None
 
-            combination_rows.append(
+            exclusive_rows.append(
                 {
-                    "size": size,
-                    "combination": name,
+                    "collection": collection,
                     "count": count,
                 }
             )
 
-            i += 1
+        with open(args.only_output, "w", newline="") as f:
 
-    with open(args.output, "w", newline="") as f:
+            writer = csv.DictWriter(
+                f,
+                fieldnames=[
+                    "collection",
+                    "count",
+                ],
+            )
 
-        writer = csv.DictWriter(
-            f,
-            fieldnames=["size", "combination", "count"],
-        )
+            writer.writeheader()
+            writer.writerows(exclusive_rows)
 
-        writer.writeheader()
-        writer.writerows(combination_rows)
+        print(f"\nSaved {len(exclusive_rows)} rows to {args.only_output}")
 
-    ####################################################################
-    # Exclusive queries
-    ####################################################################
-
-    exclusive_rows = []
-
-    print("\nRunning exclusive collection queries...\n")
-
-    for collection in COLLECTIONS:
-
-        print(f"only-{collection}")
-
-        query = build_only_query(collection)
-
-        try:
-            count = run_query(args.endpoint, query)
-        except Exception as e:
-            print(e, file=sys.stderr)
-            count = None
-
-        exclusive_rows.append(
-            {
-                "collection": collection,
-                "count": count,
-            }
-        )
-
-    with open(args.only_output, "w", newline="") as f:
-
-        writer = csv.DictWriter(
-            f,
-            fieldnames=["collection", "count"],
-        )
-
-        writer.writeheader()
-        writer.writerows(exclusive_rows)
-
-    print("\nFinished.")
-    print(f"Combination counts : {args.output}")
-    print(f"Exclusive counts   : {args.only_output}")
+    print("\nDone.")
 
 
 if __name__ == "__main__":
