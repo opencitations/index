@@ -33,6 +33,7 @@ from oc_index.glob.redis import RedisDataSource
 
 import logging
 
+CITS_X_F = 100000
 BATCH_SAVE = 100000
 REDIS_R_BUFFER_CITS = 100000
 
@@ -49,7 +50,11 @@ redis_cits_cache: redis.Redis  # type: ignore[type-arg]
 redis_cits: redis.Redis
 
 
-def save_data(output_dir, cits_obj, pid = 0):
+def save_data(output_dir, cits_obj, pid = 0, force = False):
+
+    if not force:
+        if len(cits_obj) < CITS_X_F:
+            return False
     # define the storer
     index_ts_storer = CitationStorer(
         output_dir+"/ocindex-data",
@@ -63,6 +68,7 @@ def save_data(output_dir, cits_obj, pid = 0):
         index_ts_storer.store_citation(batch_citations)
 
     _logger.info("Citations stored")
+    return True   # <-- add this
 
 
 def gen_cits(cits, pid = 0):
@@ -220,6 +226,7 @@ def cnc(collection, input_files, intype, output_dir, pid = 0, checkindex = False
     index_citations = None
 
     # Check the type of the input given and process it as a function of that
+    cits_objs = []
     for _f in input_files:
 
         if intype=="ZIP" and _f.endswith(".zip"):
@@ -237,8 +244,9 @@ def cnc(collection, input_files, intype, output_dir, pid = 0, checkindex = False
                                 cits_in_file,
                                 pid
                             )
-                            cits_objs = gen_cits(ocindex_cits, pid)
-                            save_data(output_dir, cits_objs, pid)
+                            cits_objs = cits_objs + gen_cits(ocindex_cits, pid)
+                            if save_data(output_dir, cits_objs, pid):
+                                cits_objs = []
 
 
 
@@ -258,8 +266,9 @@ def cnc(collection, input_files, intype, output_dir, pid = 0, checkindex = False
                                 cits_in_file,
                                 pid
                             )
-                            cits_objs = gen_cits(ocindex_cits, pid)
-                            save_data(output_dir, cits_objs, pid)
+                            cits_objs = cits_objs + gen_cits(ocindex_cits, pid)
+                            if save_data(output_dir, cits_objs, pid):
+                                cits_objs = []
 
 
 
@@ -277,12 +286,15 @@ def cnc(collection, input_files, intype, output_dir, pid = 0, checkindex = False
                 ]
 
                 ocindex_cits = set_cits(collection, checkindex, cits_in_file, pid)
-                cits_objs = gen_cits(ocindex_cits, pid)
-                save_data(output_dir, cits_objs, pid)
+                cits_objs = cits_objs + gen_cits(ocindex_cits, pid)
+                if save_data(output_dir, cits_objs, pid):
+                    cits_objs = []
 
         else:
             _logger.warning(f"Unsupported file type: {_f}")
 
+    # after the loop, flush any remainder below CITS_X_F
+    save_data(output_dir, cits_objs, pid, force= True)
 
 
 def chunk_list(lst, n):
