@@ -41,6 +41,7 @@ dependencies = [
 "oc.index.metadata_crossref" = "oc_index.scripts.metadata_crossref:main"
 "oc.index.internet_archive" = "oc_index.scripts.internet_archive:main"
 "oc.index.tsDSStats" = "oc_index.scripts.ts_source_stats:main"
+"oc.index.tsDSStatsPlot" = "oc_index.scripts.ts_source_stats_plot:main"
 
 [build-system]
 requires = ["hatchling"]
