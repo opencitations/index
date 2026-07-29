@@ -67,18 +67,25 @@ def get_source(s, config):
     return "croci"
 
 
-def extract_oci_from_line(line):
-    """Extract OCI from a TTL line."""
-    if NEEDLE not in line:
+def extract_oci_and_source(line):
+    """Extract OCI and source from a TTL line."""
+    if "prov#atLocation" not in line:
         return None
 
-    start = line.find("ci/") + 3
-    end = line.find(">", start)
+    parts = line.split()
 
-    if start == -1 or end == -1:
+    if len(parts) < 3:
         return None
 
-    return line[start:end]
+    # Subject: <https://w3id.org/oc/index/ci/062304313982-06204061133>
+    subject = parts[0].strip("<>")
+    oci = subject.split("/ci/")[-1]
+
+    # Object: <https://w3id.org/oc/index/coci/>
+    obj = parts[2].strip("<>")
+    source = obj.rstrip("/").split("/")[-1]
+
+    return oci, source
 
 
 def upload2redis(rconn, logger, dump_path="", intype="", config=None):
@@ -108,13 +115,15 @@ def upload2redis(rconn, logger, dump_path="", intype="", config=None):
                             with archive.open(member) as f:
                                 for raw_line in f:
                                     line = raw_line.decode("utf-8", errors="ignore")
-                                    oci = extract_oci_from_line(line)
+                                    oci,source = extract_oci_and_source(line)
 
                                     if not oci:
                                         continue
 
                                     try:
                                         citing, cited = oci.split("-", 1)
+                                        citing = f"br/{source}:{citing}"
+                                        cited = f"br/{cited}"
                                     except ValueError:
                                         continue
 
@@ -134,13 +143,15 @@ def upload2redis(rconn, logger, dump_path="", intype="", config=None):
 
                 with open(fttl, "r", encoding="utf-8") as f:
                     for line in f:
-                        oci = extract_oci_from_line(line)
+                        oci,source = extract_oci_and_source(line)
 
                         if not oci:
                             continue
 
                         try:
                             citing, cited = oci.split("-", 1)
+                            citing = f"br/{source}:{citing}"
+                            cited = f"br/{cited}"
                         except ValueError:
                             continue
 

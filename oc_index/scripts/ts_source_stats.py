@@ -74,6 +74,19 @@ def build_only_query(collection):
     """
     Count citations appearing ONLY in one collection.
     Uses MINUS.
+
+    The Query in this case is very slow.
+    But should be somthing like this:
+
+    PREFIX prov: <http://www.w3.org/ns/prov#>
+    SELECT (COUNT(DISTINCT ?citation) AS ?count)
+    WHERE {
+      ?citation prov:atLocation <https://w3id.org/oc/index/[collection]/> .
+      MINUS {
+        ?citation prov:atLocation ?other .
+        FILTER (?other != <https://w3id.org/oc/index/[collection]/>)
+      }
+    }'
     """
 
     others = "\n".join(
