@@ -15,6 +15,7 @@ import os
 import argparse
 from redis import Redis
 import sys
+from pathlib import Path
 
 from tqdm import tqdm
 from oc_index.utils.logging import get_logger
@@ -135,32 +136,31 @@ def upload2redis(rconn, logger, dump_path="", intype="", config=None):
                                         flush_pipeline()
 
     elif intype == "TTL":
-        for filename in os.listdir(dump_path):
-            fttl = os.path.join(dump_path, filename)
 
-            if fttl.endswith(".ttl") and os.path.isfile(fttl):
-                logger.info(f"Reading {fttl} ...")
+        for fttl in Path(dump_path).rglob("*.ttl"):
 
-                with open(fttl, "r", encoding="utf-8") as f:
-                    for line in f:
-                        oci,source = extract_oci_and_source(line)
+            logger.info(f"Reading {fttl} ...")
 
-                        if not oci:
-                            continue
+            with open(fttl, "r", encoding="utf-8") as f:
+                for line in f:
+                    oci,source = extract_oci_and_source(line)
 
-                        try:
-                            citing, cited = oci.split("-", 1)
-                            citing = f"br/{source}:{citing}"
-                            cited = f"br/{cited}"
-                        except ValueError:
-                            continue
+                    if not oci:
+                        continue
 
-                        pipe.sadd(cited, citing)
-                        counter += 1
-                        total += 1
+                    try:
+                        citing, cited = oci.split("-", 1)
+                        citing = f"br/{source}:{citing}"
+                        cited = f"br/{cited}"
+                    except ValueError:
+                        continue
 
-                        if counter >= BATCH_SIZE:
-                            flush_pipeline()
+                    pipe.sadd(cited, citing)
+                    counter += 1
+                    total += 1
+
+                    if counter >= BATCH_SIZE:
+                        flush_pipeline()
 
     elif intype == "CSV_ZIP":
         for filename in os.listdir(dump_path):
