@@ -123,7 +123,7 @@ def upload2redis(rconn, logger, dump_path="", intype="", config=None):
 
                                     try:
                                         citing, cited = oci.split("-", 1)
-                                        citing = f"br/{source}:{citing}"
+                                        citing = f"{source}:br/{citing}"
                                         cited = f"br/{cited}"
                                     except ValueError:
                                         continue
