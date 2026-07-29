@@ -71,12 +71,12 @@ def get_source(s, config):
 def extract_oci_and_source(line):
     """Extract OCI and source from a TTL line."""
     if "prov#atLocation" not in line:
-        return None
+        return None,None
 
     parts = line.split()
 
     if len(parts) < 3:
-        return None
+        return None,None
 
     # Subject: <https://w3id.org/oc/index/ci/062304313982-06204061133>
     subject = parts[0].strip("<>")
