@@ -211,7 +211,7 @@ def main():
             for _a_cited, _val_citing in zip(cited_keys, citing_values):
                 # to_process
                 _a_cited = "omid:br/"+_a_cited
-                _l_citing = ["omid:br/"+_a for _a in _val_citing]
+                _l_citing = list({ "omid:" + _a.split(":")[1] for _a in _val_citing })
 
                 cits_pairs_to_process += [(_a_citing, _a_cited) for _a_citing in _l_citing]
                 # get also the metadata of the BRs involved
@@ -256,6 +256,7 @@ def main():
 
         # when <cursor> is 0 then break, scan completed
         if cursor == 0:
+            _logger.info("All data produced. Process done!!")
             break
 
 
