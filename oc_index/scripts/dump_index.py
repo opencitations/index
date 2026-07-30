@@ -220,6 +220,7 @@ def main():
                 br_meta.update( dict(zip(br_keys, metadata_values)) )
 
         # in case there are some entities to process iterate over all citation pairs
+        _logger.info("Process #citations ="+str(len(cits_pairs_to_process)))
         if cits_pairs_to_process:
 
             chunks = chunk_list(cits_pairs_to_process, WORKERS)
