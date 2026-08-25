@@ -236,9 +236,9 @@ def main():
 
                 g_chunks = [[]]
 
-            # Wait for all processes to finish
-            for p in processes:
-                p.join()
+                # Wait for all processes to finish
+                for p in processes:
+                    p.join()
 
         # in case there are some entities to process iterate over all citation pairs
         # if cits_pairs_to_process:
