@@ -28,9 +28,9 @@ import logging
 
 data_to_dump = defaultdict(list)
 
-CITED_BATCH_SIZE = 1500
-CITED_PER_FILE = 10000
-FILES_PER_ZIP = 1000
+CITED_BATCH_SIZE = 1000
+CITATIONS_PER_FILE = 1000000
+FILES_PER_ZIP = 500
 FILE_OUTPUT_DIR = "_out_"
 
 _logger: logging.Logger
@@ -152,14 +152,14 @@ def main():
 
     # === CONFIGURATION ===
     # CITED_BATCH_SIZE = 1000
-    # CITED_PER_FILE = 50000
+    # CITATIONS_PER_FILE = 50000
     # FILES_PER_ZIP = 100
     WORKERS = int(args.workers)
 
     _logger.info(
         "--------- Process ----------\n"
         f"CITED_BATCH_SIZE: {CITED_BATCH_SIZE}\n"
-        f"CITED_PER_FILE: {CITED_PER_FILE}\n"
+        f"CITATIONS_PER_FILE: {CITATIONS_PER_FILE}\n"
         f"FILES_PER_ZIP: {FILES_PER_ZIP}\n"
         f"WORKERS: {WORKERS}\n"
     )
@@ -264,7 +264,8 @@ def main():
 def process_pair(pairs, pnum, br_meta, end_cursor = False):
 
     global data_to_dump
-    p_data_to_dump = data_to_dump[pnum]
+    if pnum not in data_to_dump:
+        data_to_dump[pnum] = []
 
     for pair in pairs:
 
@@ -281,7 +282,7 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
         m_cited = json.loads(m_cited)
 
         oci_val = "oci:"+citing.replace("omid:br/","")+"-"+cited.replace("omid:br/","")
-        p_data_to_dump.append(
+        data_to_dump[pnum].append(
             Citation(
                 oci_val, # oci,
                 idbase_url + quote(citing.replace("omid:","")), # citing_url,
@@ -306,9 +307,9 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
             )
         )
 
-    # write p_data_to_dump to files when range CITED_PER_FILE is reached
-    if len(p_data_to_dump) >= CITED_PER_FILE or end_cursor:
-        _logger.info(f"Storing {len(p_data_to_dump)} citations data of task {pnum}...")
+    # write p_data_to_dump to files when range CITATIONS_PER_FILE is reached
+    if len(data_to_dump[pnum]) >= CITATIONS_PER_FILE or end_cursor:
+        _logger.info(f"Storing {len(data_to_dump[pnum])} citations data of task {pnum}...")
         # write to files
         index_ts_storer = CitationStorer(
             FILE_OUTPUT_DIR,
@@ -317,11 +318,11 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
             suffix= str(pnum)
         )
         BATCH_SAVE = 100000
-        for idx in range(0, len(p_data_to_dump), BATCH_SAVE):
-            batch_citations = p_data_to_dump[idx:idx+BATCH_SAVE]
+        for idx in range(0, len(data_to_dump[pnum]), BATCH_SAVE):
+            batch_citations = data_to_dump[pnum][idx:idx+BATCH_SAVE]
             index_ts_storer.store_citation(batch_citations)
         # reset data_to_dump
-        p_data_to_dump = []
+        data_to_dump[pnum] = []
 
         # check if the number of files already created should be zipped
         zip_and_cleanup(
