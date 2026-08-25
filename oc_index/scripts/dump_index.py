@@ -26,8 +26,6 @@ from oc_index.oci.storer import CitationStorer
 
 import logging
 
-data_to_dump = defaultdict(list)
-
 CITED_BATCH_SIZE = 1000
 CITATIONS_PER_FILE = 1000000
 FILES_PER_ZIP = 500
@@ -189,6 +187,7 @@ def main():
 
 
     cursor = 0
+    g_chunks = [[]]
 
     # iterate over all the citing entities
     while True:
@@ -224,12 +223,18 @@ def main():
         if cits_pairs_to_process:
 
             chunks = chunk_list(cits_pairs_to_process, WORKERS)
+            for i in range(len(g_chunks)):
+                g_chunks[i].extend(chunks[i])
 
-            processes = []
-            for idx,chunk in enumerate(chunks):
-                p = Process(target=process_pair, args=(chunk, idx, br_meta, cursor == 0))
-                p.start()
-                processes.append(p)
+            if len(g_chunks[0]) >= CITATIONS_PER_FILE:
+
+                processes = []
+                for idx,chunk in enumerate(g_chunks):
+                    p = Process(target=process_pair, args=(chunk, idx, br_meta, cursor == 0))
+                    p.start()
+                    processes.append(p)
+
+                g_chunks = [[]]
 
             # Wait for all processes to finish
             for p in processes:
@@ -263,9 +268,7 @@ def main():
 
 def process_pair(pairs, pnum, br_meta, end_cursor = False):
 
-    global data_to_dump
-    if pnum not in data_to_dump:
-        data_to_dump[pnum] = []
+    data_to_dump = []
 
     for pair in pairs:
 
@@ -282,7 +285,7 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
         m_cited = json.loads(m_cited)
 
         oci_val = "oci:"+citing.replace("omid:br/","")+"-"+cited.replace("omid:br/","")
-        data_to_dump[pnum].append(
+        data_to_dump.append(
             Citation(
                 oci_val, # oci,
                 idbase_url + quote(citing.replace("omid:","")), # citing_url,
@@ -308,28 +311,26 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
         )
 
     # write p_data_to_dump to files when range CITATIONS_PER_FILE is reached
-    if len(data_to_dump[pnum]) >= CITATIONS_PER_FILE or end_cursor:
-        _logger.info(f"Storing {len(data_to_dump[pnum])} citations data of task {pnum}...")
-        # write to files
-        index_ts_storer = CitationStorer(
-            FILE_OUTPUT_DIR,
-            baseurl + "/" if not baseurl.endswith("/") else baseurl,
-            store_as=["csv_data","rdf_data","scholix_data"],
-            suffix= str(pnum)
-        )
-        BATCH_SAVE = 100000
-        for idx in range(0, len(data_to_dump[pnum]), BATCH_SAVE):
-            batch_citations = data_to_dump[pnum][idx:idx+BATCH_SAVE]
-            index_ts_storer.store_citation(batch_citations)
-        # reset data_to_dump
-        data_to_dump[pnum] = []
+    # if len(data_to_dump[pnum]) >= CITATIONS_PER_FILE or end_cursor:
+    _logger.info(f"Storing {len(data_to_dump)} citations data of task {pnum}...")
+    # write to files
+    index_ts_storer = CitationStorer(
+        FILE_OUTPUT_DIR,
+        baseurl + "/" if not baseurl.endswith("/") else baseurl,
+        store_as=["csv_data","rdf_data","scholix_data"],
+        suffix= str(pnum)
+    )
+    BATCH_SAVE = 100000
+    for idx in range(0, len(data_to_dump), BATCH_SAVE):
+        batch_citations = data_to_dump[idx:idx+BATCH_SAVE]
+        index_ts_storer.store_citation(batch_citations)
 
-        # check if the number of files already created should be zipped
-        zip_and_cleanup(
-            index_ts_storer.data_csv_dir,
-            index_ts_storer.data_rdf_dir,
-            index_ts_storer.data_slx_dir,
-            FILES_PER_ZIP ,
-            force = end_cursor,
-            pnum = pnum
-        )
+    # check if the number of files already created should be zipped
+    zip_and_cleanup(
+        index_ts_storer.data_csv_dir,
+        index_ts_storer.data_rdf_dir,
+        index_ts_storer.data_slx_dir,
+        FILES_PER_ZIP ,
+        force = end_cursor,
+        pnum = pnum
+    )
