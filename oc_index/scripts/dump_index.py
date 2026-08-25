@@ -234,11 +234,11 @@ def main():
                     p.start()
                     processes.append(p)
 
-                g_chunks = [[]]
-
                 # Wait for all processes to finish
                 for p in processes:
                     p.join()
+
+                g_chunks = [[]]
 
         # in case there are some entities to process iterate over all citation pairs
         # if cits_pairs_to_process:
@@ -285,6 +285,10 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
         m_cited = json.loads(m_cited)
 
         oci_val = "oci:"+citing.replace("omid:br/","")+"-"+cited.replace("omid:br/","")
+
+        _logger.info(f" - {pair} - {citing} - {cited} - {m_citing} - {m_cited} ")
+        break
+
         data_to_dump.append(
             Citation(
                 oci_val, # oci,
