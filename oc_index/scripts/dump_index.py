@@ -230,6 +230,7 @@ def main():
 
                 processes = []
                 for idx,chunk in enumerate(g_chunks):
+                    _logger.info(f" - {len(chunk)} - {chunk[0]} - {chunk[idx]}")
                     p = Process(target=process_pair, args=(chunk, idx, br_meta, cursor == 0))
                     p.start()
                     processes.append(p)
