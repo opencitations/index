@@ -277,6 +277,9 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
         m_citing = br_meta.get(citing)
         m_cited = br_meta.get(cited)
 
+        _logger.info(f" - CEHCK – {m_citing} - {m_cited} ")
+        break
+
         # in case one of two entites has no metadata move to next citation
         if not m_citing or not m_cited:
             continue
@@ -286,9 +289,6 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
         m_cited = json.loads(m_cited)
 
         oci_val = "oci:"+citing.replace("omid:br/","")+"-"+cited.replace("omid:br/","")
-
-        _logger.info(f" - {pair} - {citing} - {cited} - {m_citing} - {m_cited} ")
-        break
 
         data_to_dump.append(
             Citation(
