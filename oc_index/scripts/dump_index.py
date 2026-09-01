@@ -229,8 +229,8 @@ def main():
             if len(g_chunks[0]) >= CITATIONS_PER_FILE:
 
                 processes = []
-                _logger.info(f" - Number of Chunks: {len(chunk)}")
                 for idx,chunk in enumerate(g_chunks):
+                    _logger.info(f" - Process {idx} elaborates #citations in chunk: {len(chunk)}")
                     p = Process(target=process_pair, args=(chunk, idx, br_meta, cursor == 0))
                     p.start()
                     processes.append(p)
