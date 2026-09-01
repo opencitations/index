@@ -223,7 +223,7 @@ def main():
         if cits_pairs_to_process:
 
             chunks = chunk_list(cits_pairs_to_process, WORKERS)
-            for i in WORKERS:
+            for i in range(0,WORKERS):
                 g_chunks[i].extend(chunks[i])
 
             if len(g_chunks[0]) >= CITATIONS_PER_FILE:
