@@ -187,7 +187,7 @@ def main():
 
 
     cursor = 0
-    g_chunks = [[]]
+    g_chunks = [[] for _ in range(WORKERS)]
     br_meta = {}
 
     # iterate over all the citing entities
@@ -223,14 +223,14 @@ def main():
         if cits_pairs_to_process:
 
             chunks = chunk_list(cits_pairs_to_process, WORKERS)
-            for i in range(len(g_chunks)):
+            for i in WORKERS:
                 g_chunks[i].extend(chunks[i])
 
             if len(g_chunks[0]) >= CITATIONS_PER_FILE:
 
                 processes = []
+                _logger.info(f" - Number of Chunks: {len(chunk)}")
                 for idx,chunk in enumerate(g_chunks):
-                    _logger.info(f" - {len(chunk)} - {chunk[0]} - {chunk[idx]}")
                     p = Process(target=process_pair, args=(chunk, idx, br_meta, cursor == 0))
                     p.start()
                     processes.append(p)
@@ -239,7 +239,7 @@ def main():
                 for p in processes:
                     p.join()
 
-                g_chunks = [[]]
+                g_chunks = [[] for _ in range(WORKERS)]
                 br_meta = {}
 
         # in case there are some entities to process iterate over all citation pairs
