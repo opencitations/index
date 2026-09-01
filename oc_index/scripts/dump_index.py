@@ -278,8 +278,8 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
         m_citing = br_meta.get(citing)
         m_cited = br_meta.get(cited)
 
-        _logger.info(f" - CEHCK – {m_citing} - {m_cited} ")
-        break
+        #CHECK:
+        #_logger.info(f" - CEHCK – {m_citing} - {m_cited} ")
 
         # in case one of two entites has no metadata move to next citation
         if not m_citing or not m_cited:
