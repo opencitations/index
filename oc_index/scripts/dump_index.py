@@ -291,30 +291,33 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
 
         oci_val = "oci:"+citing.replace("omid:br/","")+"-"+cited.replace("omid:br/","")
 
-        data_to_dump.append(
-            Citation(
-                oci_val, # oci,
-                idbase_url + quote(citing.replace("omid:","")), # citing_url,
-                m_citing["date"], # citing_pub_date,
-                idbase_url + quote(cited.replace("omid:","")), # cited_url,
-                m_cited["date"], # cited_pub_date,
-                None, # creation,
-                None, # timespan,
-                1, # prov_entity_number,
-                agent, # prov_agent_url,
-                source, # source,
-                datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
-                service_name, # service_name,
-                index_identifier, # id_type,
-                idbase_url + "([[XXX__decode]])", # id_shape,
-                "reference", # citation_type,
-                bool(set(m_citing["issn"]) & set(m_cited["issn"])), # journal_sc=False,
-                bool(set(m_citing["orcid"]) & set(m_cited["orcid"])), # journal_sc=False,
-                None, # prov_inv_date=None,
-                "Creation of the citation", # prov_description=None,
-                None, # prov_update=None,
+        try:
+            data_to_dump.append(
+                Citation(
+                    oci_val, # oci,
+                    idbase_url + quote(citing.replace("omid:","")), # citing_url,
+                    m_citing["date"], # citing_pub_date,
+                    idbase_url + quote(cited.replace("omid:","")), # cited_url,
+                    m_cited["date"], # cited_pub_date,
+                    None, # creation,
+                    None, # timespan,
+                    1, # prov_entity_number,
+                    agent, # prov_agent_url,
+                    source, # source,
+                    datetime.now(tz=timezone.utc).replace(microsecond=0).isoformat(sep="T"), # prov_date,
+                    service_name, # service_name,
+                    index_identifier, # id_type,
+                    idbase_url + "([[XXX__decode]])", # id_shape,
+                    "reference", # citation_type,
+                    bool(set(m_citing["issn"]) & set(m_cited["issn"])), # journal_sc=False,
+                    bool(set(m_citing["orcid"]) & set(m_cited["orcid"])), # journal_sc=False,
+                    None, # prov_inv_date=None,
+                    "Creation of the citation", # prov_description=None,
+                    None, # prov_update=None,
+                )
             )
-        )
+        except Exception as e:
+            pass
 
     # write p_data_to_dump to files when range CITATIONS_PER_FILE is reached
     # if len(data_to_dump[pnum]) >= CITATIONS_PER_FILE or end_cursor:
