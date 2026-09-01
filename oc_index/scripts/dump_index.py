@@ -188,6 +188,7 @@ def main():
 
     cursor = 0
     g_chunks = [[]]
+    br_meta = {}
 
     # iterate over all the citing entities
     while True:
@@ -195,7 +196,6 @@ def main():
         # index of entites to process
         # <citing_omid>: [<cited_omid_1>, <cited_omid_2>, <cited_omid_3> ... ]
         cits_pairs_to_process = []
-        br_meta = {}
 
         # get from redis first CITED_BATCH_SIZE citing entites
         cursor, cited_keys = redis_cits.scan(cursor=cursor, count=CITED_BATCH_SIZE)
@@ -240,6 +240,7 @@ def main():
                     p.join()
 
                 g_chunks = [[]]
+                br_meta = {}
 
         # in case there are some entities to process iterate over all citation pairs
         # if cits_pairs_to_process:
