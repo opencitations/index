@@ -209,7 +209,7 @@ def main():
 
             for _a_cited, _val_citing in zip(cited_keys, citing_values):
                 # to_process
-                _a_cited = "omid:br/"+_a_cited
+                _a_cited = "omid:"+_a_cited
                 _l_citing = list({ "omid:" + _a.split(":")[1] for _a in _val_citing })
 
                 cits_pairs_to_process += [(_a_citing, _a_cited) for _a_citing in _l_citing]
