@@ -41,7 +41,7 @@ def read_omid_map(f_omidmap):
                 any_id, br_omid = row
 
                 # also normalize omid val
-                br_omid = br_omid.replace("omid:br/","")
+                br_omid = br_omid.replace("omid:","")
                 omid_map[br_omid].add(any_id)
 
     return omid_map
@@ -114,6 +114,7 @@ def main():
     CHUNCK_SIZE = 10000
 
     # (1) Walk through all OMIDS in the OMID map (i.e. omid_map)
+    # EX. {br/0601234: {openalex:W41234, doi:10.1234}
     logger.info("Walk through all OMIDS in the OMID map (i.e. omid_map) ...")
 
 
@@ -127,8 +128,9 @@ def main():
 
         s_citing_unique_anyids = set()
         for citing_omid in s_citing_omids:
-
-            citing_anyid = omid_map.get(citing_omid)
+            # citing_omid, e.g. coci:br/0601234, poci:br/0601234
+            _collection, _val = citing_omid.split(":")
+            citing_anyid = omid_map.get(_collection)
             if not citing_anyid:
                 continue
 

@@ -28,7 +28,7 @@ import logging
 
 CITED_BATCH_SIZE = 1000
 CITATIONS_PER_FILE = 1000000
-FILES_PER_ZIP = 500
+FILES_PER_ZIP = 50
 FILE_OUTPUT_DIR = "_out_"
 
 _logger: logging.Logger
