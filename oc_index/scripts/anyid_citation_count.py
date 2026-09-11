@@ -129,7 +129,7 @@ def main():
         s_citing_unique_anyids = set()
         for citing_omid in s_citing_omids:
             # citing_omid, e.g. coci:br/0601234, poci:br/0601234
-            _collection, _val = citing_omid.split(b":", 1)
+            _collection, _val = citing_omid.decode("utf-8").split(":", 1)
             citing_anyid = omid_map.get(_val)
             if not citing_anyid:
                 continue
