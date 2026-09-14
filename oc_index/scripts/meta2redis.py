@@ -40,7 +40,7 @@ from scandir_rs import Walk  # type: ignore[import-untyped]
 from oc_index.utils.config import get_config
 
 console = Console()
-csv.field_size_limit(sys.maxsize)
+csv.field_size_limit(sys.maxsize) if os.name != "nt" else csv.field_size_limit(2**31 - 1)
 
 BASE_IRI = "https://w3id.org/oc/meta/"
 DIR_SPLIT = 10000
@@ -316,7 +316,7 @@ def _process_csv_file(a_csv_file, rconn_db_br, rconn_db_ra, rconn_db_metadata):
     ra_data = defaultdict(set)
     metadata = {}
 
-    text_file = io.TextIOWrapper(a_csv_file)
+    text_file = io.TextIOWrapper(a_csv_file, encoding="utf-8")
     try:
         for o_row in csv.DictReader(text_file):
             br_ids = get_key_ids(o_row["id"])

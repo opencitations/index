@@ -38,6 +38,7 @@ agent: str
 source: str
 service_name: str
 index_identifier: str
+file_output_dir: str
 
 
 def zip_and_cleanup(csv_dir, rdf_dir, slx_dir, files_per_zip, force = False, pnum=1):
@@ -99,7 +100,7 @@ def chunk_list(lst, n):
 
 def main():
 
-    global _logger, idbase_url, baseurl, agent, source, service_name, index_identifier
+    global _logger, idbase_url, baseurl, agent, source, service_name, index_identifier, file_output_dir
     global FILE_OUTPUT_DIR
 
     arg_parser = ArgumentParser(description="Dump OpenCitations Index data. This process reads all the data in Redis and creates a new data dump for the OpenCitations Index. The outputs are compressed, to all dump formats: CSV, RDF, SCHOLIX. **Make sure the Redis datasets are populated before running this script**")
@@ -132,6 +133,7 @@ def main():
     source = _config.get("INDEX", "source")
     service_name = _config.get("INDEX", "service")
     index_identifier = _config.get("INDEX", "identifier")
+    file_output_dir = _config.get("dump", "output")
 
     dump_date = datetime.now().strftime("%Y%m%d")
     if args.date:
@@ -165,12 +167,13 @@ def main():
     # === REDIS ===
     REDIS_CITS_DB = _config.get("cnc", "db_cits")
     REDIS_METADATA_DB = _config.get("INDEX", "db")
+    REDIS_PORT = int(_config.get("redis", "port"))
 
-    redis_cits = redis.Redis(host='localhost', port=6379, db=int(REDIS_CITS_DB), decode_responses=True)
+    redis_cits = redis.Redis(host='localhost', port=REDIS_PORT, db=int(REDIS_CITS_DB), decode_responses=True)
     # Sample data of redis_cits:
     # "06304836421": "[\"06290442260\", \"0606973973\", \"06290442260\", \"061204315925\"]"
 
-    redis_metadata = redis.Redis(host='localhost', port=6379, db=int(REDIS_METADATA_DB), decode_responses=True)
+    redis_metadata = redis.Redis(host='localhost', port=REDIS_PORT, db=int(REDIS_METADATA_DB), decode_responses=True)
     # Sample data of redis_metadata:
     # "omid:br/061601556475": "{\"date\": \"2019\", \"valid\": true, \"orcid\": [\"0000-0002-6819-0387\"], \"issn\": [\"0886-022X\", \"1525-6049\"]}"
 
@@ -231,7 +234,7 @@ def main():
                 processes = []
                 for idx,chunk in enumerate(g_chunks):
                     _logger.info(f" - Process {idx} elaborates #citations in chunk: {len(chunk)}")
-                    p = Process(target=process_pair, args=(chunk, idx, br_meta, cursor == 0))
+                    p = Process(target=process_pair, args=(chunk, idx, br_meta, cursor == 0, baseurl, file_output_dir))
                     p.start()
                     processes.append(p)
 
@@ -268,8 +271,7 @@ def main():
             break
 
 
-def process_pair(pairs, pnum, br_meta, end_cursor = False):
-
+def process_pair(pairs, pnum, br_meta, end_cursor = False, baseurl: str = "", file_output_dir: str = ""):
     data_to_dump = []
 
     for pair in pairs:
@@ -321,10 +323,10 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
 
     # write p_data_to_dump to files when range CITATIONS_PER_FILE is reached
     # if len(data_to_dump[pnum]) >= CITATIONS_PER_FILE or end_cursor:
-    _logger.info(f"Storing {len(data_to_dump)} citations data of task {pnum}...")
+    #_logger.info(f"Storing {len(data_to_dump)} citations data of task {pnum}...")
     # write to files
     index_ts_storer = CitationStorer(
-        FILE_OUTPUT_DIR,
+        file_output_dir,
         baseurl + "/" if not baseurl.endswith("/") else baseurl,
         store_as=["csv_data","rdf_data","scholix_data"],
         suffix= str(pnum)
@@ -343,3 +345,6 @@ def process_pair(pairs, pnum, br_meta, end_cursor = False):
         force = end_cursor,
         pnum = pnum
     )
+
+if __name__ == "__main__":
+    main()

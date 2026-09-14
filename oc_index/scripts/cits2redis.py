@@ -21,7 +21,7 @@ from tqdm import tqdm
 from oc_index.utils.logging import get_logger
 from oc_index.utils.config import get_config
 
-csv.field_size_limit(sys.maxsize)
+csv.field_size_limit(sys.maxsize) if os.name != "nt" else csv.field_size_limit(2**31 - 1)
 
 NEEDLE = "ci/"
 BATCH_SIZE = 50_000

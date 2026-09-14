@@ -400,15 +400,15 @@ def main():
 
     redis_br = redis.Redis(
         host="127.0.0.1",
-        port=6379,
+        port=int(_config.get("redis", "port")),
         db=int(_config.get("cnc", "db_br")),
         decode_responses=True,
     )
-    redis_cits_cache = redis.Redis(host="127.0.0.1", port=6379, db=int(_config.get("cnc", "db_omid")))
+    redis_cits_cache = redis.Redis(host="127.0.0.1", port=int(_config.get("redis", "port")), db=int(_config.get("cnc", "db_omid")))
 
     redis_cits = redis.Redis(
         host="127.0.0.1",
-        port=6379,
+        port=int(_config.get("redis", "port")),
         db=int(_config.get("cnc", "db_cits")),
         decode_responses=True,
     )
@@ -454,3 +454,6 @@ def main():
     # 4. Continue with the rest of your code **after all files are done**
     # e.g., merging outputs, generating RDF/CSV summary, logging, etc.
     # >> post_processing(output_dir)
+
+if __name__ == "__main__":
+    main()
